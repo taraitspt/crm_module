@@ -184,6 +184,29 @@ public class OracleReceivableAgingRepository {
         return out;
     }
 
+    /** 매출 회계단위(PC_CD) → 사업부. 매출현황의 공장코드(1000/2000/3000)와 1:1 로 같은 금액이다. */
+    private static final Map<String, String> SALES_PC_DIVISION = Map.of("1000", "TPS", "9000", "GRP", "8000", "PM");
+
+    /**
+     * 기간 매출 합계(부가세 포함) — 사업부별. 채권율·회수기한 분모.
+     * SD_BILL_MST 의 SPLY_AMT(공급가) + TAX_AMT(부가세). 채권잔액이 부가세 포함이라 분모도 맞춘다.
+     * 공급가 합계는 매출현황(SD_BILL_DTL.TRAN_AMT 공장별)과 원 단위까지 같다(2026-06~08 검증).
+     */
+    public Map<String, BigDecimal> findDivisionSales(LocalDate from, LocalDate to) {
+        Map<String, BigDecimal> out = new LinkedHashMap<>();
+        DIVISION_ACCOUNTS.keySet().forEach(k -> out.put(k, BigDecimal.ZERO));
+        jdbcTemplate.query("""
+                SELECT PC_CD, SUM(NVL(SPLY_AMT, 0) + NVL(TAX_AMT, 0)) AS AMT
+                  FROM SD_BILL_MST
+                 WHERE COMPANY_CD = ? AND BILL_DT BETWEEN ? AND ?
+                 GROUP BY PC_CD
+                """, rs -> {
+            String div = SALES_PC_DIVISION.get(trim(rs.getString("PC_CD")));
+            if (div != null) out.merge(div, nz(rs.getBigDecimal("AMT")), BigDecimal::add);
+        }, COMPANY_CD, from.format(BASIC), to.format(BASIC));
+        return out;
+    }
+
     private static List<Object> asOfArgs(String base) {
         List<Object> args = new ArrayList<>();
         args.add(COMPANY_CD); args.add(base);            // AFTER_BAN
