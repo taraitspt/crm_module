@@ -1,0 +1,95 @@
+/* 앱 기본 폰트 — Pretendard 로 통일.
+   위하고 SDK 가 html 에 'Noto Sans KR' 을 주입해 본문/컴포넌트 폰트가 갈렸다. !important 로 덮는다. */
+html, body {
+  font-family: 'Pretendard Variable', Pretendard, Inter, system-ui, -apple-system, sans-serif !important;
+}
+
+/* 전체 스크롤바 커스텀 */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+::-webkit-scrollbar-corner {
+  background: #f1f5f9;
+}
+
+.order-filter-toolbar .ant-input-affix-wrapper,
+.order-filter-toolbar .ant-picker,
+.order-filter-toolbar .ant-btn {
+  height: 40px;
+}
+
+.order-filter-toolbar .ant-select {
+  height: 40px;
+}
+
+.order-filter-toolbar .ant-select .ant-select-selector {
+  min-height: 40px !important;
+  height: 40px !important;
+  align-items: center !important;
+}
+
+.order-filter-toolbar .ant-select-single .ant-select-selector {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.order-filter-toolbar .ant-select-single .ant-select-selection-item,
+.order-filter-toolbar .ant-select-single .ant-select-selection-placeholder {
+  line-height: 38px !important;
+}
+
+.order-filter-toolbar .ant-select-single .ant-select-selection-search-input {
+  height: 38px !important;
+}
+
+.order-filter-toolbar .ant-picker-input > input,
+.order-filter-toolbar .ant-input {
+  height: 30px;
+}
+
+.order-filter-toolbar .ant-select-multiple .ant-select-selection-overflow {
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.order-filter-toolbar .ant-select-multiple .ant-select-selection-item {
+  height: 24px;
+  line-height: 22px;
+}
+
+.order-filter-toolbar .ant-select-multiple .ant-select-selection-search {
+  margin-inline-start: 0;
+}
+
+/* 숫자 열 — 자릿수가 흔들리지 않게 고정폭 숫자. (기존 코드가 이 클래스를 쓰는데 정의가 없었다) */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 금액 입력 그리드(월매출계획 등) — InputNumber 안쪽 input 은 antd 기본이 좌측정렬이라
+   컬럼 align="right" 가 먹지 않는다. 숫자는 오른쪽에 붙여야 자릿수 비교가 된다. */
+.amount-grid .ant-input-number-input {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 그리드 하단 합계행 — 데이터 행과 구분되게 배경을 준다. */
+.amount-grid-summary > td {
+  background: #f8fafc !important;
+}

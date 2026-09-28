@@ -1,0 +1,1 @@
+ALTER TABLE sales_dtl ADD COLUMN work_type VARCHAR(20) NULL;

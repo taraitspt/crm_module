@@ -1,0 +1,1702 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>화면설계서 - SM Module Oracle ERP 연동</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; background: #fff; color: #333; line-height: 1.7; }
+        .header { background: #1a237e; color: #fff; padding: 40px; text-align: center; }
+        .header h1 { font-size: 28px; margin-bottom: 8px; }
+        .header p { font-size: 14px; opacity: 0.8; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 40px 30px; }
+        h2 { font-size: 22px; color: #1a237e; border-bottom: 3px solid #1a237e; padding-bottom: 8px; margin: 40px 0 20px; }
+        h3 { font-size: 17px; color: #283593; margin: 24px 0 12px; }
+        h4 { font-size: 15px; color: #3949ab; margin: 16px 0 8px; }
+        table { width: 100%; border-collapse: collapse; margin: 16px 0 24px; font-size: 13px; }
+        th { background: #e8eaf6; color: #1a237e; padding: 10px 12px; text-align: left; border: 1px solid #c5cae9; font-weight: 600; }
+        td { padding: 8px 12px; border: 1px solid #e0e0e0; vertical-align: top; }
+        tr:nth-child(even) { background: #fafafa; }
+        .note { background: #fff8e1; border-left: 4px solid #ffc107; padding: 12px 16px; margin: 16px 0; font-size: 13px; }
+        .change-tag { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+        .tag-new { background: #e8f5e9; color: #2e7d32; }
+        .tag-modify { background: #fff3e0; color: #ef6c00; }
+        .tag-merge { background: #e3f2fd; color: #1565c0; }
+        .tag-delete { background: #ffebee; color: #c62828; }
+
+        /* Wireframe styles */
+        .wireframe { border: 2px solid #ccc; border-radius: 8px; margin: 20px 0; background: #fafafa; overflow: hidden; }
+        .wf-titlebar { background: #1a237e; color: #fff; padding: 10px 16px; font-size: 13px; font-weight: 600; display: flex; justify-content: space-between; }
+        .wf-breadcrumb { background: #f5f5f5; padding: 8px 16px; font-size: 12px; color: #666; border-bottom: 1px solid #e0e0e0; }
+        .wf-body { padding: 20px; }
+        .wf-tabs { display: flex; border-bottom: 2px solid #e0e0e0; margin-bottom: 16px; }
+        .wf-tab { padding: 10px 24px; font-size: 13px; font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; color: #666; }
+        .wf-tab.active { color: #1a237e; border-bottom-color: #1a237e; }
+        .wf-section { margin: 16px 0; }
+        .wf-section-title { font-size: 14px; font-weight: 600; color: #333; margin-bottom: 8px; padding-left: 10px; border-left: 3px solid #3949ab; }
+        .wf-filter-bar { display: flex; gap: 12px; align-items: center; padding: 12px; background: #f8f8f8; border-radius: 6px; margin: 12px 0; flex-wrap: wrap; }
+        .wf-input { padding: 6px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; background: #fff; min-width: 120px; }
+        .wf-select { padding: 6px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; background: #fff; min-width: 100px; }
+        .wf-btn { padding: 6px 16px; border-radius: 4px; font-size: 12px; font-weight: 600; border: none; cursor: pointer; }
+        .wf-btn-primary { background: #1a237e; color: #fff; }
+        .wf-btn-success { background: #2e7d32; color: #fff; }
+        .wf-btn-outline { background: #fff; color: #1a237e; border: 1px solid #1a237e; }
+        .wf-btn-danger { background: #c62828; color: #fff; }
+        .wf-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .wf-table th { background: #e8eaf6; padding: 8px 10px; text-align: left; border: 1px solid #d0d0d0; font-size: 11px; }
+        .wf-table td { padding: 6px 10px; border: 1px solid #e0e0e0; font-size: 11px; }
+        .wf-table tr:nth-child(even) { background: #f5f5ff; }
+        .wf-grid { display: grid; gap: 12px; margin: 12px 0; }
+        .wf-grid-2 { grid-template-columns: 1fr 1fr; }
+        .wf-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+        .wf-grid-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+        .wf-form-group { margin: 8px 0; }
+        .wf-form-label { font-size: 11px; color: #666; margin-bottom: 4px; display: block; }
+        .wf-card { border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px; background: #fff; }
+        .wf-stat { text-align: center; }
+        .wf-stat .num { font-size: 28px; font-weight: 700; color: #1a237e; }
+        .wf-stat .label { font-size: 11px; color: #666; }
+        .wf-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+        .badge-success { background: #e8f5e9; color: #2e7d32; }
+        .badge-warning { background: #fff3e0; color: #ef6c00; }
+        .badge-error { background: #ffebee; color: #c62828; }
+        .badge-info { background: #e3f2fd; color: #1565c0; }
+        .badge-gray { background: #f5f5f5; color: #999; }
+        .wf-pagination { display: flex; justify-content: center; gap: 4px; margin-top: 12px; }
+        .wf-page { padding: 4px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 11px; }
+        .wf-page.active { background: #1a237e; color: #fff; border-color: #1a237e; }
+
+        .footer { text-align: center; padding: 30px; color: #999; font-size: 12px; border-top: 1px solid #eee; margin-top: 40px; }
+        @media print { .header { background: #1a237e !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } .wf-titlebar { background: #1a237e !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+
+        /* Additional wireframe styles */
+        .wf-checkbox { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
+        .wf-checkbox-icon { width: 16px; height: 16px; border: 2px solid #1a237e; border-radius: 3px; display: inline-flex; align-items: center; justify-content: center; background: #e8eaf6; font-size: 10px; color: #1a237e; font-weight: 700; }
+        .wf-erp-result { padding: 8px 12px; border-radius: 4px; font-size: 12px; margin-top: 8px; }
+        .wf-erp-success { background: #e8f5e9; border: 1px solid #a5d6a7; color: #2e7d32; }
+        .wf-erp-fail { background: #ffebee; border: 1px solid #ef9a9a; color: #c62828; }
+        .wf-divider { border: none; border-top: 1px dashed #ccc; margin: 16px 0; }
+        .wf-label-new { background: #ff5722; color: #fff; font-size: 9px; padding: 1px 6px; border-radius: 3px; font-weight: 700; margin-left: 4px; vertical-align: middle; }
+
+        /* Menu tree styles */
+        .menu-tree { font-size: 13px; margin: 16px 0; }
+        .menu-tree ul { list-style: none; padding-left: 24px; }
+        .menu-tree > ul { padding-left: 0; }
+        .menu-tree li { padding: 4px 0; position: relative; }
+        .menu-tree li::before { content: ''; position: absolute; left: -16px; top: 0; border-left: 1px solid #c5cae9; height: 100%; }
+        .menu-tree li::after { content: ''; position: absolute; left: -16px; top: 14px; border-top: 1px solid #c5cae9; width: 12px; }
+        .menu-tree > ul > li::before, .menu-tree > ul > li::after { display: none; }
+        .menu-tree li:last-child::before { height: 14px; }
+        .menu-item { padding: 3px 10px; border-radius: 4px; display: inline-block; }
+        .menu-item-normal { background: #f5f5f5; }
+        .menu-item-modified { background: #fff3e0; border: 1px solid #ffcc80; }
+        .menu-item-new { background: #e8f5e9; border: 1px solid #a5d6a7; }
+        .menu-item-delete { background: #ffebee; border: 1px solid #ef9a9a; text-decoration: line-through; color: #999; }
+        .menu-item-merged { background: #e3f2fd; border: 1px solid #90caf9; }
+        .menu-legend { display: flex; gap: 16px; margin: 12px 0; font-size: 12px; flex-wrap: wrap; }
+        .menu-legend-item { display: flex; align-items: center; gap: 6px; }
+        .menu-legend-box { width: 16px; height: 16px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>화면설계서</h1>
+    <p>SM Module - Oracle ERP 연동 프로젝트 | 작성일: 2026-03-24 | HM소프트 | SM-ERP-UI-001</p>
+</div>
+
+<div class="container">
+
+    <!-- ============================================== -->
+    <!-- Section 1: 화면 목록 -->
+    <!-- ============================================== -->
+    <h2>1. 화면 목록</h2>
+
+    <div class="note">
+        본 문서는 SM Module의 Oracle ERP 연동에 따른 화면 변경 사항을 정의합니다. 기존 화면의 수정, 신규 화면 추가, 화면 통합/삭제 건을 포함합니다.
+    </div>
+
+    <h3>1.1 기존 화면 (ERP 연동 반영)</h3>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:40px;">#</th>
+                <th style="width:120px;">화면 ID</th>
+                <th style="width:120px;">화면명</th>
+                <th style="width:180px;">메뉴 경로</th>
+                <th style="width:80px;">변경유형</th>
+                <th>변경내용</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>1</td>
+                <td>SCR-ORD-001</td>
+                <td>주문등록</td>
+                <td>주문관리 &gt; 주문등록</td>
+                <td><span class="change-tag tag-modify">수정</span></td>
+                <td>ERP 주문 동시 등록 기능 추가</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>SCR-ORD-002</td>
+                <td>주문목록</td>
+                <td>주문관리 &gt; 주문목록</td>
+                <td><span class="change-tag tag-modify">수정</span></td>
+                <td>ERP 연동상태 컬럼 추가</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>SCR-SAL-001</td>
+                <td>매출목록</td>
+                <td>매출관리 &gt; 매출목록</td>
+                <td><span class="change-tag tag-modify">수정</span></td>
+                <td>ERP 매출 데이터 통합 표시</td>
+            </tr>
+            <tr>
+                <td>4</td>
+                <td>SCR-SAL-002</td>
+                <td>카드매출</td>
+                <td>매출관리 &gt; 카드매출</td>
+                <td><span class="change-tag tag-modify">수정</span></td>
+                <td>ERP FI_CARD_TRADE 데이터 연동</td>
+            </tr>
+            <tr>
+                <td>5</td>
+                <td>SCR-PUR-001</td>
+                <td>외주발주</td>
+                <td>매입마감 &gt; 외주발주</td>
+                <td><span class="change-tag tag-modify">수정</span></td>
+                <td>ERP 발주 동시 등록 기능 추가</td>
+            </tr>
+            <tr>
+                <td>6</td>
+                <td>SCR-INF-001</td>
+                <td>거래처관리</td>
+                <td>정보관리 &gt; 거래처관리</td>
+                <td><span class="change-tag tag-modify">수정</span></td>
+                <td>ERP 동기화 상태 표시, 매핑코드 표시</td>
+            </tr>
+            <tr>
+                <td>7</td>
+                <td>SCR-DSH-001</td>
+                <td>대시보드</td>
+                <td>대시보드</td>
+                <td><span class="change-tag tag-modify">수정</span></td>
+                <td>ERP 매출 데이터 반영</td>
+            </tr>
+            <tr>
+                <td>8</td>
+                <td>SCR-STA-001~007</td>
+                <td>통계 화면</td>
+                <td>통계</td>
+                <td><span class="change-tag tag-modify">수정</span></td>
+                <td>ERP 실적 데이터 기반으로 통계 산출</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>1.2 신규/변경 화면</h3>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:40px;">#</th>
+                <th style="width:120px;">화면 ID</th>
+                <th style="width:120px;">화면명</th>
+                <th style="width:180px;">메뉴 경로</th>
+                <th style="width:80px;">변경유형</th>
+                <th>변경내용</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>9</td>
+                <td>SCR-INF-010</td>
+                <td>목표입력</td>
+                <td>정보관리 &gt; 목표입력</td>
+                <td><span class="change-tag tag-merge">통합</span></td>
+                <td>파트목표+AM목표 통합 (탭UI)</td>
+            </tr>
+            <tr>
+                <td>10</td>
+                <td>SCR-ADM-001</td>
+                <td>ERP 동기화 관리</td>
+                <td>관리 &gt; ERP동기화</td>
+                <td><span class="change-tag tag-new">신규</span></td>
+                <td>동기화 현황/이력/수동실행</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>1.3 삭제 화면</h3>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:40px;">#</th>
+                <th style="width:120px;">화면 ID</th>
+                <th style="width:120px;">화면명</th>
+                <th style="width:180px;">메뉴 경로</th>
+                <th style="width:80px;">변경유형</th>
+                <th>변경내용</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>11</td>
+                <td>SCR-INF-002</td>
+                <td>파트목표입력</td>
+                <td>정보관리 &gt; 파트목표입력</td>
+                <td><span class="change-tag tag-delete">삭제</span></td>
+                <td>SCR-INF-010으로 통합</td>
+            </tr>
+            <tr>
+                <td>12</td>
+                <td>SCR-INF-003</td>
+                <td>AM목표입력</td>
+                <td>정보관리 &gt; AM목표입력</td>
+                <td><span class="change-tag tag-delete">삭제</span></td>
+                <td>SCR-INF-010으로 통합</td>
+            </tr>
+        </tbody>
+    </table>
+
+
+    <!-- ============================================== -->
+    <!-- Section 2: 신규 화면 상세 설계 -->
+    <!-- ============================================== -->
+    <h2>2. 신규 화면 상세 설계</h2>
+
+    <!-- ============================== -->
+    <!-- 2.1 SCR-INF-010 목표입력 -->
+    <!-- ============================== -->
+    <h3>2.1 SCR-INF-010: 목표입력 (통합)</h3>
+
+    <h4>화면 정보</h4>
+    <table>
+        <tbody>
+            <tr><th style="width:150px;">화면 ID</th><td>SCR-INF-010</td></tr>
+            <tr><th>화면명</th><td>목표입력</td></tr>
+            <tr><th>URL</th><td>/info/goal</td></tr>
+            <tr><th>접근 권한</th><td>MANAGER, ADMIN</td></tr>
+            <tr><th>변경 유형</th><td><span class="change-tag tag-merge">통합</span> 파트목표입력 + AM목표입력 통합</td></tr>
+        </tbody>
+    </table>
+
+    <h4>변경 전 vs 변경 후</h4>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:120px;">항목</th>
+                <th>변경 전</th>
+                <th>변경 후</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>화면 수</td>
+                <td>2개 (PartGoalPage, AmGoalPage)</td>
+                <td>1개 (GoalPage)</td>
+            </tr>
+            <tr>
+                <td>메뉴</td>
+                <td>파트목표입력, AM목표입력</td>
+                <td>목표입력</td>
+            </tr>
+            <tr>
+                <td>URL</td>
+                <td>/info/part-goal, /info/am-goal</td>
+                <td>/info/goal</td>
+            </tr>
+            <tr>
+                <td>전환방식</td>
+                <td>별도 페이지 이동</td>
+                <td>탭 전환 (같은 페이지 내)</td>
+            </tr>
+            <tr>
+                <td>API</td>
+                <td>/info/part-goals, /info/am-goals</td>
+                <td>동일 (변경 없음)</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h4>와이어프레임 - 파트목표 탭 활성</h4>
+
+    <!-- Wireframe: 목표입력 - 파트목표 탭 -->
+    <div class="wireframe">
+        <div class="wf-titlebar">
+            <span>SM Module</span>
+            <span style="font-size: 11px; opacity: 0.8;">관리자 | 로그아웃</span>
+        </div>
+        <div class="wf-breadcrumb">
+            정보관리 &gt; <strong>목표입력</strong>
+        </div>
+        <div class="wf-body">
+            <!-- Tabs -->
+            <div class="wf-tabs">
+                <div class="wf-tab active">파트목표</div>
+                <div class="wf-tab">AM목표</div>
+            </div>
+
+            <!-- Filter Bar -->
+            <div class="wf-filter-bar">
+                <span style="font-size: 12px; font-weight: 600; color: #333;">연도</span>
+                <select class="wf-select">
+                    <option>2026</option>
+                </select>
+                <button class="wf-btn wf-btn-primary">검색</button>
+                <button class="wf-btn wf-btn-success">저장</button>
+                <button class="wf-btn wf-btn-outline">엑셀 다운로드</button>
+            </div>
+
+            <!-- 파트목표 Table -->
+            <div class="wf-section">
+                <table class="wf-table">
+                    <thead>
+                        <tr>
+                            <th style="width:100px;">부서명</th>
+                            <th>1월 목표</th>
+                            <th>2월 목표</th>
+                            <th>3월 목표</th>
+                            <th>4월 목표</th>
+                            <th>5월 목표</th>
+                            <th>6월 목표</th>
+                            <th>7월 목표</th>
+                            <th>8월 목표</th>
+                            <th>9월 목표</th>
+                            <th>10월 목표</th>
+                            <th>11월 목표</th>
+                            <th>12월 목표</th>
+                            <th style="font-weight:700;">합계</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="font-weight:600;">영업1팀</td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="150,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="180,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="200,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="190,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="180,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="170,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="160,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="175,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="185,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="195,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="160,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="155,000"></td>
+                            <td style="text-align:right; font-weight:700;">2,100,000</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:600;">영업2팀</td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="120,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="140,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="160,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="150,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="145,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="130,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="125,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="140,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="150,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="140,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="130,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="150,000"></td>
+                            <td style="text-align:right; font-weight:700;">1,680,000</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:600;">영업3팀</td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="180,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="200,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="220,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="210,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="200,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="190,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="195,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="210,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="225,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="240,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="220,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="230,000"></td>
+                            <td style="text-align:right; font-weight:700;">2,520,000</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:600;">영업4팀</td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="100,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="100,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="120,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="110,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="100,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="90,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="80,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="85,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="90,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="95,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="80,000"></td>
+                            <td><input class="wf-input" style="width:70px; min-width:60px; text-align:right;" value="50,000"></td>
+                            <td style="text-align:right; font-weight:700;">1,100,000</td>
+                        </tr>
+                        <tr style="background: #e8eaf6 !important; font-weight: 700;">
+                            <td style="font-weight:700;">합계</td>
+                            <td style="text-align:right;">550,000</td>
+                            <td style="text-align:right;">620,000</td>
+                            <td style="text-align:right;">700,000</td>
+                            <td style="text-align:right;">660,000</td>
+                            <td style="text-align:right;">625,000</td>
+                            <td style="text-align:right;">580,000</td>
+                            <td style="text-align:right;">560,000</td>
+                            <td style="text-align:right;">610,000</td>
+                            <td style="text-align:right;">650,000</td>
+                            <td style="text-align:right;">670,000</td>
+                            <td style="text-align:right;">590,000</td>
+                            <td style="text-align:right;">585,000</td>
+                            <td style="text-align:right; font-weight:700;">7,400,000</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="wf-pagination">
+                <span class="wf-page">&lt;</span>
+                <span class="wf-page active">1</span>
+                <span class="wf-page">2</span>
+                <span class="wf-page">3</span>
+                <span class="wf-page">&gt;</span>
+            </div>
+        </div>
+    </div>
+
+    <h4>와이어프레임 - AM목표 탭 활성</h4>
+
+    <!-- Wireframe: 목표입력 - AM목표 탭 -->
+    <div class="wireframe">
+        <div class="wf-titlebar">
+            <span>SM Module</span>
+            <span style="font-size: 11px; opacity: 0.8;">관리자 | 로그아웃</span>
+        </div>
+        <div class="wf-breadcrumb">
+            정보관리 &gt; <strong>목표입력</strong>
+        </div>
+        <div class="wf-body">
+            <!-- Tabs -->
+            <div class="wf-tabs">
+                <div class="wf-tab">파트목표</div>
+                <div class="wf-tab active">AM목표</div>
+            </div>
+
+            <!-- Filter Bar -->
+            <div class="wf-filter-bar">
+                <span style="font-size: 12px; font-weight: 600; color: #333;">연도</span>
+                <select class="wf-select">
+                    <option>2026</option>
+                </select>
+                <span style="font-size: 12px; font-weight: 600; color: #333;">부서</span>
+                <select class="wf-select">
+                    <option>전체</option>
+                </select>
+                <button class="wf-btn wf-btn-primary">검색</button>
+                <button class="wf-btn wf-btn-success">저장</button>
+                <button class="wf-btn wf-btn-outline">엑셀 다운로드</button>
+            </div>
+
+            <!-- AM목표 Table -->
+            <div class="wf-section">
+                <table class="wf-table">
+                    <thead>
+                        <tr>
+                            <th style="width:80px;">담당자명</th>
+                            <th style="width:80px;">부서</th>
+                            <th>1월 목표</th>
+                            <th>2월 목표</th>
+                            <th>3월 목표</th>
+                            <th>4월 목표</th>
+                            <th>5월 목표</th>
+                            <th>6월 목표</th>
+                            <th>7월 목표</th>
+                            <th>8월 목표</th>
+                            <th>9월 목표</th>
+                            <th>10월 목표</th>
+                            <th>11월 목표</th>
+                            <th>12월 목표</th>
+                            <th style="font-weight:700;">합계</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="font-weight:600;">김영업</td>
+                            <td>영업1팀</td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="50,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="60,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="65,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="60,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="55,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="58,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="52,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="60,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="62,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="65,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="58,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="55,000"></td>
+                            <td style="text-align:right; font-weight:700;">700,000</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:600;">이영업</td>
+                            <td>영업1팀</td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="48,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="55,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="60,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="58,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="52,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="50,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="48,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="52,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="55,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="58,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="50,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="54,000"></td>
+                            <td style="text-align:right; font-weight:700;">640,000</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:600;">박영업</td>
+                            <td>영업2팀</td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="40,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="45,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="50,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="48,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="45,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="42,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="40,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="45,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="48,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="50,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="46,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="41,000"></td>
+                            <td style="text-align:right; font-weight:700;">540,000</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:600;">최영업</td>
+                            <td>영업2팀</td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="38,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="42,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="45,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="43,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="40,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="38,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="37,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="40,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="42,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="44,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="40,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="31,000"></td>
+                            <td style="text-align:right; font-weight:700;">480,000</td>
+                        </tr>
+                        <tr>
+                            <td style="font-weight:600;">정영업</td>
+                            <td>영업3팀</td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="60,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="68,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="72,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="70,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="65,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="62,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="58,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="64,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="68,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="72,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="66,000"></td>
+                            <td><input class="wf-input" style="width:65px; min-width:55px; text-align:right;" value="55,000"></td>
+                            <td style="text-align:right; font-weight:700;">780,000</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="wf-pagination">
+                <span class="wf-page">&lt;</span>
+                <span class="wf-page active">1</span>
+                <span class="wf-page">2</span>
+                <span class="wf-page">3</span>
+                <span class="wf-page">4</span>
+                <span class="wf-page">&gt;</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="note">
+        <strong>신규 DB 설계 반영 (goal_mst 통합 테이블):</strong> 신규 타겟 스키마에서는 기존 part_goals / am_goals 2개 테이블을 <code>goal_mst</code> 단일 테이블로 통합하였습니다. <code>field_cd</code> 컬럼(내부/외부 구분)으로 파트목표와 AM목표를 구분하며, PK는 <code>company_cd + plant_cd + plan_yy + plan_mm + dept_cd + sales_emp_id + field_cd</code> 복합키입니다. 본 화면의 탭 UI 구조가 이 통합 테이블과 1:1로 정렬되어, 파트목표 탭은 <code>field_cd='내부'</code>, AM목표 탭은 <code>field_cd='외부'</code> 조건으로 조회/저장됩니다.
+    </div>
+
+    <h4>화면 이벤트 정의</h4>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:30px;">#</th>
+                <th style="width:140px;">이벤트</th>
+                <th>동작</th>
+                <th style="width:280px;">API 호출</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>1</td>
+                <td>파트목표 탭 클릭</td>
+                <td>파트목표 테이블 표시, URL 변경 없음</td>
+                <td><code>GET /info/part-goals?year=2026</code></td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>AM목표 탭 클릭</td>
+                <td>AM목표 테이블 표시</td>
+                <td><code>GET /info/am-goals?year=2026</code></td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>연도 변경</td>
+                <td>해당 연도 목표 데이터 재조회</td>
+                <td><code>GET /info/part-goals?year={year}</code></td>
+            </tr>
+            <tr>
+                <td>4</td>
+                <td>셀 수정</td>
+                <td>금액 입력 (숫자만, 천단위 콤마 자동)</td>
+                <td>-</td>
+            </tr>
+            <tr>
+                <td>5</td>
+                <td>저장 클릭</td>
+                <td>변경된 목표 데이터 일괄 저장</td>
+                <td><code>PUT /info/part-goals</code> or <code>/info/am-goals</code></td>
+            </tr>
+            <tr>
+                <td>6</td>
+                <td>엑셀 다운로드</td>
+                <td>현재 탭 데이터 엑셀 파일 다운로드</td>
+                <td><code>GET /info/part-goals/export</code></td>
+            </tr>
+        </tbody>
+    </table>
+
+
+    <!-- ============================== -->
+    <!-- 2.2 SCR-ADM-001 ERP 동기화 관리 -->
+    <!-- ============================== -->
+    <h3>2.2 SCR-ADM-001: ERP 동기화 관리 (신규)</h3>
+
+    <h4>화면 정보</h4>
+    <table>
+        <tbody>
+            <tr><th style="width:150px;">화면 ID</th><td>SCR-ADM-001</td></tr>
+            <tr><th>화면명</th><td>ERP 동기화 관리</td></tr>
+            <tr><th>URL</th><td>/admin/erp-sync</td></tr>
+            <tr><th>접근 권한</th><td>ADMIN</td></tr>
+            <tr><th>변경 유형</th><td><span class="change-tag tag-new">신규</span></td></tr>
+        </tbody>
+    </table>
+
+    <h4>와이어프레임</h4>
+
+    <!-- Wireframe: ERP 동기화 관리 -->
+    <div class="wireframe">
+        <div class="wf-titlebar">
+            <span>SM Module</span>
+            <span style="font-size: 11px; opacity: 0.8;">관리자 | 로그아웃</span>
+        </div>
+        <div class="wf-breadcrumb">
+            관리 &gt; <strong>ERP 동기화 관리</strong>
+        </div>
+        <div class="wf-body">
+
+            <!-- Status Cards -->
+            <div class="wf-section">
+                <div class="wf-section-title">동기화 현황</div>
+                <div class="wf-grid wf-grid-4" style="margin-top: 12px;">
+                    <div class="wf-card">
+                        <div style="font-size: 11px; color: #666; margin-bottom: 8px;">Oracle 연결</div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 18px; font-weight: 700; color: #2e7d32;">정상</span>
+                            <span class="wf-badge badge-success">Connected</span>
+                        </div>
+                        <div style="font-size: 10px; color: #999; margin-top: 6px;">응답시간: 45ms</div>
+                    </div>
+                    <div class="wf-card">
+                        <div style="font-size: 11px; color: #666; margin-bottom: 8px;">마지막 마스터 동기화</div>
+                        <div style="font-size: 14px; font-weight: 600; color: #333;">2026-03-24 02:00</div>
+                        <div style="margin-top: 6px;">
+                            <span class="wf-badge badge-success">성공</span>
+                        </div>
+                    </div>
+                    <div class="wf-card">
+                        <div style="font-size: 11px; color: #666; margin-bottom: 8px;">마지막 트랜잭션 동기화</div>
+                        <div style="font-size: 14px; font-weight: 600; color: #333;">2026-03-24 16:00</div>
+                        <div style="margin-top: 6px;">
+                            <span class="wf-badge badge-success">성공</span>
+                        </div>
+                    </div>
+                    <div class="wf-card">
+                        <div style="font-size: 11px; color: #666; margin-bottom: 8px;">재시도 큐 대기</div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 24px; font-weight: 700; color: #2e7d32;">0</span>
+                            <span style="font-size: 12px; color: #666;">건</span>
+                        </div>
+                        <div style="margin-top: 6px;">
+                            <span class="wf-badge badge-success">정상</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Manual Sync Section -->
+            <div class="wf-section" style="margin-top: 24px;">
+                <div class="wf-section-title">수동 동기화</div>
+                <div style="display: flex; gap: 12px; margin-top: 12px; padding: 16px; background: #f8f8f8; border-radius: 6px;">
+                    <button class="wf-btn wf-btn-primary" style="padding: 10px 20px;">마스터 동기화 실행</button>
+                    <button class="wf-btn wf-btn-primary" style="padding: 10px 20px;">트랜잭션 동기화 실행</button>
+                    <button class="wf-btn wf-btn-outline" style="padding: 10px 20px;">Oracle 연결 테스트</button>
+                </div>
+            </div>
+
+            <!-- Sync History Section -->
+            <div class="wf-section" style="margin-top: 24px;">
+                <div class="wf-section-title">동기화 실행 이력</div>
+
+                <!-- Filter -->
+                <div class="wf-filter-bar">
+                    <span style="font-size: 12px; font-weight: 600; color: #333;">기간</span>
+                    <input class="wf-input" type="text" value="2026-03-01" style="width: 110px;">
+                    <span style="font-size: 12px; color: #666;">~</span>
+                    <input class="wf-input" type="text" value="2026-03-24" style="width: 110px;">
+                    <span style="font-size: 12px; font-weight: 600; color: #333;">유형</span>
+                    <select class="wf-select">
+                        <option>전체</option>
+                    </select>
+                    <span style="font-size: 12px; font-weight: 600; color: #333;">상태</span>
+                    <select class="wf-select">
+                        <option>전체</option>
+                    </select>
+                    <button class="wf-btn wf-btn-primary">검색</button>
+                </div>
+
+                <!-- History Table -->
+                <table class="wf-table">
+                    <thead>
+                        <tr>
+                            <th style="width:30px;">#</th>
+                            <th style="width:150px;">실행일시</th>
+                            <th style="width:80px;">유형</th>
+                            <th style="width:140px;">대상 테이블</th>
+                            <th style="width:80px;">방향</th>
+                            <th style="width:70px;">전체 건수</th>
+                            <th style="width:60px;">성공</th>
+                            <th style="width:60px;">실패</th>
+                            <th style="width:70px;">소요시간</th>
+                            <th style="width:70px;">상태</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>2026-03-24 16:00:03</td>
+                            <td><span class="wf-badge badge-info">트랜잭션</span></td>
+                            <td>SD_ORDER_MST</td>
+                            <td>ERP &rarr; SM</td>
+                            <td style="text-align: right;">24</td>
+                            <td style="text-align: right; color: #2e7d32;">24</td>
+                            <td style="text-align: right;">0</td>
+                            <td>1.2초</td>
+                            <td><span class="wf-badge badge-success">성공</span></td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>2026-03-24 16:00:01</td>
+                            <td><span class="wf-badge badge-info">트랜잭션</span></td>
+                            <td>SD_BILL_MST</td>
+                            <td>ERP &rarr; SM</td>
+                            <td style="text-align: right;">8</td>
+                            <td style="text-align: right; color: #2e7d32;">8</td>
+                            <td style="text-align: right;">0</td>
+                            <td>0.8초</td>
+                            <td><span class="wf-badge badge-success">성공</span></td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>2026-03-24 02:00:15</td>
+                            <td><span class="wf-badge badge-warning">마스터</span></td>
+                            <td>CI_PARTNER_MST</td>
+                            <td>ERP &rarr; SM</td>
+                            <td style="text-align: right;">41,414</td>
+                            <td style="text-align: right; color: #2e7d32;">41,414</td>
+                            <td style="text-align: right;">0</td>
+                            <td>45초</td>
+                            <td><span class="wf-badge badge-success">성공</span></td>
+                        </tr>
+                        <tr>
+                            <td>4</td>
+                            <td>2026-03-24 02:00:05</td>
+                            <td><span class="wf-badge badge-warning">마스터</span></td>
+                            <td>HR_EMP_MST</td>
+                            <td>ERP &rarr; SM</td>
+                            <td style="text-align: right;">754</td>
+                            <td style="text-align: right; color: #2e7d32;">754</td>
+                            <td style="text-align: right;">0</td>
+                            <td>2초</td>
+                            <td><span class="wf-badge badge-success">성공</span></td>
+                        </tr>
+                        <tr>
+                            <td>5</td>
+                            <td>2026-03-23 15:02:10</td>
+                            <td><span class="wf-badge" style="background:#fce4ec; color:#c62828;">쓰기</span></td>
+                            <td>SD_ORDER_MST</td>
+                            <td>SM &rarr; ERP</td>
+                            <td style="text-align: right;">1</td>
+                            <td style="text-align: right;">0</td>
+                            <td style="text-align: right; color: #c62828; font-weight: 600;">1</td>
+                            <td>30초</td>
+                            <td><span class="wf-badge badge-error" style="cursor:pointer; text-decoration: underline;">실패</span></td>
+                        </tr>
+                        <tr>
+                            <td>6</td>
+                            <td>2026-03-23 02:00:12</td>
+                            <td><span class="wf-badge badge-warning">마스터</span></td>
+                            <td>CI_PARTNER_MST</td>
+                            <td>ERP &rarr; SM</td>
+                            <td style="text-align: right;">41,410</td>
+                            <td style="text-align: right; color: #2e7d32;">41,410</td>
+                            <td style="text-align: right;">0</td>
+                            <td>44초</td>
+                            <td><span class="wf-badge badge-success">성공</span></td>
+                        </tr>
+                        <tr>
+                            <td>7</td>
+                            <td>2026-03-23 02:00:03</td>
+                            <td><span class="wf-badge badge-warning">마스터</span></td>
+                            <td>HR_EMP_MST</td>
+                            <td>ERP &rarr; SM</td>
+                            <td style="text-align: right;">754</td>
+                            <td style="text-align: right; color: #2e7d32;">754</td>
+                            <td style="text-align: right;">0</td>
+                            <td>2초</td>
+                            <td><span class="wf-badge badge-success">성공</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Pagination -->
+                <div class="wf-pagination">
+                    <span class="wf-page">&lt;</span>
+                    <span class="wf-page active">1</span>
+                    <span class="wf-page">2</span>
+                    <span class="wf-page">3</span>
+                    <span class="wf-page">...</span>
+                    <span class="wf-page">12</span>
+                    <span class="wf-page">&gt;</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h4>에러 상세 다이얼로그 (실패 건 클릭 시)</h4>
+    <div class="wireframe" style="max-width: 600px;">
+        <div class="wf-titlebar">
+            <span>동기화 에러 상세</span>
+            <span style="cursor: pointer;">&times;</span>
+        </div>
+        <div class="wf-body">
+            <div class="wf-grid wf-grid-2">
+                <div class="wf-form-group">
+                    <span class="wf-form-label">실행일시</span>
+                    <span style="font-size: 12px;">2026-03-23 15:02:10</span>
+                </div>
+                <div class="wf-form-group">
+                    <span class="wf-form-label">대상 테이블</span>
+                    <span style="font-size: 12px;">SD_ORDER_MST</span>
+                </div>
+                <div class="wf-form-group">
+                    <span class="wf-form-label">방향</span>
+                    <span style="font-size: 12px;">SM &rarr; ERP</span>
+                </div>
+                <div class="wf-form-group">
+                    <span class="wf-form-label">소요시간</span>
+                    <span style="font-size: 12px;">30초 (타임아웃)</span>
+                </div>
+            </div>
+            <div class="wf-form-group" style="margin-top: 12px;">
+                <span class="wf-form-label">에러 메시지</span>
+                <div style="background: #ffebee; border: 1px solid #ef9a9a; border-radius: 4px; padding: 10px; font-size: 11px; font-family: monospace; color: #c62828;">
+                    ORA-02291: integrity constraint (ERPAPP.FK_SD_ORDER_PARTNER) violated - parent key not found<br>
+                    &gt; PARTNER_CD='BP-99999' does not exist in CI_PARTNER_MST
+                </div>
+            </div>
+            <div style="display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end;">
+                <button class="wf-btn wf-btn-primary">재시도</button>
+                <button class="wf-btn wf-btn-outline">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <h4>화면 이벤트 정의</h4>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:30px;">#</th>
+                <th style="width:180px;">이벤트</th>
+                <th>동작</th>
+                <th style="width:200px;">비고</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>1</td>
+                <td>마스터 동기화 실행 클릭</td>
+                <td>확인 다이얼로그 &rarr; <code>POST /api/erp/sync/master</code></td>
+                <td>비동기 실행, 완료 시 알림</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>트랜잭션 동기화 실행 클릭</td>
+                <td>확인 다이얼로그 &rarr; <code>POST /api/erp/sync/transaction</code></td>
+                <td>비동기 실행, 완료 시 알림</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>Oracle 연결 테스트 클릭</td>
+                <td><code>GET /api/erp/health</code> &rarr; 결과 표시</td>
+                <td>즉시 응답</td>
+            </tr>
+            <tr>
+                <td>4</td>
+                <td>기간/유형/상태 필터 변경</td>
+                <td>이력 테이블 재조회</td>
+                <td><code>GET /api/erp/sync/logs?from=&amp;to=&amp;type=&amp;status=</code></td>
+            </tr>
+            <tr>
+                <td>5</td>
+                <td>실패 건 클릭</td>
+                <td>에러 상세 다이얼로그 표시</td>
+                <td>에러메시지, 재시도 버튼</td>
+            </tr>
+        </tbody>
+    </table>
+
+
+    <!-- ============================================== -->
+    <!-- Section 3: 기존 화면 변경 상세 -->
+    <!-- ============================================== -->
+    <h2>3. 기존 화면 변경 상세</h2>
+
+    <!-- ============================== -->
+    <!-- 3.1 SCR-ORD-001 주문등록 -->
+    <!-- ============================== -->
+    <h3>3.1 SCR-ORD-001: 주문등록 (ERP 연동 추가)</h3>
+
+    <h4>변경 내용</h4>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:30px;">#</th>
+                <th>변경 사항</th>
+                <th style="width:100px;">유형</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>1</td><td>주문 저장 시 ERP 동시 등록 옵션 추가</td><td>기능 추가</td></tr>
+            <tr><td>2</td><td>ERP 등록 결과(성공/실패) 표시</td><td>UI 추가</td></tr>
+            <tr><td>3</td><td>ERP 주문번호(ORDDOC_NO) 표시 필드 추가</td><td>필드 추가</td></tr>
+        </tbody>
+    </table>
+
+    <h4>와이어프레임 (변경 부분)</h4>
+
+    <div class="wireframe">
+        <div class="wf-titlebar">
+            <span>SM Module</span>
+            <span style="font-size: 11px; opacity: 0.8;">김영업 | 로그아웃</span>
+        </div>
+        <div class="wf-breadcrumb">
+            주문관리 &gt; <strong>주문등록</strong>
+        </div>
+        <div class="wf-body">
+            <!-- 기존 폼 요약 영역 -->
+            <div class="wf-section">
+                <div class="wf-section-title">주문 기본 정보</div>
+                <div class="wf-grid wf-grid-3" style="margin-top: 12px;">
+                    <div class="wf-form-group">
+                        <span class="wf-form-label">주문번호</span>
+                        <input class="wf-input" style="width: 100%;" value="SM-2026032400025" disabled>
+                    </div>
+                    <div class="wf-form-group">
+                        <span class="wf-form-label">거래처</span>
+                        <div style="display: flex; gap: 4px;">
+                            <input class="wf-input" style="width: 100%;" value="(주)대한인쇄">
+                            <button class="wf-btn wf-btn-outline" style="padding: 4px 8px; font-size: 11px;">검색</button>
+                        </div>
+                    </div>
+                    <div class="wf-form-group">
+                        <span class="wf-form-label">주문일자</span>
+                        <input class="wf-input" style="width: 100%;" value="2026-03-24">
+                    </div>
+                </div>
+                <div class="wf-grid wf-grid-3" style="margin-top: 4px;">
+                    <div class="wf-form-group">
+                        <span class="wf-form-label">주문명</span>
+                        <input class="wf-input" style="width: 100%;" value="A사 인쇄물 제작">
+                    </div>
+                    <div class="wf-form-group">
+                        <span class="wf-form-label">담당자</span>
+                        <input class="wf-input" style="width: 100%;" value="김영업" disabled>
+                    </div>
+                    <div class="wf-form-group">
+                        <span class="wf-form-label">납기일자</span>
+                        <input class="wf-input" style="width: 100%;" value="2026-04-10">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 주문 상세 요약 -->
+            <div class="wf-section" style="margin-top: 16px;">
+                <div class="wf-section-title">주문 상세</div>
+                <table class="wf-table" style="margin-top: 12px;">
+                    <thead>
+                        <tr>
+                            <th>품목</th>
+                            <th>규격</th>
+                            <th>수량</th>
+                            <th>단가</th>
+                            <th>공급가액</th>
+                            <th>부가세</th>
+                            <th>합계</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>교과서 인쇄</td>
+                            <td>A4 / 4도</td>
+                            <td style="text-align:right;">10,000</td>
+                            <td style="text-align:right;">450</td>
+                            <td style="text-align:right;">4,500,000</td>
+                            <td style="text-align:right;">450,000</td>
+                            <td style="text-align:right; font-weight:600;">4,950,000</td>
+                        </tr>
+                        <tr>
+                            <td>표지 코팅</td>
+                            <td>무광 코팅</td>
+                            <td style="text-align:right;">10,000</td>
+                            <td style="text-align:right;">5</td>
+                            <td style="text-align:right;">50,000</td>
+                            <td style="text-align:right;">5,000</td>
+                            <td style="text-align:right; font-weight:600;">55,000</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <hr class="wf-divider">
+
+            <!-- NEW: ERP 연동 영역 -->
+            <div class="wf-section" style="margin-top: 16px;">
+                <div class="wf-section-title">ERP 연동 <span class="wf-label-new">NEW</span></div>
+                <div style="background: #f0f4ff; border: 1px solid #c5cae9; border-radius: 6px; padding: 16px; margin-top: 12px;">
+                    <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                        <div class="wf-checkbox">
+                            <span class="wf-checkbox-icon">&#10003;</span>
+                            <span style="font-weight: 600;">ERP 동시 등록</span>
+                        </div>
+                        <span style="font-size: 11px; color: #666;">(체크 시 저장과 동시에 Oracle ERP에 주문이 등록됩니다)</span>
+                    </div>
+
+                    <!-- 성공 케이스 -->
+                    <div class="wf-erp-result wf-erp-success" style="margin-top: 12px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 14px;">&#9989;</span>
+                            <span style="font-weight: 600;">ERP 등록 완료</span>
+                        </div>
+                        <div style="margin-top: 6px;">
+                            <span style="font-size: 11px; color: #666;">ERP 주문번호:</span>
+                            <span style="font-weight: 700; font-family: monospace;">GOR2026032400375</span>
+                        </div>
+                    </div>
+
+                    <!-- 실패 케이스 (표시 예시) -->
+                    <div style="font-size: 11px; color: #999; margin-top: 8px;">* 실패 시 표시 예시:</div>
+                    <div class="wf-erp-result wf-erp-fail" style="margin-top: 4px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="font-size: 14px;">&#10060;</span>
+                            <span style="font-weight: 600;">ERP 등록 실패 - 재시도 큐에 등록됨</span>
+                        </div>
+                        <div style="margin-top: 6px; font-size: 11px;">
+                            사유: Oracle 연결 타임아웃 (30초 초과) | <span style="text-decoration: underline; cursor: pointer;">재시도</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Buttons -->
+            <div style="display: flex; gap: 8px; margin-top: 24px; justify-content: flex-end;">
+                <button class="wf-btn wf-btn-outline" style="padding: 10px 24px;">임시저장</button>
+                <button class="wf-btn wf-btn-success" style="padding: 10px 24px;">저장 (ERP 포함)</button>
+                <button class="wf-btn" style="padding: 10px 24px; background: #eee; color: #666; border: 1px solid #ccc;">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="note">
+        <strong>신규 DB 설계 반영 (주문 마스터-디테일 구조):</strong> 신규 타겟 스키마에서 주문 데이터는 <code>order_mst</code>(주문 마스터) &rarr; <code>order_dtl</code>(주문 디테일) &rarr; <code>order_info</code>(주문 상세: 인쇄사양/용지/원자재 등) 3계층 마스터-디테일 구조로 분리됩니다. 추가로 <code>order_dlv</code>(납품 배송정보)와 <code>file_info</code>(첨부파일)가 order_dtl에 연결됩니다. 모든 테이블은 <code>company_cd + plant_cd</code>를 복합키 선두 컬럼으로 사용하여 ERP 멀티컴퍼니 구조와 정렬됩니다. 이 화면의 "주문 기본 정보" 영역은 order_mst에, "주문 상세" 테이블은 order_dtl + order_info에 대응합니다.
+    </div>
+
+
+    <!-- ============================== -->
+    <!-- 3.2 SCR-ORD-002 주문목록 -->
+    <!-- ============================== -->
+    <h3>3.2 SCR-ORD-002: 주문목록 (ERP 상태 컬럼)</h3>
+
+    <h4>변경 내용</h4>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:30px;">#</th>
+                <th>변경 사항</th>
+                <th style="width:100px;">유형</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>1</td><td>ERP 연동상태 컬럼 추가</td><td>컬럼 추가</td></tr>
+            <tr><td>2</td><td>ERP 주문번호 컬럼 추가</td><td>컬럼 추가</td></tr>
+        </tbody>
+    </table>
+
+    <h4>와이어프레임</h4>
+
+    <div class="wireframe">
+        <div class="wf-titlebar">
+            <span>SM Module</span>
+            <span style="font-size: 11px; opacity: 0.8;">김영업 | 로그아웃</span>
+        </div>
+        <div class="wf-breadcrumb">
+            주문관리 &gt; <strong>주문목록</strong>
+        </div>
+        <div class="wf-body">
+            <!-- Filter Bar -->
+            <div class="wf-filter-bar">
+                <span style="font-size: 12px; font-weight: 600; color: #333;">주문일자</span>
+                <input class="wf-input" type="text" value="2026-03-01" style="width: 110px;">
+                <span style="font-size: 12px; color: #666;">~</span>
+                <input class="wf-input" type="text" value="2026-03-24" style="width: 110px;">
+                <span style="font-size: 12px; font-weight: 600; color: #333;">거래처</span>
+                <input class="wf-input" type="text" placeholder="거래처명" style="width: 120px;">
+                <span style="font-size: 12px; font-weight: 600; color: #333;">ERP상태</span>
+                <select class="wf-select">
+                    <option>전체</option>
+                    <option>동기화완료</option>
+                    <option>미등록</option>
+                    <option>동기화실패</option>
+                </select>
+                <button class="wf-btn wf-btn-primary">검색</button>
+                <button class="wf-btn wf-btn-outline">엑셀 다운로드</button>
+            </div>
+
+            <!-- Order List Table -->
+            <table class="wf-table">
+                <thead>
+                    <tr>
+                        <th style="width:90px;">주문번호</th>
+                        <th>주문명</th>
+                        <th style="width:80px;">거래처</th>
+                        <th style="width:60px;">담당자</th>
+                        <th style="width:90px;">주문일자</th>
+                        <th style="width:90px; text-align:right;">금액</th>
+                        <th style="width:50px;">상태</th>
+                        <th style="width:120px;">ERP번호 <span class="wf-label-new">NEW</span></th>
+                        <th style="width:90px;">ERP상태 <span class="wf-label-new">NEW</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><a href="#" style="color: #1a237e; text-decoration: underline;">SM-001</a></td>
+                        <td>A사 인쇄물</td>
+                        <td>A사</td>
+                        <td>김영업</td>
+                        <td>2026-03-24</td>
+                        <td style="text-align: right;">5,000,000</td>
+                        <td><span class="wf-badge badge-success">확정</span></td>
+                        <td style="font-family: monospace; font-size: 10px;">GOR2026032400375</td>
+                        <td><span class="wf-badge badge-success">동기화완료</span></td>
+                    </tr>
+                    <tr>
+                        <td><a href="#" style="color: #1a237e; text-decoration: underline;">SM-002</a></td>
+                        <td>B사 패키지</td>
+                        <td>B사</td>
+                        <td>이영업</td>
+                        <td>2026-03-23</td>
+                        <td style="text-align: right;">3,200,000</td>
+                        <td><span class="wf-badge badge-warning">진행</span></td>
+                        <td style="color: #999;">-</td>
+                        <td><span class="wf-badge badge-gray">미등록</span></td>
+                    </tr>
+                    <tr>
+                        <td><a href="#" style="color: #1a237e; text-decoration: underline;">SM-003</a></td>
+                        <td>C사 교과서</td>
+                        <td>C사</td>
+                        <td>박영업</td>
+                        <td>2026-03-23</td>
+                        <td style="text-align: right;">8,100,000</td>
+                        <td><span class="wf-badge badge-success">확정</span></td>
+                        <td style="font-family: monospace; font-size: 10px;">GOR2026032300124</td>
+                        <td><span class="wf-badge badge-error" style="cursor: pointer;">동기화실패</span></td>
+                    </tr>
+                    <tr>
+                        <td><a href="#" style="color: #1a237e; text-decoration: underline;">SM-004</a></td>
+                        <td>D사 브로슈어</td>
+                        <td>D사</td>
+                        <td>김영업</td>
+                        <td>2026-03-22</td>
+                        <td style="text-align: right;">1,500,000</td>
+                        <td><span class="wf-badge badge-success">확정</span></td>
+                        <td style="font-family: monospace; font-size: 10px;">GOR2026032200089</td>
+                        <td><span class="wf-badge badge-success">동기화완료</span></td>
+                    </tr>
+                    <tr>
+                        <td><a href="#" style="color: #1a237e; text-decoration: underline;">SM-005</a></td>
+                        <td>E사 전단지</td>
+                        <td>E사</td>
+                        <td>최영업</td>
+                        <td>2026-03-22</td>
+                        <td style="text-align: right;">800,000</td>
+                        <td><span class="wf-badge badge-info">임시</span></td>
+                        <td style="color: #999;">-</td>
+                        <td><span class="wf-badge badge-gray">미등록</span></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Pagination -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
+                <span style="font-size: 11px; color: #666;">총 128건 (1/13 페이지)</span>
+                <div class="wf-pagination" style="margin-top: 0;">
+                    <span class="wf-page">&lt;</span>
+                    <span class="wf-page active">1</span>
+                    <span class="wf-page">2</span>
+                    <span class="wf-page">3</span>
+                    <span class="wf-page">...</span>
+                    <span class="wf-page">13</span>
+                    <span class="wf-page">&gt;</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="note">
+        <strong>ERP상태 설명:</strong>
+        <span class="wf-badge badge-success" style="margin-left: 8px;">동기화완료</span> ERP에 정상 등록됨 |
+        <span class="wf-badge badge-gray" style="margin-left: 8px;">미등록</span> ERP 미전송 (임시저장, 체크 해제) |
+        <span class="wf-badge badge-error" style="margin-left: 8px;">동기화실패</span> ERP 전송 실패 (클릭 시 에러 상세 확인 가능)
+    </div>
+
+    <div class="note">
+        <strong>신규 DB 설계 반영 (주문/매출 테이블 구조):</strong> 주문목록의 각 행은 <code>order_mst</code> 테이블에 대응하며, 상세 클릭 시 <code>order_dtl</code>(디테일) + <code>order_info</code>(상세 사양) 데이터를 조회합니다. 매출 화면(SCR-SAL-001 매출목록)은 <code>sales_mst</code>(매출 마스터) &rarr; <code>sales_dtl</code>(매출 디테일) 구조로 분리되며, <code>sales_mst.erp_sync_status</code> 필드(PENDING/SYNCED/FAILED)를 통해 ERP 연동 상태를 추적합니다. 외주발주 화면(SCR-PUR-001)은 <code>po_mst</code>(발주 마스터) &rarr; <code>po_dtl</code>(발주 디테일) 구조에 대응하며, 정산은 <code>po_settle_mst</code> &rarr; <code>po_settle_dtl</code>로 관리됩니다.
+    </div>
+
+
+    <!-- ============================== -->
+    <!-- 3.3 SCR-INF-001 거래처관리 -->
+    <!-- ============================== -->
+    <h3>3.3 SCR-INF-001: 거래처관리 (ERP 동기화 표시)</h3>
+
+    <h4>변경 내용</h4>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:30px;">#</th>
+                <th>변경 사항</th>
+                <th style="width:100px;">유형</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>1</td><td>ERP 거래처코드(PARTNER_CD) 표시</td><td>필드 추가</td></tr>
+            <tr><td>2</td><td>ERP 마지막 동기화 일시 표시</td><td>필드 추가</td></tr>
+            <tr><td>3</td><td>ERP 동기화 상태 배지</td><td>UI 추가</td></tr>
+        </tbody>
+    </table>
+
+    <h4>와이어프레임 - 거래처 상세 (ERP 정보 추가)</h4>
+
+    <div class="wireframe">
+        <div class="wf-titlebar">
+            <span>SM Module</span>
+            <span style="font-size: 11px; opacity: 0.8;">관리자 | 로그아웃</span>
+        </div>
+        <div class="wf-breadcrumb">
+            정보관리 &gt; <strong>거래처관리</strong> &gt; 거래처 상세
+        </div>
+        <div class="wf-body">
+            <!-- 기존 거래처 정보 -->
+            <div class="wf-section">
+                <div class="wf-section-title">거래처 기본 정보</div>
+                <div class="wf-grid wf-grid-3" style="margin-top: 12px;">
+                    <div class="wf-form-group">
+                        <span class="wf-form-label">거래처코드</span>
+                        <input class="wf-input" style="width: 100%;" value="BP-00125" disabled>
+                    </div>
+                    <div class="wf-form-group">
+                        <span class="wf-form-label">거래처명</span>
+                        <input class="wf-input" style="width: 100%;" value="(주)대한인쇄">
+                    </div>
+                    <div class="wf-form-group">
+                        <span class="wf-form-label">대표자명</span>
+                        <input class="wf-input" style="width: 100%;" value="홍길동">
+                    </div>
+                </div>
+                <div class="wf-grid wf-grid-3" style="margin-top: 4px;">
+                    <div class="wf-form-group">
+                        <span class="wf-form-label">사업자등록번호</span>
+                        <input class="wf-input" style="width: 100%;" value="123-45-67890">
+                    </div>
+                    <div class="wf-form-group">
+                        <span class="wf-form-label">전화번호</span>
+                        <input class="wf-input" style="width: 100%;" value="02-1234-5678">
+                    </div>
+                    <div class="wf-form-group">
+                        <span class="wf-form-label">담당 영업사원</span>
+                        <input class="wf-input" style="width: 100%;" value="김영업">
+                    </div>
+                </div>
+            </div>
+
+            <hr class="wf-divider">
+
+            <!-- NEW: ERP 연동 정보 영역 -->
+            <div class="wf-section" style="margin-top: 16px;">
+                <div class="wf-section-title">ERP 연동 정보 <span class="wf-label-new">NEW</span></div>
+                <div style="background: #f0f4ff; border: 1px solid #c5cae9; border-radius: 6px; padding: 16px; margin-top: 12px;">
+                    <div class="wf-grid wf-grid-4">
+                        <div class="wf-form-group">
+                            <span class="wf-form-label">ERP 거래처코드 (PARTNER_CD)</span>
+                            <div style="font-size: 13px; font-weight: 600; font-family: monospace;">BP-00125</div>
+                        </div>
+                        <div class="wf-form-group">
+                            <span class="wf-form-label">ERP 동기화 상태</span>
+                            <div><span class="wf-badge badge-success">동기화 완료</span></div>
+                        </div>
+                        <div class="wf-form-group">
+                            <span class="wf-form-label">마지막 동기화 일시</span>
+                            <div style="font-size: 12px;">2026-03-24 02:00:15</div>
+                        </div>
+                        <div class="wf-form-group">
+                            <span class="wf-form-label">ERP 거래처명</span>
+                            <div style="font-size: 12px;">(주)대한인쇄</div>
+                        </div>
+                    </div>
+                    <div class="wf-grid wf-grid-4" style="margin-top: 8px;">
+                        <div class="wf-form-group">
+                            <span class="wf-form-label">ERP 사업자등록번호</span>
+                            <div style="font-size: 12px;">123-45-67890</div>
+                        </div>
+                        <div class="wf-form-group">
+                            <span class="wf-form-label">ERP 대표자명</span>
+                            <div style="font-size: 12px;">홍길동</div>
+                        </div>
+                        <div class="wf-form-group">
+                            <span class="wf-form-label">ERP 업태</span>
+                            <div style="font-size: 12px;">제조업</div>
+                        </div>
+                        <div class="wf-form-group">
+                            <span class="wf-form-label">ERP 종목</span>
+                            <div style="font-size: 12px;">인쇄</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 거래처 목록에서의 표시 (미니 표) -->
+            <div class="wf-section" style="margin-top: 24px;">
+                <div class="wf-section-title">거래처 목록 (변경 후)</div>
+                <table class="wf-table" style="margin-top: 12px;">
+                    <thead>
+                        <tr>
+                            <th>거래처코드</th>
+                            <th>거래처명</th>
+                            <th>대표자</th>
+                            <th>사업자번호</th>
+                            <th>담당자</th>
+                            <th>ERP코드 <span class="wf-label-new">NEW</span></th>
+                            <th>ERP동기화 <span class="wf-label-new">NEW</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>BP-00125</td>
+                            <td>(주)대한인쇄</td>
+                            <td>홍길동</td>
+                            <td>123-45-67890</td>
+                            <td>김영업</td>
+                            <td style="font-family: monospace;">BP-00125</td>
+                            <td><span class="wf-badge badge-success">동기화</span> <span style="font-size:10px; color:#999;">03-24</span></td>
+                        </tr>
+                        <tr>
+                            <td>BP-00126</td>
+                            <td>세종출판사</td>
+                            <td>이순신</td>
+                            <td>234-56-78901</td>
+                            <td>이영업</td>
+                            <td style="font-family: monospace;">BP-00126</td>
+                            <td><span class="wf-badge badge-success">동기화</span> <span style="font-size:10px; color:#999;">03-24</span></td>
+                        </tr>
+                        <tr>
+                            <td>BP-00127</td>
+                            <td>한빛문화사</td>
+                            <td>김유신</td>
+                            <td>345-67-89012</td>
+                            <td>박영업</td>
+                            <td style="font-family: monospace; color: #999;">-</td>
+                            <td><span class="wf-badge badge-warning">미매핑</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Buttons -->
+            <div style="display: flex; gap: 8px; margin-top: 24px; justify-content: flex-end;">
+                <button class="wf-btn wf-btn-primary" style="padding: 10px 24px;">저장</button>
+                <button class="wf-btn wf-btn-outline" style="padding: 10px 24px;">목록</button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ============================================== -->
+    <!-- Section 4: 메뉴 구조 변경 -->
+    <!-- ============================================== -->
+    <h2>4. 메뉴 구조 변경</h2>
+
+    <h3>4.1 변경 전 메뉴</h3>
+
+    <div class="menu-legend">
+        <div class="menu-legend-item">
+            <div class="menu-legend-box" style="background: #f5f5f5; border: 1px solid #ddd;"></div>
+            <span>기존 유지</span>
+        </div>
+        <div class="menu-legend-item">
+            <div class="menu-legend-box" style="background: #fff3e0; border: 1px solid #ffcc80;"></div>
+            <span>수정</span>
+        </div>
+        <div class="menu-legend-item">
+            <div class="menu-legend-box" style="background: #ffebee; border: 1px solid #ef9a9a;"></div>
+            <span>삭제</span>
+        </div>
+        <div class="menu-legend-item">
+            <div class="menu-legend-box" style="background: #e8f5e9; border: 1px solid #a5d6a7;"></div>
+            <span>신규</span>
+        </div>
+        <div class="menu-legend-item">
+            <div class="menu-legend-box" style="background: #e3f2fd; border: 1px solid #90caf9;"></div>
+            <span>통합</span>
+        </div>
+    </div>
+
+    <div class="wireframe" style="max-width: 400px;">
+        <div class="wf-titlebar">
+            <span>변경 전 메뉴 구조</span>
+        </div>
+        <div class="wf-body" style="padding: 16px;">
+            <div class="menu-tree">
+                <ul>
+                    <li><span class="menu-item menu-item-modified">대시보드</span></li>
+                    <li>
+                        <span class="menu-item menu-item-normal">주문관리</span>
+                        <ul>
+                            <li><span class="menu-item menu-item-modified">주문등록</span></li>
+                            <li><span class="menu-item menu-item-modified">주문목록</span></li>
+                        </ul>
+                    </li>
+                    <li>
+                        <span class="menu-item menu-item-normal">매출관리</span>
+                        <ul>
+                            <li><span class="menu-item menu-item-modified">매출목록</span></li>
+                            <li><span class="menu-item menu-item-normal">선매출입력</span></li>
+                            <li><span class="menu-item menu-item-normal">선매출목록</span></li>
+                            <li><span class="menu-item menu-item-modified">카드매출</span></li>
+                        </ul>
+                    </li>
+                    <li>
+                        <span class="menu-item menu-item-normal">비대면주문</span>
+                        <ul>
+                            <li><span class="menu-item menu-item-normal">주문등록</span></li>
+                            <li><span class="menu-item menu-item-normal">주문목록</span></li>
+                            <li><span class="menu-item menu-item-normal">정산</span></li>
+                        </ul>
+                    </li>
+                    <li>
+                        <span class="menu-item menu-item-normal">매입마감</span>
+                        <ul>
+                            <li><span class="menu-item menu-item-modified">외주발주</span></li>
+                            <li><span class="menu-item menu-item-normal">외주정산</span></li>
+                        </ul>
+                    </li>
+                    <li>
+                        <span class="menu-item menu-item-normal">세금계산서</span>
+                        <ul>
+                            <li><span class="menu-item menu-item-normal">발행</span></li>
+                            <li><span class="menu-item menu-item-normal">목록</span></li>
+                        </ul>
+                    </li>
+                    <li>
+                        <span class="menu-item menu-item-normal">정보관리</span>
+                        <ul>
+                            <li><span class="menu-item menu-item-modified">거래처관리</span></li>
+                            <li><span class="menu-item menu-item-normal">사업자관리</span></li>
+                            <li><span class="menu-item menu-item-delete">파트목표입력</span> <span style="font-size:11px; color:#c62828;">&larr; 삭제</span></li>
+                            <li><span class="menu-item menu-item-delete">AM목표입력</span> <span style="font-size:11px; color:#c62828;">&larr; 삭제</span></li>
+                        </ul>
+                    </li>
+                    <li>
+                        <span class="menu-item menu-item-modified">통계</span>
+                        <ul>
+                            <li><span class="menu-item menu-item-modified">파트목표YoY</span></li>
+                            <li><span class="menu-item menu-item-modified">AM목표YoY</span></li>
+                            <li><span class="menu-item menu-item-modified">팀예측</span></li>
+                            <li><span class="menu-item menu-item-modified">팀목표실적</span></li>
+                            <li><span class="menu-item menu-item-modified">주문마진</span></li>
+                            <li><span class="menu-item menu-item-modified">업체마진</span></li>
+                            <li><span class="menu-item menu-item-modified">품목실적</span></li>
+                        </ul>
+                    </li>
+                    <li>
+                        <span class="menu-item menu-item-normal">관리</span>
+                        <ul>
+                            <li><span class="menu-item menu-item-normal">IP화이트리스트</span></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <h3>4.2 변경 후 메뉴</h3>
+
+    <div class="wireframe" style="max-width: 400px;">
+        <div class="wf-titlebar">
+            <span>변경 후 메뉴 구조</span>
+        </div>
+        <div class="wf-body" style="padding: 16px;">
+            <div class="menu-tree">
+                <ul>
+                    <li><span class="menu-item menu-item-modified">대시보드</span> <span style="font-size:10px; color:#ef6c00;">ERP 매출 반영</span></li>
+                    <li>
+                        <span class="menu-item menu-item-normal">주문관리</span>
+                        <ul>
+                            <li><span class="menu-item menu-item-modified">주문등록</span> <span style="font-size:10px; color:#ef6c00;">ERP 동시등록</span></li>
+                            <li><span class="menu-item menu-item-modified">주문목록</span> <span style="font-size:10px; color:#ef6c00;">ERP 상태 컬럼</span></li>
+                        </ul>
+                    </li>
+                    <li>
+                        <span class="menu-item menu-item-normal">매출관리</span>
+                        <ul>
+                            <li><span class="menu-item menu-item-modified">매출목록</span> <span style="font-size:10px; color:#ef6c00;">ERP 통합표시</span></li>
+                            <li><span class="menu-item menu-item-normal">선매출입력</span></li>
+                            <li><span class="menu-item menu-item-normal">선매출목록</span></li>
+                            <li><span class="menu-item menu-item-modified">카드매출</span> <span style="font-size:10px; color:#ef6c00;">ERP 연동</span></li>
+                        </ul>
+                    </li>
+                    <li>
+                        <span class="menu-item menu-item-normal">비대면주문</span>
+                        <ul>
+                            <li><span class="menu-item menu-item-normal">주문등록</span></li>
+                            <li><span class="menu-item menu-item-normal">주문목록</span></li>
+                            <li><span class="menu-item menu-item-normal">정산</span></li>
+                        </ul>
+                    </li>
+                    <li>
+                        <span class="menu-item menu-item-normal">매입마감</span>
+                        <ul>
+                            <li><span class="menu-item menu-item-modified">외주발주</span> <span style="font-size:10px; color:#ef6c00;">ERP 동시등록</span></li>
+                            <li><span class="menu-item menu-item-normal">외주정산</span></li>
+                        </ul>
+                    </li>
+                    <li>
+                        <span class="menu-item menu-item-normal">세금계산서</span>
+                        <ul>
+                            <li><span class="menu-item menu-item-normal">발행</span></li>
+                            <li><span class="menu-item menu-item-normal">목록</span></li>
+                        </ul>
+                    </li>
+                    <li>
+                        <span class="menu-item menu-item-normal">정보관리</span>
+                        <ul>
+                            <li><span class="menu-item menu-item-modified">거래처관리</span> <span style="font-size:10px; color:#ef6c00;">ERP 동기화 표시</span></li>
+                            <li><span class="menu-item menu-item-normal">사업자관리</span></li>
+                            <li><span class="menu-item menu-item-merged">목표입력</span> <span style="font-size:10px; color:#1565c0;">통합 (탭UI)</span></li>
+                        </ul>
+                    </li>
+                    <li>
+                        <span class="menu-item menu-item-modified">통계</span> <span style="font-size:10px; color:#ef6c00;">ERP 실적 기반</span>
+                        <ul>
+                            <li><span class="menu-item menu-item-modified">파트목표YoY</span></li>
+                            <li><span class="menu-item menu-item-modified">AM목표YoY</span></li>
+                            <li><span class="menu-item menu-item-modified">팀예측</span></li>
+                            <li><span class="menu-item menu-item-modified">팀목표실적</span></li>
+                            <li><span class="menu-item menu-item-modified">주문마진</span></li>
+                            <li><span class="menu-item menu-item-modified">업체마진</span></li>
+                            <li><span class="menu-item menu-item-modified">품목실적</span></li>
+                        </ul>
+                    </li>
+                    <li>
+                        <span class="menu-item menu-item-normal">관리</span>
+                        <ul>
+                            <li><span class="menu-item menu-item-normal">IP화이트리스트</span></li>
+                            <li><span class="menu-item menu-item-new">ERP 동기화 관리</span> <span style="font-size:10px; color:#2e7d32;">신규</span></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <h4>메뉴 변경 요약</h4>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:80px;">변경유형</th>
+                <th>변경 전</th>
+                <th>변경 후</th>
+                <th style="width:200px;">비고</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><span class="change-tag tag-delete">삭제</span></td>
+                <td>정보관리 &gt; 파트목표입력</td>
+                <td>-</td>
+                <td rowspan="2">목표입력으로 통합</td>
+            </tr>
+            <tr>
+                <td><span class="change-tag tag-delete">삭제</span></td>
+                <td>정보관리 &gt; AM목표입력</td>
+                <td>-</td>
+            </tr>
+            <tr>
+                <td><span class="change-tag tag-merge">통합</span></td>
+                <td>-</td>
+                <td>정보관리 &gt; 목표입력</td>
+                <td>파트목표+AM목표 탭 전환</td>
+            </tr>
+            <tr>
+                <td><span class="change-tag tag-new">신규</span></td>
+                <td>-</td>
+                <td>관리 &gt; ERP 동기화 관리</td>
+                <td>ADMIN 전용</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="note">
+        <strong>참고:</strong> 메뉴 항목 수 변경: 변경 전 21개 &rarr; 변경 후 20개 (2개 삭제, 1개 통합 신설, 1개 신규 추가). 기존 URL로 접근 시 /info/part-goal, /info/am-goal은 /info/goal로 리다이렉트 처리합니다.
+    </div>
+
+</div>
+
+<div class="footer">
+    &copy; 2026 HM소프트 | SM-ERP-UI-001
+</div>
+
+</body>
+</html>

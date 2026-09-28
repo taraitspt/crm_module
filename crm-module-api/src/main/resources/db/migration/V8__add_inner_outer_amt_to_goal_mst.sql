@@ -1,0 +1,2 @@
+ALTER TABLE goal_mst ADD COLUMN inner_amt BIGINT DEFAULT 0 AFTER goal_amt;
+ALTER TABLE goal_mst ADD COLUMN outer_amt BIGINT DEFAULT 0 AFTER inner_amt;

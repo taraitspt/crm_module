@@ -1,0 +1,105 @@
+spring:
+  profiles:
+    active: dev
+
+  application:
+    name: crm-module-api
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        default_batch_fetch_size: 100
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: false
+
+  servlet:
+    multipart:
+      max-file-size: 500MB
+      max-request-size: 500MB
+
+  # 대용량 ERP 첨부 스트리밍 다운로드(StreamingResponseBody)가 Spring async 타임아웃에 끊기지 않게 무제한.
+  mvc:
+    async:
+      request-timeout: -1
+
+  # 시트 #12, #13 — 비대면결제 이메일 발송. 2026-06-01 Gmail SMTP(앱비밀번호)로 전환.
+  # 자격증명 누락 시 send 시도가 실패하지만, 비대면결제 등록 자체는 성공함 (로그 후 status는 EMAILED 처리)
+  mail:
+    host: ${SMTP_HOST:smtp.gmail.com}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:taraitspt@gmail.com}
+    # 앱비밀번호는 평문 커밋 금지 — 환경변수 SMTP_PASSWORD 로 주입.
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+        from: ${SMTP_FROM:taraitspt@gmail.com}
+
+# 비밀번호 분실 시 임시 비밀번호를 Teams DM 으로 보내기 위한 MS Graph 서비스계정.
+# 운영에서 ENV(MS_TENANT_ID/MS_CLIENT_ID/MS_USERNAME/MS_PASSWORD) 로 주입.
+# 비우면 Teams 전송 불가 → 비밀번호 분실 발급이 실패(안내 메시지) 한다.
+msgraph:
+  tenant-id: ${MS_TENANT_ID:}
+  client-id: ${MS_CLIENT_ID:}
+  username: ${MS_USERNAME:}
+  password: ${MS_PASSWORD:}
+
+server:
+  port: 8080
+  tomcat:
+    max-swallow-size: 500MB
+    max-http-form-post-size: 500MB
+
+# JWT 설정
+jwt:
+  # 기본값 없음 — env JWT_SECRET 이 비어 있으면 기동 자체가 실패한다. 소스에 비밀키를 두지 않는다(.env.local / 운영 env 로만 주입).
+  secret: ${JWT_SECRET}
+  access-token-expiration: 86400000  # 24시간 (ms) — 시트 5/13 사용자 보고로 5시간→24시간
+
+# ERP 연동 설정
+integration:
+  erp:
+    base-url: ${ERP_BASE_URL:http://erp.internal:8080}
+    api-key: ${ERP_API_KEY:}
+    timeout: 60
+    company-cd: ${ERP_COMPANY_CD:1000}
+
+# 로깅
+logging:
+  level:
+    com.tara.crm: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+# Actuator — /actuator/health 만 노출 (SecurityConfig 에서 permitAll).
+# Oracle 은 fail-soft(연결이 끊겨도 앱은 정상 동작)이므로 DataSource health
+# indicator 를 끄고 앱 프로세스 liveness 수준만 체크한다. 그렇지 않으면 ERP
+# Oracle 이 잠시 불가할 때 health 가 DOWN(503) 으로 떨어져 오탐이 된다.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+  health:
+    db:
+      enabled: false
+    # SMTP_PASSWORD 가 비어있는 환경(CLAUDE.md 명시)에서 MailHealthIndicator 가
+    # 연결 실패로 health 를 DOWN 시키는 오탐 방지. 메일 발송 자체는 silent fail
+    # 로 설계됨(시트 #12).
+    mail:
+      enabled: false

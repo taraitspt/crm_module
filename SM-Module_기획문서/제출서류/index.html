@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SM Module - Oracle ERP 연동 프로젝트 제출서류</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; background: #f4f6f9; color: #333; }
+  .cover { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: linear-gradient(135deg, #1a237e 0%, #283593 50%, #3949ab 100%); color: #fff; text-align: center; padding: 40px; }
+  .cover h1 { font-size: 42px; font-weight: 700; margin-bottom: 16px; letter-spacing: -1px; }
+  .cover .subtitle { font-size: 22px; font-weight: 300; margin-bottom: 40px; opacity: 0.9; }
+  .cover .meta { font-size: 16px; opacity: 0.7; line-height: 2; }
+  .cover .divider { width: 80px; height: 3px; background: rgba(255,255,255,0.5); margin: 30px auto; }
+  .doc-list { max-width: 900px; margin: -60px auto 60px; padding: 0 20px; position: relative; z-index: 1; }
+  .doc-card { background: #fff; border-radius: 12px; padding: 28px 32px; margin-bottom: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); display: flex; align-items: center; text-decoration: none; color: #333; transition: all 0.2s; border-left: 5px solid #3949ab; }
+  .doc-card:hover { transform: translateX(8px); box-shadow: 0 4px 20px rgba(0,0,0,0.12); }
+  .doc-num { font-size: 32px; font-weight: 700; color: #3949ab; margin-right: 24px; min-width: 50px; text-align: center; }
+  .doc-info h3 { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+  .doc-info p { font-size: 14px; color: #666; line-height: 1.6; }
+  .doc-badge { margin-left: auto; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  .badge-complete { background: #e8f5e9; color: #2e7d32; }
+  .badge-draft { background: #fff3e0; color: #ef6c00; }
+  .footer { text-align: center; padding: 30px; color: #999; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>SM Module - Oracle ERP 연동</h1>
+  <div class="subtitle">프로젝트 제출서류</div>
+  <div class="divider"></div>
+  <div class="meta">
+    프로젝트명: SM Module 영업관리 시스템 - 더존 iCUBE ERP 연동<br>
+    작성일: 2026년 3월 24일<br>
+    작성: HM소프트<br>
+    버전: v1.1 (신규 DB 설계 반영)
+  </div>
+</div>
+
+<div class="doc-list">
+
+  <a class="doc-card" href="01_WBS_작업분류체계.html">
+    <div class="doc-num">01</div>
+    <div class="doc-info">
+      <h3>WBS (작업분류체계)</h3>
+      <p>프로젝트 전체 작업 분류, 선후행 관계, 담당자, 산출물 정의. 6개 대분류 / 50+ 세부 작업 항목.</p>
+    </div>
+    <div class="doc-badge badge-complete">작성완료</div>
+  </a>
+
+  <a class="doc-card" href="02_요구사항_정의서.html">
+    <div class="doc-num">02</div>
+    <div class="doc-info">
+      <h3>요구사항 정의서</h3>
+      <p>기능/비기능 요구사항 41건. 마스터동기화, 트랜잭션조회, ERP쓰기, 대시보드, 화면변경, 관리운영.</p>
+    </div>
+    <div class="doc-badge badge-complete">작성완료</div>
+  </a>
+
+  <a class="doc-card" href="03_테이블_정의서.html">
+    <div class="doc-num">03</div>
+    <div class="doc-info">
+      <h3>테이블 정의서</h3>
+      <p>SM Module 신규 설계 14개 테이블(Target Schema) + 기존 MariaDB 17개 + Oracle ERP 25+ 테이블. ER 다이어그램 포함.</p>
+    </div>
+    <div class="doc-badge badge-complete">작성완료</div>
+  </a>
+
+  <a class="doc-card" href="04_인터페이스_정의서.html">
+    <div class="doc-num">04</div>
+    <div class="doc-info">
+      <h3>인터페이스 정의서</h3>
+      <p>SM Module ↔ Oracle ERP 간 데이터 연동 인터페이스. 필드 매핑, 동기화 규칙, 에러처리 정의. 신규 설계 기준 매핑 추가.</p>
+    </div>
+    <div class="doc-badge badge-complete">작성완료</div>
+  </a>
+
+  <a class="doc-card" href="05_업무프로세스_흐름도.html">
+    <div class="doc-num">05</div>
+    <div class="doc-info">
+      <h3>업무 프로세스 흐름도</h3>
+      <p>SM Module 업무 프로세스 3유형, ERP 판매/구매 프로세스, 연동 데이터 흐름도. 시각적 플로우차트.</p>
+    </div>
+    <div class="doc-badge badge-complete">작성완료</div>
+  </a>
+
+  <a class="doc-card" href="06_화면설계서.html">
+    <div class="doc-num">06</div>
+    <div class="doc-info">
+      <h3>화면설계서</h3>
+      <p>목표입력 통합 화면, ERP 동기화 관리 화면, 기존 화면 ERP 연동 반영사항 설계.</p>
+    </div>
+    <div class="doc-badge badge-complete">작성완료</div>
+  </a>
+
+</div>
+
+<div class="footer">
+  &copy; 2026 HM소프트. SM Module - Oracle ERP 연동 프로젝트
+</div>
+
+</body>
+</html>

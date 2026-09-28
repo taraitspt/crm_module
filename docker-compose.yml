@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  crm-api:
+    image: crm-module-api:latest
+    container_name: crm-api
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - "EXT_API_ALLOWED_ORIGIN_PATTERNS=${EXT_API_ALLOWED_ORIGIN_PATTERNS:-http://localhost:[*],http://127.0.0.1:[*]}"
+    restart: unless-stopped
+    networks:
+      - crm-network
+
+  crm-web:
+    image: crm-module-web:latest
+    container_name: crm-web
+    ports:
+      - "80:80"
+    depends_on:
+      - crm-api
+    restart: unless-stopped
+    networks:
+      - crm-network
+
+networks:
+  crm-network:
+    driver: bridge

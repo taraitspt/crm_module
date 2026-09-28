@@ -1,0 +1,2763 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>인터페이스 정의서 - SM Module Oracle ERP 연동</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; background: #fff; color: #333; line-height: 1.7; }
+        .header { background: #1a237e; color: #fff; padding: 40px; text-align: center; }
+        .header h1 { font-size: 28px; margin-bottom: 8px; }
+        .header p { font-size: 14px; opacity: 0.8; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 40px 30px; }
+        h2 { font-size: 22px; color: #1a237e; border-bottom: 3px solid #1a237e; padding-bottom: 8px; margin: 40px 0 20px; }
+        h3 { font-size: 17px; color: #283593; margin: 24px 0 12px; }
+        h4 { font-size: 15px; color: #3949ab; margin: 16px 0 8px; }
+        table { width: 100%; border-collapse: collapse; margin: 16px 0 24px; font-size: 13px; }
+        th { background: #e8eaf6; color: #1a237e; padding: 10px 12px; text-align: left; border: 1px solid #c5cae9; font-weight: 600; }
+        td { padding: 8px 12px; border: 1px solid #e0e0e0; vertical-align: top; }
+        tr:nth-child(even) { background: #fafafa; }
+        tr:hover { background: #f0f0ff; }
+        .intf-card { border: 2px solid #c5cae9; border-radius: 8px; margin: 24px 0; overflow: hidden; }
+        .intf-header { background: #283593; color: #fff; padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; }
+        .intf-header h4 { color: #fff; margin: 0; font-size: 16px; }
+        .intf-header .tag { padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+        .tag-read { background: #2e7d32; color: #fff; }
+        .tag-write { background: #c62828; color: #fff; }
+        .tag-sync { background: #1565c0; color: #fff; }
+        .intf-body { padding: 20px; }
+        .intf-row { display: flex; gap: 20px; margin-bottom: 16px; }
+        .intf-row .label { min-width: 120px; font-weight: 600; color: #1a237e; font-size: 13px; }
+        .intf-row .value { font-size: 13px; flex: 1; }
+        .mapping-table th { font-size: 12px; }
+        .mapping-table td { font-size: 12px; }
+        .arrow-right { color: #2e7d32; font-weight: 700; }
+        .arrow-left { color: #c62828; font-weight: 700; }
+        .arrow-both { color: #1565c0; font-weight: 700; }
+        code { background: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-size: 12px; font-family: 'Consolas', monospace; }
+        pre { background: #263238; color: #eeffff; padding: 16px; border-radius: 6px; font-size: 12px; overflow-x: auto; margin: 12px 0; font-family: 'Consolas', monospace; line-height: 1.5; }
+        .sql-keyword { color: #89ddff; }
+        .sql-string { color: #c3e88d; }
+        .sql-comment { color: #546e7a; }
+        .note { background: #fff8e1; border-left: 4px solid #ffc107; padding: 12px 16px; margin: 16px 0; font-size: 13px; }
+        .critical { background: #ffebee; border-left: 4px solid #e53935; padding: 12px 16px; margin: 16px 0; font-size: 13px; }
+        .footer { text-align: center; padding: 30px; color: #999; font-size: 12px; border-top: 1px solid #eee; margin-top: 40px; }
+        @media print { .header { background: #1a237e !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } .intf-header { background: #283593 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } pre { background: #263238 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+
+        /* Diagram styles */
+        .diagram-container { display: flex; align-items: stretch; justify-content: center; gap: 0; margin: 30px 0; padding: 20px 0; }
+        .system-box { border: 2px solid #1a237e; border-radius: 10px; padding: 0; min-width: 260px; background: #fff; overflow: hidden; flex-shrink: 0; }
+        .system-box-header { background: #1a237e; color: #fff; padding: 12px 16px; text-align: center; font-weight: 700; font-size: 15px; }
+        .system-box-sub { background: #e8eaf6; color: #1a237e; padding: 4px 16px; text-align: center; font-size: 12px; font-weight: 600; }
+        .system-box-body { padding: 12px 16px; }
+        .system-box-body ul { list-style: none; padding: 0; }
+        .system-box-body li { padding: 4px 8px; margin: 3px 0; background: #f5f5f5; border-radius: 4px; font-size: 12px; font-family: 'Consolas', monospace; border-left: 3px solid #3949ab; }
+        .arrows-area { display: flex; flex-direction: column; justify-content: center; align-items: center; min-width: 200px; gap: 12px; padding: 20px 10px; }
+        .arrow-line { display: flex; align-items: center; gap: 6px; font-size: 11px; white-space: nowrap; }
+        .arrow-line .arrow-symbol { font-size: 18px; font-weight: 700; }
+        .arrow-line .arrow-label { font-size: 11px; color: #555; }
+        .arrow-green { color: #2e7d32; }
+        .arrow-red { color: #c62828; }
+
+        /* Flowchart styles */
+        .flowchart { display: flex; flex-direction: column; align-items: center; gap: 0; margin: 24px 0; padding: 20px; }
+        .flow-row { display: flex; align-items: center; justify-content: center; gap: 12px; }
+        .flow-box { padding: 10px 18px; border-radius: 6px; font-size: 12px; font-weight: 600; text-align: center; min-width: 140px; }
+        .flow-process { background: #e8eaf6; border: 2px solid #3949ab; color: #1a237e; }
+        .flow-decision { background: #fff8e1; border: 2px solid #f9a825; color: #e65100; transform: rotate(0deg); padding: 10px 14px; border-radius: 6px; }
+        .flow-success { background: #e8f5e9; border: 2px solid #2e7d32; color: #1b5e20; }
+        .flow-fail { background: #ffebee; border: 2px solid #c62828; color: #b71c1c; }
+        .flow-arrow { font-size: 20px; color: #666; font-weight: 700; line-height: 1; }
+        .flow-arrow-down { display: flex; justify-content: center; padding: 4px 0; font-size: 20px; color: #666; font-weight: 700; }
+        .flow-label { font-size: 11px; color: #888; font-weight: 600; }
+        .flow-branch { display: flex; align-items: flex-start; justify-content: center; gap: 30px; margin: 8px 0; }
+        .flow-branch-col { display: flex; flex-direction: column; align-items: center; gap: 0; }
+
+        .process-list { padding-left: 20px; margin: 12px 0; }
+        .process-list li { margin: 4px 0; font-size: 13px; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>인터페이스 정의서</h1>
+    <p>SM Module - Oracle ERP 연동 프로젝트 &nbsp;|&nbsp; 작성일: 2026-03-24 &nbsp;|&nbsp; 작성: HM소프트 &nbsp;|&nbsp; 문서번호: SM-ERP-IF-001</p>
+</div>
+
+<div class="container">
+
+    <!-- ============================================================ -->
+    <!-- Section 1: 인터페이스 개요 -->
+    <!-- ============================================================ -->
+    <h2>1. 인터페이스 개요</h2>
+
+    <h3>1.1 연동 구성도</h3>
+    <p>SM Module과 Oracle ERP(iCUBE) 간의 전체 데이터 연동 구성을 나타냅니다.</p>
+
+    <div class="diagram-container">
+        <!-- SM Module Box -->
+        <div class="system-box">
+            <div class="system-box-header">SM Module</div>
+            <div class="system-box-sub">MariaDB</div>
+            <div class="system-box-body">
+                <ul>
+                    <li>orders</li>
+                    <li>business_owners</li>
+                    <li>users</li>
+                    <li>departments</li>
+                    <li>sales</li>
+                    <li>outsourcing_pos</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Arrows Area -->
+        <div class="arrows-area">
+            <div class="arrow-line">
+                <span class="arrow-green arrow-symbol">&larr;&larr;&larr;</span>
+                <span class="arrow-label">마스터 동기화 (배치)</span>
+            </div>
+            <div class="arrow-line">
+                <span class="arrow-green arrow-symbol">&larr;&larr;&larr;</span>
+                <span class="arrow-label">트랜잭션 조회 (배치)</span>
+            </div>
+            <div style="border-top: 1px dashed #ccc; width: 100%; margin: 6px 0;"></div>
+            <div class="arrow-line">
+                <span class="arrow-red arrow-symbol">&rarr;&rarr;&rarr;</span>
+                <span class="arrow-label">주문 등록/수정 (실시간)</span>
+            </div>
+            <div class="arrow-line">
+                <span class="arrow-red arrow-symbol">&rarr;&rarr;&rarr;</span>
+                <span class="arrow-label">외주발주 등록 (실시간)</span>
+            </div>
+            <div class="arrow-line">
+                <span class="arrow-red arrow-symbol">&rarr;&rarr;&rarr;</span>
+                <span class="arrow-label">매출 확정 반영 (실시간)</span>
+            </div>
+        </div>
+
+        <!-- Oracle ERP Box -->
+        <div class="system-box">
+            <div class="system-box-header">Oracle ERP</div>
+            <div class="system-box-sub">iCUBE</div>
+            <div class="system-box-body">
+                <ul>
+                    <li>SD_ORDER_MST</li>
+                    <li>CI_PARTNER_MST</li>
+                    <li>HR_EMP_MST</li>
+                    <li>VW_MA_DEPT_MST</li>
+                    <li>SD_BILL_MST</li>
+                    <li>PU_PURORDER_MST</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="note">
+        <strong>범례:</strong>
+        <span class="arrow-green">&larr;</span> ERP &rarr; SM 읽기 (마스터 데이터 및 트랜잭션 조회) &nbsp;&nbsp;|&nbsp;&nbsp;
+        <span class="arrow-red">&rarr;</span> SM &rarr; ERP 쓰기 (주문 생성/수정, 외주발주 등록)
+    </div>
+
+    <h3>1.2 인터페이스 목록 요약</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th>IF ID</th>
+                <th>인터페이스명</th>
+                <th>방향</th>
+                <th>소스</th>
+                <th>대상</th>
+                <th>연동방식</th>
+                <th>주기</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>IF-001</code></td>
+                <td>거래처 마스터 동기화</td>
+                <td><span class="arrow-right">ERP&rarr;SM</span></td>
+                <td>CI_PARTNER_MST</td>
+                <td>business_owners</td>
+                <td>배치</td>
+                <td>매일 02:00</td>
+            </tr>
+            <tr>
+                <td><code>IF-002</code></td>
+                <td>품목 마스터 동기화</td>
+                <td><span class="arrow-right">ERP&rarr;SM</span></td>
+                <td>CI_ITEM</td>
+                <td>erp_item_mappings</td>
+                <td>배치</td>
+                <td>매일 02:00</td>
+            </tr>
+            <tr>
+                <td><code>IF-003</code></td>
+                <td>사원 마스터 동기화</td>
+                <td><span class="arrow-right">ERP&rarr;SM</span></td>
+                <td>HR_EMP_MST</td>
+                <td>users</td>
+                <td>배치</td>
+                <td>매일 02:00</td>
+            </tr>
+            <tr>
+                <td><code>IF-004</code></td>
+                <td>부서 마스터 동기화</td>
+                <td><span class="arrow-right">ERP&rarr;SM</span></td>
+                <td>VW_MA_DEPT_MST</td>
+                <td>departments</td>
+                <td>배치</td>
+                <td>매일 02:00</td>
+            </tr>
+            <tr>
+                <td><code>IF-005</code></td>
+                <td>주문 현황 조회</td>
+                <td><span class="arrow-right">ERP&rarr;SM</span></td>
+                <td>SD_ORDER_MST/DTL_X20329</td>
+                <td>(조회)</td>
+                <td>배치</td>
+                <td>1시간</td>
+            </tr>
+            <tr>
+                <td><code>IF-006</code></td>
+                <td>수주 현황 조회</td>
+                <td><span class="arrow-right">ERP&rarr;SM</span></td>
+                <td>SD_SO_MST/DTL</td>
+                <td>(조회)</td>
+                <td>배치</td>
+                <td>1시간</td>
+            </tr>
+            <tr>
+                <td><code>IF-007</code></td>
+                <td>출하 현황 조회</td>
+                <td><span class="arrow-right">ERP&rarr;SM</span></td>
+                <td>SD_DLV_MST/DTL</td>
+                <td>(조회)</td>
+                <td>배치</td>
+                <td>1시간</td>
+            </tr>
+            <tr>
+                <td><code>IF-008</code></td>
+                <td>매출 현황 조회</td>
+                <td><span class="arrow-right">ERP&rarr;SM</span></td>
+                <td>SD_BILL_MST/DTL</td>
+                <td>(조회)</td>
+                <td>배치</td>
+                <td>1시간</td>
+            </tr>
+            <tr>
+                <td><code>IF-009</code></td>
+                <td>주문 등록</td>
+                <td><span class="arrow-left">SM&rarr;ERP</span></td>
+                <td>orders</td>
+                <td>SD_ORDER_MST/DTL_X20329</td>
+                <td>실시간</td>
+                <td>이벤트</td>
+            </tr>
+            <tr>
+                <td><code>IF-010</code></td>
+                <td>주문 수정</td>
+                <td><span class="arrow-left">SM&rarr;ERP</span></td>
+                <td>orders</td>
+                <td>SD_ORDER_MST/DTL_X20329</td>
+                <td>실시간</td>
+                <td>이벤트</td>
+            </tr>
+            <tr>
+                <td><code>IF-011</code></td>
+                <td>주문 상태변경</td>
+                <td><span class="arrow-left">SM&rarr;ERP</span></td>
+                <td>orders.status</td>
+                <td>SD_ORDER_MST_X20329.WRK_FG</td>
+                <td>실시간</td>
+                <td>이벤트</td>
+            </tr>
+            <tr>
+                <td><code>IF-012</code></td>
+                <td>외주발주 등록</td>
+                <td><span class="arrow-left">SM&rarr;ERP</span></td>
+                <td>outsourcing_pos</td>
+                <td>PU_PURORDER_MST/DTL</td>
+                <td>실시간</td>
+                <td>이벤트</td>
+            </tr>
+            <tr>
+                <td><code>IF-013</code></td>
+                <td>매출 확정 반영</td>
+                <td><span class="arrow-left">SM&rarr;ERP</span></td>
+                <td>sales.confirmed</td>
+                <td>SD_BILL_MST.BILL_ST</td>
+                <td>실시간</td>
+                <td>이벤트</td>
+            </tr>
+        </tbody>
+    </table>
+
+
+    <!-- ============================================================ -->
+    <!-- Section 2: 인터페이스 상세 (읽기: ERP → SM) -->
+    <!-- ============================================================ -->
+    <h2>2. 인터페이스 상세 (읽기: ERP &rarr; SM)</h2>
+
+    <!-- IF-001 -->
+    <div class="intf-card">
+        <div class="intf-header">
+            <h4>IF-001 | 거래처 마스터 동기화</h4>
+            <span class="tag tag-sync">SYNC</span>
+        </div>
+        <div class="intf-body">
+            <div class="intf-row">
+                <span class="label">IF ID</span>
+                <span class="value"><code>IF-001</code></span>
+            </div>
+            <div class="intf-row">
+                <span class="label">인터페이스명</span>
+                <span class="value">거래처 마스터 동기화</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">방향</span>
+                <span class="value"><span class="arrow-right">ERP &rarr; SM</span> (읽기/동기화)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">소스 테이블</span>
+                <span class="value"><code>CI_PARTNER_MST</code> (Oracle, 46,361건)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">대상 테이블</span>
+                <span class="value"><code>business_owners</code> (MariaDB)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">연결키</span>
+                <span class="value"><code>PARTNER_CD</code> = <code>douzone_code</code></span>
+            </div>
+            <div class="intf-row">
+                <span class="label">연동방식</span>
+                <span class="value">배치 (Spring <code>@Scheduled</code>)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">주기</span>
+                <span class="value">매일 02:00 (Cron: <code>0 0 2 * * ?</code>)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">조건</span>
+                <span class="value"><code>USE_YN = 'Y' AND PARTNER_FG_CD IN ('1','2','3')</code></span>
+            </div>
+
+            <h4>필드 매핑</h4>
+            <table class="mapping-table">
+                <thead>
+                    <tr>
+                        <th>ERP 컬럼</th>
+                        <th>ERP 타입</th>
+                        <th></th>
+                        <th>SM 컬럼</th>
+                        <th>SM 타입</th>
+                        <th>변환규칙</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>PARTNER_CD</code></td>
+                        <td>VARCHAR2(80)</td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>douzone_code</code></td>
+                        <td>VARCHAR(20)</td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>PARTNER_NM</code></td>
+                        <td>VARCHAR2(600)</td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>company_name</code></td>
+                        <td>VARCHAR(200)</td>
+                        <td>TRIM</td>
+                    </tr>
+                    <tr>
+                        <td><code>BIZR_NO</code></td>
+                        <td>VARCHAR2(80)</td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>biz_no</code></td>
+                        <td>VARCHAR(20)</td>
+                        <td>하이픈 제거</td>
+                    </tr>
+                    <tr>
+                        <td><code>CEO_NM</code></td>
+                        <td>VARCHAR2(400)</td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>representative_name</code></td>
+                        <td>VARCHAR(50)</td>
+                        <td>TRIM</td>
+                    </tr>
+                    <tr>
+                        <td><code>BASE_ADDR + DTL_ADDR2</code></td>
+                        <td>VARCHAR2(800+400)</td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>address</code></td>
+                        <td>VARCHAR(500)</td>
+                        <td>공백 연결</td>
+                    </tr>
+                    <tr>
+                        <td><code>TEL_NO</code></td>
+                        <td>VARCHAR2(200)</td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>representative_phone</code></td>
+                        <td>VARCHAR(20)</td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>BIZC_NM</code></td>
+                        <td>VARCHAR2(200)</td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>biz_item</code></td>
+                        <td>VARCHAR(100)</td>
+                        <td>TRIM</td>
+                    </tr>
+                    <tr>
+                        <td><code>BIZTP_NM</code></td>
+                        <td>VARCHAR2(200)</td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>biz_type</code></td>
+                        <td>VARCHAR(100)</td>
+                        <td>TRIM</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h4>소스 SQL</h4>
+            <pre><span class="sql-keyword">SELECT</span> PARTNER_CD, PARTNER_NM, BIZR_NO, CEO_NM,
+       BASE_ADDR, DTL_ADDR2, TEL_NO, FAX_NO,
+       BIZC_NM, BIZTP_NM, PARTNER_FG_CD, USE_YN
+<span class="sql-keyword">FROM</span> CI_PARTNER_MST
+<span class="sql-keyword">WHERE</span> USE_YN = <span class="sql-string">'Y'</span></pre>
+
+            <h4>처리 로직</h4>
+            <ol class="process-list">
+                <li>ERP에서 전체 활성 거래처 조회</li>
+                <li>SM에서 <code>douzone_code</code>로 기존 거래처 조회</li>
+                <li>매칭 시: UPDATE (이름, 주소, 연락처 등 갱신)</li>
+                <li>미매칭 시: INSERT (신규 거래처 등록)</li>
+                <li>동기화 이력 <code>erp_sync_logs</code>에 기록</li>
+            </ol>
+
+            <div class="note">
+                <strong>참고:</strong> 거래처 수가 약 46,000건으로 다량이므로, 배치 사이즈 1,000건 단위로 분할 처리하며, 전체 동기화 소요 시간은 약 3~5분입니다.
+            </div>
+        </div>
+    </div>
+
+    <!-- IF-002 -->
+    <div class="intf-card">
+        <div class="intf-header">
+            <h4>IF-002 | 품목 마스터 동기화</h4>
+            <span class="tag tag-sync">SYNC</span>
+        </div>
+        <div class="intf-body">
+            <div class="intf-row">
+                <span class="label">IF ID</span>
+                <span class="value"><code>IF-002</code></span>
+            </div>
+            <div class="intf-row">
+                <span class="label">인터페이스명</span>
+                <span class="value">품목 마스터 동기화</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">방향</span>
+                <span class="value"><span class="arrow-right">ERP &rarr; SM</span> (읽기/동기화)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">소스 테이블</span>
+                <span class="value"><code>CI_ITEM</code> (Oracle)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">대상 테이블</span>
+                <span class="value"><code>erp_item_mappings</code> (MariaDB)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">연결키</span>
+                <span class="value"><code>ITEM_CD</code> = <code>erp_item_code</code></span>
+            </div>
+            <div class="intf-row">
+                <span class="label">연동방식</span>
+                <span class="value">배치 (Spring <code>@Scheduled</code>)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">주기</span>
+                <span class="value">매일 02:00 (Cron: <code>0 0 2 * * ?</code>)</span>
+            </div>
+
+            <h4>필드 매핑</h4>
+            <table class="mapping-table">
+                <thead>
+                    <tr>
+                        <th>ERP 컬럼</th>
+                        <th>ERP 타입</th>
+                        <th></th>
+                        <th>SM 컬럼</th>
+                        <th>SM 타입</th>
+                        <th>변환규칙</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>ITEM_CD</code></td>
+                        <td>VARCHAR2(80)</td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>erp_item_code</code></td>
+                        <td>VARCHAR(40)</td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>ITEM_NM</code></td>
+                        <td>VARCHAR2(600)</td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>erp_item_name</code></td>
+                        <td>VARCHAR(200)</td>
+                        <td>TRIM</td>
+                    </tr>
+                    <tr>
+                        <td><code>ITEM_FG</code></td>
+                        <td>VARCHAR2(20)</td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>item_category</code></td>
+                        <td>VARCHAR(20)</td>
+                        <td>코드 매핑</td>
+                    </tr>
+                    <tr>
+                        <td><code>UNIT_CD</code></td>
+                        <td>VARCHAR2(20)</td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>unit</code></td>
+                        <td>VARCHAR(10)</td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>USE_YN</code></td>
+                        <td>VARCHAR2(2)</td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>is_active</code></td>
+                        <td>TINYINT(1)</td>
+                        <td>'Y'=1, 'N'=0</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h4>소스 SQL</h4>
+            <pre><span class="sql-keyword">SELECT</span> ITEM_CD, ITEM_NM, ITEM_FG, UNIT_CD, USE_YN
+<span class="sql-keyword">FROM</span> CI_ITEM
+<span class="sql-keyword">WHERE</span> COMPANY_CD = <span class="sql-string">'1000'</span>
+  <span class="sql-keyword">AND</span> USE_YN = <span class="sql-string">'Y'</span></pre>
+
+            <h4>처리 로직</h4>
+            <ol class="process-list">
+                <li>ERP에서 활성 품목 전체 조회</li>
+                <li>SM에서 <code>erp_item_code</code>로 기존 매핑 조회</li>
+                <li>매칭 시: UPDATE (품목명, 구분, 단위 갱신)</li>
+                <li>미매칭 시: INSERT (신규 품목 매핑 등록)</li>
+                <li>동기화 이력 <code>erp_sync_logs</code>에 기록</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- IF-003 -->
+    <div class="intf-card">
+        <div class="intf-header">
+            <h4>IF-003 | 사원 마스터 동기화</h4>
+            <span class="tag tag-sync">SYNC</span>
+        </div>
+        <div class="intf-body">
+            <div class="intf-row">
+                <span class="label">IF ID</span>
+                <span class="value"><code>IF-003</code></span>
+            </div>
+            <div class="intf-row">
+                <span class="label">인터페이스명</span>
+                <span class="value">사원 마스터 동기화</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">방향</span>
+                <span class="value"><span class="arrow-right">ERP &rarr; SM</span> (읽기/동기화)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">소스 테이블</span>
+                <span class="value"><code>HR_EMP_MST</code> (Oracle)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">대상 테이블</span>
+                <span class="value"><code>users</code> (MariaDB)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">연결키</span>
+                <span class="value"><code>EMPNO_CD</code> = <code>employee_no</code></span>
+            </div>
+            <div class="intf-row">
+                <span class="label">연동방식</span>
+                <span class="value">배치 (Spring <code>@Scheduled</code>)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">주기</span>
+                <span class="value">매일 02:00 (Cron: <code>0 0 2 * * ?</code>)</span>
+            </div>
+
+            <h4>필드 매핑</h4>
+            <table class="mapping-table">
+                <thead>
+                    <tr>
+                        <th>ERP 컬럼</th>
+                        <th>ERP 타입</th>
+                        <th></th>
+                        <th>SM 컬럼</th>
+                        <th>SM 타입</th>
+                        <th>변환규칙</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>EMPNO_CD</code></td>
+                        <td>VARCHAR2(80)</td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>employee_no</code></td>
+                        <td>VARCHAR(20)</td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>EMP_NM</code></td>
+                        <td>VARCHAR2(400)</td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>name</code></td>
+                        <td>VARCHAR(50)</td>
+                        <td>TRIM</td>
+                    </tr>
+                    <tr>
+                        <td><code>DEPT_CD</code></td>
+                        <td>VARCHAR2(80)</td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>department_id</code></td>
+                        <td>BIGINT</td>
+                        <td>departments.code 매핑</td>
+                    </tr>
+                    <tr>
+                        <td><code>POSI_CD</code></td>
+                        <td>VARCHAR2(80)</td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>position</code></td>
+                        <td>VARCHAR(50)</td>
+                        <td>코드 매핑</td>
+                    </tr>
+                    <tr>
+                        <td><code>EMAIL</code></td>
+                        <td>VARCHAR2(400)</td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>email</code></td>
+                        <td>VARCHAR(100)</td>
+                        <td>TRIM, LOWER</td>
+                    </tr>
+                    <tr>
+                        <td><code>HPNO</code></td>
+                        <td>VARCHAR2(200)</td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>phone</code></td>
+                        <td>VARCHAR(20)</td>
+                        <td>그대로</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h4>소스 SQL</h4>
+            <pre><span class="sql-keyword">SELECT</span> EMPNO_CD, EMP_NM, DEPT_CD, POSI_CD, EMAIL, HPNO
+<span class="sql-keyword">FROM</span> HR_EMP_MST
+<span class="sql-keyword">WHERE</span> COMPANY_CD = <span class="sql-string">'1000'</span>
+  <span class="sql-keyword">AND</span> RETIRE_DT <span class="sql-keyword">IS NULL</span></pre>
+
+            <h4>처리 로직</h4>
+            <ol class="process-list">
+                <li>ERP에서 재직 중인 사원 전체 조회 (퇴사일이 NULL)</li>
+                <li>SM에서 <code>employee_no</code>로 기존 사용자 조회</li>
+                <li>매칭 시: UPDATE (이름, 부서, 직급, 연락처 갱신)</li>
+                <li>미매칭 시: INSERT (신규 사용자 등록, 기본 role 배정)</li>
+                <li>동기화 이력 <code>erp_sync_logs</code>에 기록</li>
+            </ol>
+
+            <div class="note">
+                <strong>참고:</strong> 사원 동기화 시 SM에만 존재하는 사용자(ERP에 없는 사용자)는 삭제하지 않고, <code>is_active = 0</code>으로 비활성 처리합니다.
+            </div>
+        </div>
+    </div>
+
+    <!-- IF-004 -->
+    <div class="intf-card">
+        <div class="intf-header">
+            <h4>IF-004 | 부서 마스터 동기화</h4>
+            <span class="tag tag-sync">SYNC</span>
+        </div>
+        <div class="intf-body">
+            <div class="intf-row">
+                <span class="label">IF ID</span>
+                <span class="value"><code>IF-004</code></span>
+            </div>
+            <div class="intf-row">
+                <span class="label">인터페이스명</span>
+                <span class="value">부서 마스터 동기화</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">방향</span>
+                <span class="value"><span class="arrow-right">ERP &rarr; SM</span> (읽기/동기화)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">소스 테이블</span>
+                <span class="value"><code>VW_MA_DEPT_MST</code> (Oracle, View)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">대상 테이블</span>
+                <span class="value"><code>departments</code> (MariaDB)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">연결키</span>
+                <span class="value"><code>DEPT_CD</code> = <code>code</code></span>
+            </div>
+            <div class="intf-row">
+                <span class="label">연동방식</span>
+                <span class="value">배치 (Spring <code>@Scheduled</code>)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">주기</span>
+                <span class="value">매일 02:00 (Cron: <code>0 0 2 * * ?</code>)</span>
+            </div>
+
+            <h4>필드 매핑</h4>
+            <table class="mapping-table">
+                <thead>
+                    <tr>
+                        <th>ERP 컬럼</th>
+                        <th>ERP 타입</th>
+                        <th></th>
+                        <th>SM 컬럼</th>
+                        <th>SM 타입</th>
+                        <th>변환규칙</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>DEPT_CD</code></td>
+                        <td>VARCHAR2(80)</td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>code</code></td>
+                        <td>VARCHAR(20)</td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>DEPT_NM</code></td>
+                        <td>VARCHAR2(400)</td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>name</code></td>
+                        <td>VARCHAR(100)</td>
+                        <td>TRIM</td>
+                    </tr>
+                    <tr>
+                        <td><code>UP_DEPT_CD</code></td>
+                        <td>VARCHAR2(80)</td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>parent_id</code></td>
+                        <td>BIGINT</td>
+                        <td>departments.code 매핑</td>
+                    </tr>
+                    <tr>
+                        <td><code>USE_YN</code></td>
+                        <td>VARCHAR2(2)</td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>is_active</code></td>
+                        <td>TINYINT(1)</td>
+                        <td>'Y'=1, 'N'=0</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h4>소스 SQL</h4>
+            <pre><span class="sql-keyword">SELECT</span> DEPT_CD, DEPT_NM, UP_DEPT_CD, USE_YN
+<span class="sql-keyword">FROM</span> VW_MA_DEPT_MST
+<span class="sql-keyword">WHERE</span> COMPANY_CD = <span class="sql-string">'1000'</span>
+  <span class="sql-keyword">AND</span> USE_YN = <span class="sql-string">'Y'</span></pre>
+
+            <h4>처리 로직</h4>
+            <ol class="process-list">
+                <li>ERP에서 활성 부서 전체 조회</li>
+                <li>SM에서 <code>code</code>로 기존 부서 조회</li>
+                <li>매칭 시: UPDATE (부서명, 상위부서 갱신)</li>
+                <li>미매칭 시: INSERT (신규 부서 등록)</li>
+                <li>동기화 이력 <code>erp_sync_logs</code>에 기록</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- IF-005 -->
+    <div class="intf-card">
+        <div class="intf-header">
+            <h4>IF-005 | 주문 현황 조회</h4>
+            <span class="tag tag-read">READ</span>
+        </div>
+        <div class="intf-body">
+            <div class="intf-row">
+                <span class="label">IF ID</span>
+                <span class="value"><code>IF-005</code></span>
+            </div>
+            <div class="intf-row">
+                <span class="label">인터페이스명</span>
+                <span class="value">주문 현황 조회</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">방향</span>
+                <span class="value"><span class="arrow-right">ERP &rarr; SM</span> (읽기)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">소스 테이블</span>
+                <span class="value"><code>SD_ORDER_MST_X20329</code> + <code>SD_ORDER_DTL_X20329</code> (Oracle)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">대상</span>
+                <span class="value">SM 화면 조회용 (직접 저장하지 않음)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">연동방식</span>
+                <span class="value">배치 (Spring <code>@Scheduled</code>)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">주기</span>
+                <span class="value">1시간 (Cron: <code>0 0 * * * ?</code>)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">변경분 조건</span>
+                <span class="value"><code>UPDATE_DTS >= :lastSyncTime</code></span>
+            </div>
+
+            <h4>소스 SQL</h4>
+            <pre><span class="sql-keyword">SELECT</span> m.ORDDOC_NO, m.ORD_DT, m.ORDDOC_NM,
+       m.PARTNER_CD, m.DEPT_CD, m.BIZRSPT_EMPNO_CD,
+       m.WRK_FG, m.RMK_TXT,
+       d.ORDDOC_SQ, d.ITEM_CD, d.ITEM_NM,
+       d.ORD_QT, d.SELL_AMT, d.SUM_AMT,
+       d.LACO_AMT, d.MTRIL_AMT, d.TAX_AMT, d.ORDDOC_ST
+<span class="sql-keyword">FROM</span> SD_ORDER_MST_X20329 m
+<span class="sql-keyword">JOIN</span> SD_ORDER_DTL_X20329 d
+  <span class="sql-keyword">ON</span> m.COMPANY_CD = d.COMPANY_CD
+  <span class="sql-keyword">AND</span> m.ORDDOC_NO = d.ORDDOC_NO
+<span class="sql-keyword">WHERE</span> m.COMPANY_CD = <span class="sql-string">'1000'</span>
+  <span class="sql-keyword">AND</span> m.UPDATE_DTS >= :lastSyncTime
+<span class="sql-keyword">ORDER BY</span> m.UPDATE_DTS <span class="sql-keyword">DESC</span></pre>
+
+            <h4>주요 컬럼 설명</h4>
+            <table class="mapping-table">
+                <thead>
+                    <tr>
+                        <th>ERP 컬럼</th>
+                        <th>설명</th>
+                        <th>비고</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>ORDDOC_NO</code></td><td>주문번호</td><td>GOR + YYYYMMDD + 순번</td></tr>
+                    <tr><td><code>ORD_DT</code></td><td>주문일자</td><td>YYYYMMDD</td></tr>
+                    <tr><td><code>ORDDOC_NM</code></td><td>주문명</td><td></td></tr>
+                    <tr><td><code>PARTNER_CD</code></td><td>거래처 코드</td><td>CI_PARTNER_MST 참조</td></tr>
+                    <tr><td><code>WRK_FG</code></td><td>진행상태</td><td>코드값 (erp_code_mappings)</td></tr>
+                    <tr><td><code>ORDDOC_SQ</code></td><td>상세 순번</td><td>1부터 순차</td></tr>
+                    <tr><td><code>ITEM_NM</code></td><td>품목명</td><td></td></tr>
+                    <tr><td><code>ORD_QT</code></td><td>주문수량</td><td></td></tr>
+                    <tr><td><code>SUM_AMT</code></td><td>합계금액</td><td></td></tr>
+                </tbody>
+            </table>
+
+            <h4>처리 로직</h4>
+            <ol class="process-list">
+                <li>마지막 동기화 시각 이후 변경된 주문 조회</li>
+                <li>SM 주문 목록과 비교하여 상태 갱신 반영</li>
+                <li>ERP에서 변경된 주문 상태를 SM <code>orders.erp_status</code>에 반영</li>
+                <li>동기화 시각 업데이트</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- IF-006 -->
+    <div class="intf-card">
+        <div class="intf-header">
+            <h4>IF-006 | 수주 현황 조회</h4>
+            <span class="tag tag-read">READ</span>
+        </div>
+        <div class="intf-body">
+            <div class="intf-row">
+                <span class="label">IF ID</span>
+                <span class="value"><code>IF-006</code></span>
+            </div>
+            <div class="intf-row">
+                <span class="label">인터페이스명</span>
+                <span class="value">수주 현황 조회</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">방향</span>
+                <span class="value"><span class="arrow-right">ERP &rarr; SM</span> (읽기)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">소스 테이블</span>
+                <span class="value"><code>SD_SO_MST</code> + <code>SD_SO_DTL</code> (Oracle)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">대상</span>
+                <span class="value">SM 화면 조회용</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">연동방식</span>
+                <span class="value">배치 (Spring <code>@Scheduled</code>)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">주기</span>
+                <span class="value">1시간 (Cron: <code>0 0 * * * ?</code>)</span>
+            </div>
+
+            <h4>소스 SQL</h4>
+            <pre><span class="sql-keyword">SELECT</span> m.SO_NO, m.SO_DT, m.PARTNER_CD, m.DEPT_CD,
+       m.BIZRSPT_EMPNO_CD, m.SO_ST,
+       d.SO_SQ, d.ITEM_CD, d.ITEM_NM, d.SO_QT, d.SO_AMT
+<span class="sql-keyword">FROM</span> SD_SO_MST m
+<span class="sql-keyword">JOIN</span> SD_SO_DTL d
+  <span class="sql-keyword">ON</span> m.COMPANY_CD = d.COMPANY_CD
+  <span class="sql-keyword">AND</span> m.SO_NO = d.SO_NO
+<span class="sql-keyword">WHERE</span> m.COMPANY_CD = <span class="sql-string">'1000'</span>
+  <span class="sql-keyword">AND</span> m.UPDATE_DTS >= :lastSyncTime
+<span class="sql-keyword">ORDER BY</span> m.UPDATE_DTS <span class="sql-keyword">DESC</span></pre>
+
+            <h4>처리 로직</h4>
+            <ol class="process-list">
+                <li>마지막 동기화 시각 이후 변경된 수주 조회</li>
+                <li>SM 주문과 수주번호(<code>SO_NO</code>) 매핑 갱신</li>
+                <li>수주 상태(<code>SO_ST</code>)를 SM에 반영</li>
+                <li>동기화 시각 업데이트</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- IF-007 -->
+    <div class="intf-card">
+        <div class="intf-header">
+            <h4>IF-007 | 출하 현황 조회</h4>
+            <span class="tag tag-read">READ</span>
+        </div>
+        <div class="intf-body">
+            <div class="intf-row">
+                <span class="label">IF ID</span>
+                <span class="value"><code>IF-007</code></span>
+            </div>
+            <div class="intf-row">
+                <span class="label">인터페이스명</span>
+                <span class="value">출하 현황 조회</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">방향</span>
+                <span class="value"><span class="arrow-right">ERP &rarr; SM</span> (읽기)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">소스 테이블</span>
+                <span class="value"><code>SD_DLV_MST</code> + <code>SD_DLV_DTL</code> (Oracle)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">대상</span>
+                <span class="value">SM 화면 조회용</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">연동방식</span>
+                <span class="value">배치 (Spring <code>@Scheduled</code>)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">주기</span>
+                <span class="value">1시간 (Cron: <code>0 0 * * * ?</code>)</span>
+            </div>
+
+            <h4>소스 SQL</h4>
+            <pre><span class="sql-keyword">SELECT</span> m.DLV_NO, m.DLV_DT, m.PARTNER_CD, m.DLV_ST,
+       d.DLV_SQ, d.ITEM_CD, d.ITEM_NM, d.DLV_QT, d.DLV_AMT
+<span class="sql-keyword">FROM</span> SD_DLV_MST m
+<span class="sql-keyword">JOIN</span> SD_DLV_DTL d
+  <span class="sql-keyword">ON</span> m.COMPANY_CD = d.COMPANY_CD
+  <span class="sql-keyword">AND</span> m.DLV_NO = d.DLV_NO
+<span class="sql-keyword">WHERE</span> m.COMPANY_CD = <span class="sql-string">'1000'</span>
+  <span class="sql-keyword">AND</span> m.UPDATE_DTS >= :lastSyncTime
+<span class="sql-keyword">ORDER BY</span> m.UPDATE_DTS <span class="sql-keyword">DESC</span></pre>
+
+            <h4>처리 로직</h4>
+            <ol class="process-list">
+                <li>마지막 동기화 시각 이후 변경된 출하 조회</li>
+                <li>SM 주문과 출하번호(<code>DLV_NO</code>) 매핑 갱신</li>
+                <li>출하 상태(<code>DLV_ST</code>)를 SM에 반영</li>
+                <li>동기화 시각 업데이트</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- IF-008 -->
+    <div class="intf-card">
+        <div class="intf-header">
+            <h4>IF-008 | 매출 현황 조회</h4>
+            <span class="tag tag-read">READ</span>
+        </div>
+        <div class="intf-body">
+            <div class="intf-row">
+                <span class="label">IF ID</span>
+                <span class="value"><code>IF-008</code></span>
+            </div>
+            <div class="intf-row">
+                <span class="label">인터페이스명</span>
+                <span class="value">매출 현황 조회</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">방향</span>
+                <span class="value"><span class="arrow-right">ERP &rarr; SM</span> (읽기)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">소스 테이블</span>
+                <span class="value"><code>SD_BILL_MST</code> + <code>SD_BILL_DTL</code> (Oracle)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">대상</span>
+                <span class="value">SM 화면 조회용</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">연동방식</span>
+                <span class="value">배치 (Spring <code>@Scheduled</code>)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">주기</span>
+                <span class="value">1시간 (Cron: <code>0 0 * * * ?</code>)</span>
+            </div>
+
+            <h4>소스 SQL</h4>
+            <pre><span class="sql-keyword">SELECT</span> m.BILL_NO, m.BILL_DT, m.PARTNER_CD, m.BILL_ST,
+       m.TOT_AMT, m.TOT_TAX, m.TOT_SUM,
+       d.BILL_SQ, d.ITEM_CD, d.ITEM_NM, d.BILL_QT, d.BILL_AMT
+<span class="sql-keyword">FROM</span> SD_BILL_MST m
+<span class="sql-keyword">JOIN</span> SD_BILL_DTL d
+  <span class="sql-keyword">ON</span> m.COMPANY_CD = d.COMPANY_CD
+  <span class="sql-keyword">AND</span> m.BILL_NO = d.BILL_NO
+<span class="sql-keyword">WHERE</span> m.COMPANY_CD = <span class="sql-string">'1000'</span>
+  <span class="sql-keyword">AND</span> m.UPDATE_DTS >= :lastSyncTime
+<span class="sql-keyword">ORDER BY</span> m.UPDATE_DTS <span class="sql-keyword">DESC</span></pre>
+
+            <h4>처리 로직</h4>
+            <ol class="process-list">
+                <li>마지막 동기화 시각 이후 변경된 매출 조회</li>
+                <li>SM 매출 테이블에 매출번호(<code>BILL_NO</code>) 매핑 갱신</li>
+                <li>매출 상태(<code>BILL_ST</code>)를 SM에 반영</li>
+                <li>동기화 시각 업데이트</li>
+            </ol>
+        </div>
+    </div>
+
+
+    <!-- ============================================================ -->
+    <!-- Section 3: 인터페이스 상세 (쓰기: SM → ERP) -->
+    <!-- ============================================================ -->
+    <h2>3. 인터페이스 상세 (쓰기: SM &rarr; ERP)</h2>
+
+    <!-- IF-009 -->
+    <div class="intf-card">
+        <div class="intf-header">
+            <h4>IF-009 | 주문 등록</h4>
+            <span class="tag tag-write">WRITE</span>
+        </div>
+        <div class="intf-body">
+            <div class="intf-row">
+                <span class="label">IF ID</span>
+                <span class="value"><code>IF-009</code></span>
+            </div>
+            <div class="intf-row">
+                <span class="label">인터페이스명</span>
+                <span class="value">주문 등록</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">방향</span>
+                <span class="value"><span class="arrow-left">SM &rarr; ERP</span> (쓰기)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">소스</span>
+                <span class="value"><code>orders</code> + <code>order_works</code> + <code>order_items</code> (MariaDB)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">대상</span>
+                <span class="value"><code>SD_ORDER_MST_X20329</code> + <code>SD_ORDER_DTL_X20329</code> (Oracle)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">트리거</span>
+                <span class="value">SM 주문 생성 이벤트 (실시간)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">채번규칙</span>
+                <span class="value"><code>ORDDOC_NO</code> = <code>'GOR'</code> + YYYYMMDD + 5자리순번 (예: GOR2026032400001)</span>
+            </div>
+
+            <h4>필드 매핑 (MST - 마스터)</h4>
+            <table class="mapping-table">
+                <thead>
+                    <tr>
+                        <th>SM 컬럼</th>
+                        <th>SM 값 (예시)</th>
+                        <th></th>
+                        <th>ERP 컬럼</th>
+                        <th>변환규칙</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>-</td>
+                        <td><code>'1000'</code></td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>COMPANY_CD</code></td>
+                        <td>고정값</td>
+                    </tr>
+                    <tr>
+                        <td><code>order_no</code></td>
+                        <td><code>GOR...</code></td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>ORDDOC_NO</code></td>
+                        <td>채번</td>
+                    </tr>
+                    <tr>
+                        <td><code>received_date</code></td>
+                        <td>2026-03-24</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>ORD_DT</code></td>
+                        <td>YYYYMMDD 변환</td>
+                    </tr>
+                    <tr>
+                        <td><code>title</code></td>
+                        <td>주문명</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>ORDDOC_NM</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>biz_owner.douzone_code</code></td>
+                        <td>P00123</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>PARTNER_CD</code></td>
+                        <td>매핑</td>
+                    </tr>
+                    <tr>
+                        <td><code>department.code</code></td>
+                        <td>4400</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>DEPT_CD</code></td>
+                        <td>매핑</td>
+                    </tr>
+                    <tr>
+                        <td><code>sales_manager.employee_no</code></td>
+                        <td>10011275</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>BIZRSPT_EMPNO_CD</code></td>
+                        <td>매핑</td>
+                    </tr>
+                    <tr>
+                        <td><code>status</code></td>
+                        <td>PRINTING</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>WRK_FG</code></td>
+                        <td>코드 매핑 (<code>erp_code_mappings</code>)</td>
+                    </tr>
+                    <tr>
+                        <td><code>note</code></td>
+                        <td>비고</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>RMK_TXT</code></td>
+                        <td>그대로</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h4>필드 매핑 (DTL - 상세)</h4>
+            <table class="mapping-table">
+                <thead>
+                    <tr>
+                        <th>SM 컬럼</th>
+                        <th></th>
+                        <th>ERP 컬럼</th>
+                        <th>변환규칙</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>order_item.item_name</code></td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>ITEM_NM</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>order_item.category</code></td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>ITEM_FG</code></td>
+                        <td>코드 매핑</td>
+                    </tr>
+                    <tr>
+                        <td><code>order_item.quantity</code></td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>ORD_QT</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>order_item.unit_price</code></td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>ITEM_UM</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>order_item.subtotal</code></td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>SUM_AMT</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td>(순번)</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>ORDDOC_SQ</code></td>
+                        <td>1부터 순차</td>
+                    </tr>
+                    <tr>
+                        <td>-</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>ORDDOC_ST</code></td>
+                        <td>'0' (미확정)</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h4>ERP INSERT SQL</h4>
+            <pre><span class="sql-comment">-- 마스터 INSERT</span>
+<span class="sql-keyword">INSERT INTO</span> SD_ORDER_MST_X20329 (
+    COMPANY_CD, ORDDOC_NO, PLANT_CD, ORD_DT,
+    ORDDOC_NM, PARTNER_CD, DEPT_CD, BIZRSPT_EMPNO_CD,
+    WRK_FG, RMK_TXT, INSERT_DTS, UPDATE_DTS
+) <span class="sql-keyword">VALUES</span> (
+    <span class="sql-string">'1000'</span>, :orderNo, <span class="sql-string">'1000'</span>, :ordDt,
+    :orderNm, :partnerCd, :deptCd, :empNo,
+    :wrkFg, :rmkTxt, <span class="sql-keyword">SYSDATE</span>, <span class="sql-keyword">SYSDATE</span>
+);
+
+<span class="sql-comment">-- 상세 INSERT (건별)</span>
+<span class="sql-keyword">INSERT INTO</span> SD_ORDER_DTL_X20329 (
+    COMPANY_CD, ORDDOC_NO, ORDDOC_SQ, PLANT_CD,
+    ITEM_NM, ITEM_FG, ORD_QT, ITEM_UM, SUM_AMT,
+    ORDDOC_ST, INSERT_DTS, UPDATE_DTS
+) <span class="sql-keyword">VALUES</span> (
+    <span class="sql-string">'1000'</span>, :orderNo, :seq, <span class="sql-string">'1000'</span>,
+    :itemNm, :itemFg, :ordQt, :itemUm, :sumAmt,
+    <span class="sql-string">'0'</span>, <span class="sql-keyword">SYSDATE</span>, <span class="sql-keyword">SYSDATE</span>
+);</pre>
+
+            <h4>처리 로직</h4>
+            <ol class="process-list">
+                <li>SM 주문 데이터 조회</li>
+                <li><code>ORDDOC_NO</code> 채번 (GOR + YYYYMMDD + 순번)</li>
+                <li>거래처/사원/부서 매핑키 변환</li>
+                <li><code>SD_ORDER_MST_X20329</code> INSERT</li>
+                <li><code>SD_ORDER_DTL_X20329</code> INSERT (품목별)</li>
+                <li>성공 시: SM <code>orders.erp_order_no</code> 업데이트</li>
+                <li>실패 시: <code>integration_retry_queue</code>에 등록</li>
+            </ol>
+
+            <div class="critical">
+                <strong>주의:</strong> ERP INSERT 시 트랜잭션 관리가 필수입니다. MST와 DTL은 반드시 하나의 트랜잭션으로 처리하며, 부분 실패 시 전체 롤백합니다.
+            </div>
+        </div>
+    </div>
+
+    <!-- IF-010 -->
+    <div class="intf-card">
+        <div class="intf-header">
+            <h4>IF-010 | 주문 수정</h4>
+            <span class="tag tag-write">WRITE</span>
+        </div>
+        <div class="intf-body">
+            <div class="intf-row">
+                <span class="label">IF ID</span>
+                <span class="value"><code>IF-010</code></span>
+            </div>
+            <div class="intf-row">
+                <span class="label">인터페이스명</span>
+                <span class="value">주문 수정</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">방향</span>
+                <span class="value"><span class="arrow-left">SM &rarr; ERP</span> (쓰기)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">소스</span>
+                <span class="value"><code>orders</code> + <code>order_works</code> + <code>order_items</code> (MariaDB)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">대상</span>
+                <span class="value"><code>SD_ORDER_MST_X20329</code> + <code>SD_ORDER_DTL_X20329</code> (Oracle)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">트리거</span>
+                <span class="value">SM 주문 수정 이벤트 (실시간)</span>
+            </div>
+
+            <h4>ERP UPDATE SQL</h4>
+            <pre><span class="sql-comment">-- 마스터 UPDATE</span>
+<span class="sql-keyword">UPDATE</span> SD_ORDER_MST_X20329
+<span class="sql-keyword">SET</span> ORD_DT = :ordDt,
+    ORDDOC_NM = :orderNm,
+    PARTNER_CD = :partnerCd,
+    DEPT_CD = :deptCd,
+    BIZRSPT_EMPNO_CD = :empNo,
+    WRK_FG = :wrkFg,
+    RMK_TXT = :rmkTxt,
+    UPDATE_DTS = <span class="sql-keyword">SYSDATE</span>
+<span class="sql-keyword">WHERE</span> COMPANY_CD = <span class="sql-string">'1000'</span>
+  <span class="sql-keyword">AND</span> ORDDOC_NO = :orderNo;
+
+<span class="sql-comment">-- 상세 DELETE 후 재INSERT (DTL 교체)</span>
+<span class="sql-keyword">DELETE FROM</span> SD_ORDER_DTL_X20329
+<span class="sql-keyword">WHERE</span> COMPANY_CD = <span class="sql-string">'1000'</span>
+  <span class="sql-keyword">AND</span> ORDDOC_NO = :orderNo;
+
+<span class="sql-comment">-- 상세 INSERT (건별, IF-009와 동일)</span>
+<span class="sql-keyword">INSERT INTO</span> SD_ORDER_DTL_X20329 (
+    COMPANY_CD, ORDDOC_NO, ORDDOC_SQ, PLANT_CD,
+    ITEM_NM, ITEM_FG, ORD_QT, ITEM_UM, SUM_AMT,
+    ORDDOC_ST, INSERT_DTS, UPDATE_DTS
+) <span class="sql-keyword">VALUES</span> (
+    <span class="sql-string">'1000'</span>, :orderNo, :seq, <span class="sql-string">'1000'</span>,
+    :itemNm, :itemFg, :ordQt, :itemUm, :sumAmt,
+    <span class="sql-string">'0'</span>, <span class="sql-keyword">SYSDATE</span>, <span class="sql-keyword">SYSDATE</span>
+);</pre>
+
+            <h4>처리 로직</h4>
+            <ol class="process-list">
+                <li>SM 주문의 <code>erp_order_no</code>로 ERP 주문 식별</li>
+                <li><code>SD_ORDER_MST_X20329</code> UPDATE (마스터 정보 갱신)</li>
+                <li><code>SD_ORDER_DTL_X20329</code> DELETE (기존 상세 전체 삭제)</li>
+                <li><code>SD_ORDER_DTL_X20329</code> INSERT (변경된 상세 재등록)</li>
+                <li>성공 시: SM <code>erp_sync_logs</code> 기록</li>
+                <li>실패 시: <code>integration_retry_queue</code>에 등록</li>
+            </ol>
+
+            <div class="critical">
+                <strong>주의:</strong> DTL 교체 방식(DELETE + INSERT)을 사용합니다. MST UPDATE, DTL DELETE, DTL INSERT는 반드시 하나의 트랜잭션으로 처리합니다.
+            </div>
+        </div>
+    </div>
+
+    <!-- IF-011 -->
+    <div class="intf-card">
+        <div class="intf-header">
+            <h4>IF-011 | 주문 상태변경</h4>
+            <span class="tag tag-write">WRITE</span>
+        </div>
+        <div class="intf-body">
+            <div class="intf-row">
+                <span class="label">IF ID</span>
+                <span class="value"><code>IF-011</code></span>
+            </div>
+            <div class="intf-row">
+                <span class="label">인터페이스명</span>
+                <span class="value">주문 상태변경</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">방향</span>
+                <span class="value"><span class="arrow-left">SM &rarr; ERP</span> (쓰기)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">소스</span>
+                <span class="value"><code>orders.status</code> (MariaDB)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">대상</span>
+                <span class="value"><code>SD_ORDER_MST_X20329.WRK_FG</code> (Oracle)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">트리거</span>
+                <span class="value">SM 주문 상태 변경 이벤트 (실시간)</span>
+            </div>
+
+            <h4>상태 코드 매핑</h4>
+            <table class="mapping-table">
+                <thead>
+                    <tr>
+                        <th>SM 상태 (orders.status)</th>
+                        <th></th>
+                        <th>ERP 코드 (WRK_FG)</th>
+                        <th>설명</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>RECEIVED</code></td><td class="arrow-left">&rarr;</td><td><code>01</code></td><td>접수</td></tr>
+                    <tr><td><code>PRINTING</code></td><td class="arrow-left">&rarr;</td><td><code>02</code></td><td>인쇄</td></tr>
+                    <tr><td><code>SHIPPING</code></td><td class="arrow-left">&rarr;</td><td><code>03</code></td><td>출하</td></tr>
+                    <tr><td><code>DELIVERED</code></td><td class="arrow-left">&rarr;</td><td><code>04</code></td><td>납품완료</td></tr>
+                    <tr><td><code>CANCELLED</code></td><td class="arrow-left">&rarr;</td><td><code>99</code></td><td>취소</td></tr>
+                </tbody>
+            </table>
+
+            <h4>ERP UPDATE SQL</h4>
+            <pre><span class="sql-keyword">UPDATE</span> SD_ORDER_MST_X20329
+<span class="sql-keyword">SET</span> WRK_FG = :wrkFg,
+    UPDATE_DTS = <span class="sql-keyword">SYSDATE</span>
+<span class="sql-keyword">WHERE</span> COMPANY_CD = <span class="sql-string">'1000'</span>
+  <span class="sql-keyword">AND</span> ORDDOC_NO = :orderNo;</pre>
+
+            <h4>처리 로직</h4>
+            <ol class="process-list">
+                <li>SM 주문 상태 변경 감지</li>
+                <li><code>erp_code_mappings</code>에서 SM 상태 &rarr; ERP 코드(<code>WRK_FG</code>) 변환</li>
+                <li><code>SD_ORDER_MST_X20329.WRK_FG</code> UPDATE</li>
+                <li>성공 시: <code>erp_sync_logs</code> 기록</li>
+                <li>실패 시: <code>integration_retry_queue</code>에 등록</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- IF-012 -->
+    <div class="intf-card">
+        <div class="intf-header">
+            <h4>IF-012 | 외주발주 등록</h4>
+            <span class="tag tag-write">WRITE</span>
+        </div>
+        <div class="intf-body">
+            <div class="intf-row">
+                <span class="label">IF ID</span>
+                <span class="value"><code>IF-012</code></span>
+            </div>
+            <div class="intf-row">
+                <span class="label">인터페이스명</span>
+                <span class="value">외주발주 등록</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">방향</span>
+                <span class="value"><span class="arrow-left">SM &rarr; ERP</span> (쓰기)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">소스</span>
+                <span class="value"><code>outsourcing_pos</code> (MariaDB)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">대상</span>
+                <span class="value"><code>PU_PURORDER_MST</code> + <code>PU_PURORDER_DTL</code> (Oracle)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">트리거</span>
+                <span class="value">SM 외주발주 생성 이벤트 (실시간)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">채번규칙</span>
+                <span class="value"><code>PURORDER_NO</code> = <code>'GPO'</code> + YYYYMMDD + 5자리순번</span>
+            </div>
+
+            <h4>필드 매핑 (MST)</h4>
+            <table class="mapping-table">
+                <thead>
+                    <tr>
+                        <th>SM 컬럼</th>
+                        <th></th>
+                        <th>ERP 컬럼</th>
+                        <th>변환규칙</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>-</td><td class="arrow-left">&rarr;</td><td><code>COMPANY_CD</code></td><td>고정값 '1000'</td></tr>
+                    <tr><td><code>po_no</code></td><td class="arrow-left">&rarr;</td><td><code>PURORDER_NO</code></td><td>채번</td></tr>
+                    <tr><td><code>po_date</code></td><td class="arrow-left">&rarr;</td><td><code>PURORDER_DT</code></td><td>YYYYMMDD 변환</td></tr>
+                    <tr><td><code>vendor.douzone_code</code></td><td class="arrow-left">&rarr;</td><td><code>PARTNER_CD</code></td><td>매핑</td></tr>
+                    <tr><td><code>department.code</code></td><td class="arrow-left">&rarr;</td><td><code>DEPT_CD</code></td><td>매핑</td></tr>
+                    <tr><td><code>requester.employee_no</code></td><td class="arrow-left">&rarr;</td><td><code>EMPNO_CD</code></td><td>매핑</td></tr>
+                    <tr><td><code>note</code></td><td class="arrow-left">&rarr;</td><td><code>RMK_TXT</code></td><td>그대로</td></tr>
+                </tbody>
+            </table>
+
+            <h4>ERP INSERT SQL</h4>
+            <pre><span class="sql-comment">-- 외주발주 마스터 INSERT</span>
+<span class="sql-keyword">INSERT INTO</span> PU_PURORDER_MST (
+    COMPANY_CD, PURORDER_NO, PLANT_CD, PURORDER_DT,
+    PARTNER_CD, DEPT_CD, EMPNO_CD, RMK_TXT,
+    INSERT_DTS, UPDATE_DTS
+) <span class="sql-keyword">VALUES</span> (
+    <span class="sql-string">'1000'</span>, :purorderNo, <span class="sql-string">'1000'</span>, :purorderDt,
+    :partnerCd, :deptCd, :empNo, :rmkTxt,
+    <span class="sql-keyword">SYSDATE</span>, <span class="sql-keyword">SYSDATE</span>
+);
+
+<span class="sql-comment">-- 외주발주 상세 INSERT (건별)</span>
+<span class="sql-keyword">INSERT INTO</span> PU_PURORDER_DTL (
+    COMPANY_CD, PURORDER_NO, PURORDER_SQ, PLANT_CD,
+    ITEM_CD, ITEM_NM, PURORDER_QT, ITEM_UM, SUM_AMT,
+    INSERT_DTS, UPDATE_DTS
+) <span class="sql-keyword">VALUES</span> (
+    <span class="sql-string">'1000'</span>, :purorderNo, :seq, <span class="sql-string">'1000'</span>,
+    :itemCd, :itemNm, :purorderQt, :itemUm, :sumAmt,
+    <span class="sql-keyword">SYSDATE</span>, <span class="sql-keyword">SYSDATE</span>
+);</pre>
+
+            <h4>처리 로직</h4>
+            <ol class="process-list">
+                <li>SM 외주발주 데이터 조회</li>
+                <li><code>PURORDER_NO</code> 채번 (GPO + YYYYMMDD + 순번)</li>
+                <li>거래처/사원/부서 매핑키 변환</li>
+                <li><code>PU_PURORDER_MST</code> INSERT</li>
+                <li><code>PU_PURORDER_DTL</code> INSERT (품목별)</li>
+                <li>성공 시: SM <code>outsourcing_pos.erp_po_no</code> 업데이트</li>
+                <li>실패 시: <code>integration_retry_queue</code>에 등록</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- IF-013 -->
+    <div class="intf-card">
+        <div class="intf-header">
+            <h4>IF-013 | 매출 확정 반영</h4>
+            <span class="tag tag-write">WRITE</span>
+        </div>
+        <div class="intf-body">
+            <div class="intf-row">
+                <span class="label">IF ID</span>
+                <span class="value"><code>IF-013</code></span>
+            </div>
+            <div class="intf-row">
+                <span class="label">인터페이스명</span>
+                <span class="value">매출 확정 반영</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">방향</span>
+                <span class="value"><span class="arrow-left">SM &rarr; ERP</span> (쓰기)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">소스</span>
+                <span class="value"><code>sales.confirmed</code> (MariaDB)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">대상</span>
+                <span class="value"><code>SD_BILL_MST.BILL_ST</code> (Oracle)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">트리거</span>
+                <span class="value">SM 매출 확정 이벤트 (실시간)</span>
+            </div>
+
+            <h4>상태 코드 매핑</h4>
+            <table class="mapping-table">
+                <thead>
+                    <tr>
+                        <th>SM 상태 (sales.confirmed)</th>
+                        <th></th>
+                        <th>ERP 코드 (BILL_ST)</th>
+                        <th>설명</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>true (1)</code></td><td class="arrow-left">&rarr;</td><td><code>'1'</code></td><td>확정</td></tr>
+                    <tr><td><code>false (0)</code></td><td class="arrow-left">&rarr;</td><td><code>'0'</code></td><td>미확정</td></tr>
+                </tbody>
+            </table>
+
+            <h4>ERP UPDATE SQL</h4>
+            <pre><span class="sql-keyword">UPDATE</span> SD_BILL_MST
+<span class="sql-keyword">SET</span> BILL_ST = :billSt,
+    UPDATE_DTS = <span class="sql-keyword">SYSDATE</span>
+<span class="sql-keyword">WHERE</span> COMPANY_CD = <span class="sql-string">'1000'</span>
+  <span class="sql-keyword">AND</span> BILL_NO = :billNo;</pre>
+
+            <h4>처리 로직</h4>
+            <ol class="process-list">
+                <li>SM 매출 확정/취소 이벤트 감지</li>
+                <li>SM 매출의 ERP 매출번호(<code>BILL_NO</code>) 조회</li>
+                <li><code>SD_BILL_MST.BILL_ST</code> UPDATE</li>
+                <li>성공 시: <code>erp_sync_logs</code> 기록</li>
+                <li>실패 시: <code>integration_retry_queue</code>에 등록</li>
+            </ol>
+        </div>
+    </div>
+
+
+    <!-- ============================================================ -->
+    <!-- Section 4: 에러 처리 및 재시도 -->
+    <!-- ============================================================ -->
+    <h2>4. 에러 처리 및 재시도</h2>
+
+    <h3>4.1 에러 유형</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th>에러코드</th>
+                <th>에러유형</th>
+                <th>설명</th>
+                <th>처리방법</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>ERR-001</code></td>
+                <td>Oracle 연결 실패</td>
+                <td>네트워크/DB 장애</td>
+                <td>30초 후 재시도 (최대 3회)</td>
+            </tr>
+            <tr>
+                <td><code>ERR-002</code></td>
+                <td>INSERT 실패</td>
+                <td>제약조건 위반, 중복키</td>
+                <td><code>retry_queue</code> 등록</td>
+            </tr>
+            <tr>
+                <td><code>ERR-003</code></td>
+                <td>UPDATE 실패</td>
+                <td>대상 레코드 미존재</td>
+                <td>로그 기록 + 관리자 알림</td>
+            </tr>
+            <tr>
+                <td><code>ERR-004</code></td>
+                <td>매핑키 미존재</td>
+                <td>거래처/사원 매핑 실패</td>
+                <td>로그 기록 + 관리자 확인</td>
+            </tr>
+            <tr>
+                <td><code>ERR-005</code></td>
+                <td>타임아웃</td>
+                <td>쿼리 실행 시간 초과</td>
+                <td><code>retry_queue</code> 등록</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>4.2 재시도 프로세스</h3>
+
+    <div style="overflow-x: auto;">
+        <div class="flowchart">
+            <!-- Row 1: Start -->
+            <div class="flow-row">
+                <div class="flow-box flow-process">ERP 쓰기 시도</div>
+            </div>
+            <div class="flow-arrow-down">&darr;</div>
+
+            <!-- Row 2: Decision 1 -->
+            <div class="flow-row">
+                <div class="flow-box flow-decision">성공?</div>
+            </div>
+
+            <!-- Branch -->
+            <div class="flow-branch">
+                <!-- Yes branch -->
+                <div class="flow-branch-col">
+                    <div class="flow-label">Yes</div>
+                    <div class="flow-arrow-down">&darr;</div>
+                    <div class="flow-box flow-success">erp_sync_logs 기록</div>
+                    <div class="flow-arrow-down">&darr;</div>
+                    <div class="flow-box flow-success" style="background: #c8e6c9; border-color: #1b5e20;">완료</div>
+                </div>
+
+                <!-- No branch -->
+                <div class="flow-branch-col">
+                    <div class="flow-label">No</div>
+                    <div class="flow-arrow-down">&darr;</div>
+                    <div class="flow-box flow-decision">재시도 횟수 &lt; 3?</div>
+
+                    <div class="flow-branch" style="margin-top: 8px;">
+                        <!-- Yes: retry -->
+                        <div class="flow-branch-col">
+                            <div class="flow-label">Yes</div>
+                            <div class="flow-arrow-down">&darr;</div>
+                            <div class="flow-box flow-process" style="background: #e3f2fd; border-color: #1565c0;">30초 대기</div>
+                            <div class="flow-arrow-down">&darr;</div>
+                            <div class="flow-box flow-process">ERP 쓰기 재시도</div>
+                        </div>
+
+                        <!-- No: queue -->
+                        <div class="flow-branch-col">
+                            <div class="flow-label">No</div>
+                            <div class="flow-arrow-down">&darr;</div>
+                            <div class="flow-box flow-fail">integration_retry_queue<br>등록</div>
+                            <div class="flow-arrow-down">&darr;</div>
+                            <div class="flow-box flow-process" style="background: #e3f2fd; border-color: #1565c0;">5분 스케줄러 실행</div>
+                            <div class="flow-arrow-down">&darr;</div>
+                            <div class="flow-box flow-process">ERP 쓰기 재시도</div>
+                            <div class="flow-arrow-down">&darr;</div>
+                            <div class="flow-box flow-decision">성공?</div>
+                            <div class="flow-branch" style="margin-top: 8px;">
+                                <div class="flow-branch-col">
+                                    <div class="flow-label">Yes</div>
+                                    <div class="flow-arrow-down">&darr;</div>
+                                    <div class="flow-box flow-success">완료</div>
+                                </div>
+                                <div class="flow-branch-col">
+                                    <div class="flow-label">No (최대 초과)</div>
+                                    <div class="flow-arrow-down">&darr;</div>
+                                    <div class="flow-box flow-fail">관리자 알림<br>(이메일/슬랙)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="note">
+        <strong>참고:</strong> <code>integration_retry_queue</code> 스케줄러는 5분 간격으로 실행되며, 각 항목의 최대 재시도 횟수는 10회입니다. 10회 초과 시 관리자에게 이메일/슬랙 알림이 발송됩니다.
+    </div>
+
+    <h3>4.3 데이터 정합성 규칙</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 180px;">규칙</th>
+                <th>설명</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>마스터 데이터 원본</strong></td>
+                <td>ERP가 Single Source of Truth. SM은 사본(Replica)을 유지합니다.</td>
+            </tr>
+            <tr>
+                <td><strong>트랜잭션 원본</strong></td>
+                <td>SM에서 생성한 주문은 SM이 원본입니다. ERP는 수신 데이터로 처리합니다.</td>
+            </tr>
+            <tr>
+                <td><strong>충돌 해결</strong></td>
+                <td><code>UPDATE_DTS</code>가 더 최신인 데이터가 우선 적용됩니다.</td>
+            </tr>
+            <tr>
+                <td><strong>삭제 정책</strong></td>
+                <td>SM에만 존재하는 거래처는 유지합니다 (삭제하지 않음). ERP에서 비활성(<code>USE_YN='N'</code>)된 거래처는 SM에서도 비활성 처리합니다.</td>
+            </tr>
+            <tr>
+                <td><strong>동기화 이력</strong></td>
+                <td>모든 연동 작업을 <code>erp_sync_logs</code> 테이블에 기록합니다. (인터페이스 ID, 실행시각, 처리건수, 성공/실패 여부, 에러 메시지)</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="critical">
+        <strong>중요:</strong> 데이터 정합성 이슈 발생 시, 마스터 데이터는 ERP 기준으로 SM 데이터를 갱신하고, 트랜잭션 데이터는 SM 기준으로 ERP 데이터를 갱신합니다. 양방향 충돌 발생 시 <code>UPDATE_DTS</code> 기준으로 최신 데이터를 우선 적용하며, 관리자에게 알림을 발송합니다.
+    </div>
+
+
+    <!-- ============================================================ -->
+    <!-- Section 5: 신규 설계 기준 인터페이스 매핑 -->
+    <!-- ============================================================ -->
+    <h2>5. 신규 설계 기준 인터페이스 매핑</h2>
+
+    <p>기존 SM Module의 테이블 구조를 ERP 연동에 최적화된 신규 스키마로 재설계하였습니다. 아래는 신규 SM 테이블 기준의 ERP 인터페이스 매핑 정의입니다.</p>
+
+    <div class="note">
+        <strong>설계 원칙:</strong> 신규 SM 스키마는 ERP의 복합 PK 구조(<code>company_cd</code>, <code>plant_cd</code>)를 그대로 채택하여, 인터페이스 변환 로직을 최소화하고 데이터 정합성을 보장합니다. 기본값은 <code>company_cd=1000</code>, <code>plant_cd=1000</code>입니다.
+    </div>
+
+    <!-- 5.1 테이블 변경 비교표 -->
+    <h3>5.1 테이블 변경 비교표 (기존 &rarr; 신규 &rarr; ERP)</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th>구분</th>
+                <th>기존 SM 테이블</th>
+                <th>신규 SM 테이블</th>
+                <th>ERP 테이블</th>
+                <th>변경 사항</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>거래처</strong></td>
+                <td><code>business_owners</code></td>
+                <td><code>order_mst.partner_cd</code> (직접 참조)</td>
+                <td><code>CI_PARTNER_MST</code></td>
+                <td>별도 테이블 제거, ERP 거래처코드 직접 사용</td>
+            </tr>
+            <tr>
+                <td><strong>사원</strong></td>
+                <td><code>users</code></td>
+                <td><code>users</code> (company_cd + employee_no)</td>
+                <td><code>HR_EMP_MST</code></td>
+                <td>company_cd PK 추가, ERP 조직구조 정렬</td>
+            </tr>
+            <tr>
+                <td><strong>부서</strong></td>
+                <td><code>departments</code></td>
+                <td><code>departments</code> (company_cd + dept_cd)</td>
+                <td><code>VW_MA_DEPT_MST</code></td>
+                <td>복합 PK(company_cd, dept_cd)로 변경</td>
+            </tr>
+            <tr>
+                <td><strong>주문 마스터</strong></td>
+                <td><code>orders</code></td>
+                <td><code>order_mst</code></td>
+                <td><code>SD_ORDER_MST_X20329</code></td>
+                <td>MST/DTL/INFO 3단 분리, 복합 PK 적용</td>
+            </tr>
+            <tr>
+                <td><strong>주문 상세</strong></td>
+                <td><code>order_works</code> / <code>order_items</code></td>
+                <td><code>order_dtl</code> + <code>order_info</code></td>
+                <td><code>SD_ORDER_DTL_X20329</code></td>
+                <td>ERP DTL 구조와 1:1 대응하도록 분리</td>
+            </tr>
+            <tr>
+                <td><strong>주문 납품</strong></td>
+                <td>(orders 내 포함)</td>
+                <td><code>order_dlv</code></td>
+                <td><code>SD_DLV_MST/DTL</code></td>
+                <td>납품 정보 별도 테이블로 분리</td>
+            </tr>
+            <tr>
+                <td><strong>발주</strong></td>
+                <td><code>outsourcing_pos</code></td>
+                <td><code>po_mst</code> + <code>po_dtl</code></td>
+                <td><code>PU_PURORDER_MST/DTL</code></td>
+                <td>ERP와 동일한 MST/DTL 분리 구조 적용</td>
+            </tr>
+            <tr>
+                <td><strong>매출</strong></td>
+                <td><code>sales</code></td>
+                <td><code>sales_mst</code> + <code>sales_dtl</code></td>
+                <td><code>SD_BILL_MST/DTL</code></td>
+                <td>MST/DTL 분리, ERP 동기화 상태 필드 추가</td>
+            </tr>
+            <tr>
+                <td><strong>목표</strong></td>
+                <td>(없음)</td>
+                <td><code>goal_mst</code></td>
+                <td><code>SD_MMBLPL_MST_X20329</code></td>
+                <td>신규 추가 - 월별 목표금액 관리</td>
+            </tr>
+            <tr>
+                <td><strong>정산</strong></td>
+                <td>(없음)</td>
+                <td><code>po_settle_mst</code> + <code>po_settle_dtl</code></td>
+                <td>-</td>
+                <td>신규 추가 - 외주 정산 관리 (깃고 연동)</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- 5.2 신규 인터페이스 매핑 상세 -->
+    <h3>5.2 신규 인터페이스 매핑 상세</h3>
+
+    <!-- NIF-001 거래처 동기화 -->
+    <div class="intf-card">
+        <div class="intf-header">
+            <h4>NIF-001 | 거래처 동기화 (신규)</h4>
+            <span class="tag tag-sync">SYNC</span>
+        </div>
+        <div class="intf-body">
+            <div class="intf-row">
+                <span class="label">방향</span>
+                <span class="value"><span class="arrow-right">ERP &rarr; SM</span> (읽기/참조)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">소스 테이블</span>
+                <span class="value"><code>CI_PARTNER_MST</code> (Oracle)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">대상</span>
+                <span class="value"><code>order_mst.partner_cd</code> (MariaDB) - 거래처코드 직접 사용</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">변경 포인트</span>
+                <span class="value">기존 <code>business_owners</code> 테이블을 통한 간접 참조 방식에서, ERP <code>PARTNER_CD</code>를 <code>order_mst.partner_cd</code>에 직접 저장하는 방식으로 변경</span>
+            </div>
+
+            <h4>필드 매핑</h4>
+            <table class="mapping-table">
+                <thead>
+                    <tr>
+                        <th>ERP 컬럼 (CI_PARTNER_MST)</th>
+                        <th></th>
+                        <th>신규 SM 사용처</th>
+                        <th>비고</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>PARTNER_CD</code></td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>order_mst.partner_cd</code></td>
+                        <td>거래처코드 직접 저장 (FK 없이 코드 참조)</td>
+                    </tr>
+                    <tr>
+                        <td><code>PARTNER_CD</code></td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>goal_mst.partner_cd</code></td>
+                        <td>목표 테이블에서도 동일 코드 사용</td>
+                    </tr>
+                    <tr>
+                        <td><code>PARTNER_CD</code></td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>sales_mst.partner_cd</code></td>
+                        <td>매출 테이블에서도 동일 코드 사용</td>
+                    </tr>
+                    <tr>
+                        <td><code>PARTNER_NM</code></td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>sales_mst.partner_nm</code></td>
+                        <td>과거 데이터 보존용 거래처명 별도 저장</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="note">
+                <strong>설계 변경 사유:</strong> 기존에는 <code>business_owners</code> 테이블에 ERP 거래처를 복제하여 관리했으나, 신규 설계에서는 ERP <code>PARTNER_CD</code>를 직접 참조합니다. 이를 통해 데이터 중복을 제거하고, 거래처 정보는 ERP 조회 API를 통해 실시간으로 가져옵니다.
+            </div>
+        </div>
+    </div>
+
+    <!-- NIF-002 사원 동기화 -->
+    <div class="intf-card">
+        <div class="intf-header">
+            <h4>NIF-002 | 사원 동기화 (신규)</h4>
+            <span class="tag tag-sync">SYNC</span>
+        </div>
+        <div class="intf-body">
+            <div class="intf-row">
+                <span class="label">방향</span>
+                <span class="value"><span class="arrow-right">ERP &rarr; SM</span> (읽기/동기화)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">소스 테이블</span>
+                <span class="value"><code>HR_EMP_MST</code> (Oracle)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">대상 테이블</span>
+                <span class="value"><code>users</code> (MariaDB) - PK: <code>company_cd</code> + <code>id</code></span>
+            </div>
+            <div class="intf-row">
+                <span class="label">연결키</span>
+                <span class="value"><code>COMPANY_CD</code> + <code>EMPNO_CD</code> = <code>company_cd</code> + <code>employee_no</code></span>
+            </div>
+
+            <h4>필드 매핑</h4>
+            <table class="mapping-table">
+                <thead>
+                    <tr>
+                        <th>ERP 컬럼 (HR_EMP_MST)</th>
+                        <th>ERP 타입</th>
+                        <th></th>
+                        <th>신규 SM 컬럼 (users)</th>
+                        <th>SM 타입</th>
+                        <th>변환규칙</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>COMPANY_CD</code></td>
+                        <td>VARCHAR2(20)</td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>company_cd</code></td>
+                        <td>INTEGER (PK)</td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>EMPNO_CD</code></td>
+                        <td>VARCHAR2(80)</td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>employee_no</code></td>
+                        <td>VARCHAR</td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>EMP_NM</code></td>
+                        <td>VARCHAR2(400)</td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>name</code></td>
+                        <td>VARCHAR</td>
+                        <td>TRIM</td>
+                    </tr>
+                    <tr>
+                        <td><code>DEPT_CD</code></td>
+                        <td>VARCHAR2(80)</td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>dept_cd</code></td>
+                        <td>INTEGER</td>
+                        <td>departments.dept_cd 매핑</td>
+                    </tr>
+                    <tr>
+                        <td><code>EMAIL</code></td>
+                        <td>VARCHAR2(400)</td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>email</code></td>
+                        <td>VARCHAR</td>
+                        <td>TRIM, LOWER</td>
+                    </tr>
+                    <tr>
+                        <td><code>HPNO</code></td>
+                        <td>VARCHAR2(200)</td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>phone</code></td>
+                        <td>VARCHAR</td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td>(퇴사여부)</td>
+                        <td>-</td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>status</code></td>
+                        <td>ENUM('ACTIVE','INACTIVE')</td>
+                        <td>RETIRE_DT IS NULL ? 'ACTIVE' : 'INACTIVE'</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="note">
+                <strong>변경 포인트:</strong> 기존 <code>users</code> 테이블의 단일 PK 대신, <code>company_cd</code> + <code>id</code> 복합 PK로 변경하여 ERP 다중 회사 구조에 대응합니다. <code>department_id</code>(BIGINT FK) 대신 ERP 코드 기반의 <code>dept_cd</code>(INTEGER)를 직접 사용합니다.
+            </div>
+        </div>
+    </div>
+
+    <!-- NIF-003 부서 동기화 -->
+    <div class="intf-card">
+        <div class="intf-header">
+            <h4>NIF-003 | 부서 동기화 (신규)</h4>
+            <span class="tag tag-sync">SYNC</span>
+        </div>
+        <div class="intf-body">
+            <div class="intf-row">
+                <span class="label">방향</span>
+                <span class="value"><span class="arrow-right">ERP &rarr; SM</span> (읽기/동기화)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">소스 테이블</span>
+                <span class="value"><code>VW_MA_DEPT_MST</code> (Oracle, View)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">대상 테이블</span>
+                <span class="value"><code>departments</code> (MariaDB) - PK: <code>company_cd</code> + <code>dept_cd</code></span>
+            </div>
+            <div class="intf-row">
+                <span class="label">연결키</span>
+                <span class="value"><code>COMPANY_CD</code> + <code>DEPT_CD</code> = <code>company_cd</code> + <code>dept_cd</code></span>
+            </div>
+
+            <h4>필드 매핑</h4>
+            <table class="mapping-table">
+                <thead>
+                    <tr>
+                        <th>ERP 컬럼 (VW_MA_DEPT_MST)</th>
+                        <th>ERP 타입</th>
+                        <th></th>
+                        <th>신규 SM 컬럼 (departments)</th>
+                        <th>SM 타입</th>
+                        <th>변환규칙</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>COMPANY_CD</code></td>
+                        <td>VARCHAR2(20)</td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>company_cd</code></td>
+                        <td>INTEGER (PK)</td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>DEPT_CD</code></td>
+                        <td>VARCHAR2(80)</td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>dept_cd</code></td>
+                        <td>INTEGER (PK)</td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>DEPT_NM</code></td>
+                        <td>VARCHAR2(400)</td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>dept_nm</code></td>
+                        <td>VARCHAR</td>
+                        <td>TRIM</td>
+                    </tr>
+                    <tr>
+                        <td><code>UP_DEPT_CD</code></td>
+                        <td>VARCHAR2(80)</td>
+                        <td class="arrow-right">&rarr;</td>
+                        <td><code>UP_DEPT_CD</code></td>
+                        <td>INTEGER</td>
+                        <td>그대로 (상위부서코드)</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="note">
+                <strong>변경 포인트:</strong> 기존 <code>code</code>(VARCHAR) + <code>name</code> + <code>parent_id</code>(BIGINT FK) 구조에서, ERP와 동일한 <code>company_cd</code> + <code>dept_cd</code> 복합 PK 및 <code>UP_DEPT_CD</code> 상위부서 참조 구조로 변경하여 변환 로직이 불필요합니다.
+            </div>
+        </div>
+    </div>
+
+    <!-- NIF-004 주문 쓰기 -->
+    <div class="intf-card">
+        <div class="intf-header">
+            <h4>NIF-004 | 주문 등록/수정 (신규)</h4>
+            <span class="tag tag-write">WRITE</span>
+        </div>
+        <div class="intf-body">
+            <div class="intf-row">
+                <span class="label">방향</span>
+                <span class="value"><span class="arrow-left">SM &rarr; ERP</span> (쓰기)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">소스 테이블</span>
+                <span class="value"><code>order_mst</code> + <code>order_dtl</code> + <code>order_info</code> (MariaDB)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">대상 테이블</span>
+                <span class="value"><code>SD_ORDER_MST_X20329</code> + <code>SD_ORDER_DTL_X20329</code> (Oracle)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">기본값</span>
+                <span class="value"><code>company_cd=1000</code>, <code>plant_cd=1000</code></span>
+            </div>
+            <div class="intf-row">
+                <span class="label">트리거</span>
+                <span class="value">SM 주문 생성/수정 이벤트 (실시간)</span>
+            </div>
+
+            <h4>필드 매핑 (MST - 마스터)</h4>
+            <table class="mapping-table">
+                <thead>
+                    <tr>
+                        <th>신규 SM 컬럼 (order_mst)</th>
+                        <th>SM 타입</th>
+                        <th></th>
+                        <th>ERP 컬럼 (SD_ORDER_MST_X20329)</th>
+                        <th>변환규칙</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>company_cd</code></td>
+                        <td>INTEGER (PK)</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>COMPANY_CD</code></td>
+                        <td>그대로 (기본값 '1000')</td>
+                    </tr>
+                    <tr>
+                        <td><code>plant_cd</code></td>
+                        <td>INTEGER (PK)</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>PLANT_CD</code></td>
+                        <td>그대로 (기본값 '1000')</td>
+                    </tr>
+                    <tr>
+                        <td><code>order_no</code></td>
+                        <td>VARCHAR (PK)</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>ORDDOC_NO</code></td>
+                        <td>채번 (GOR + YYYYMMDD + 순번)</td>
+                    </tr>
+                    <tr>
+                        <td><code>order_nm</code></td>
+                        <td>VARCHAR</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>ORDDOC_NM</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>order_dt</code></td>
+                        <td>DATE</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>ORD_DT</code></td>
+                        <td>YYYYMMDD 변환</td>
+                    </tr>
+                    <tr>
+                        <td><code>partner_cd</code></td>
+                        <td>VARCHAR</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>PARTNER_CD</code></td>
+                        <td>그대로 (ERP 코드 직접 사용)</td>
+                    </tr>
+                    <tr>
+                        <td><code>sales_emp_id</code></td>
+                        <td>VARCHAR</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>BIZRSPT_EMPNO_CD</code></td>
+                        <td>users.employee_no 매핑</td>
+                    </tr>
+                    <tr>
+                        <td><code>remark</code></td>
+                        <td>VARCHAR</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>RMK_TXT</code></td>
+                        <td>그대로</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h4>필드 매핑 (DTL - 상세)</h4>
+            <table class="mapping-table">
+                <thead>
+                    <tr>
+                        <th>신규 SM 컬럼 (order_dtl)</th>
+                        <th>SM 타입</th>
+                        <th></th>
+                        <th>ERP 컬럼 (SD_ORDER_DTL_X20329)</th>
+                        <th>변환규칙</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>company_cd</code></td>
+                        <td>INTEGER (PK)</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>COMPANY_CD</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>plant_cd</code></td>
+                        <td>INTEGER (PK)</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>PLANT_CD</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>order_no</code></td>
+                        <td>VARCHAR (PK)</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>ORDDOC_NO</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>order_sq</code></td>
+                        <td>INTEGER (PK)</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>ORDDOC_SQ</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>ord_qty</code></td>
+                        <td>INTEGER</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>ORD_QT</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>ord_price</code></td>
+                        <td>NUMBER</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>SELL_AMT</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>ord_amt</code></td>
+                        <td>NUMBER</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>SUM_AMT</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>work_nm</code></td>
+                        <td>VARCHAR</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>ITEM_NM</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>status_cd</code></td>
+                        <td>VARCHAR</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>ORDDOC_ST</code></td>
+                        <td>코드 매핑</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="note">
+                <strong>개선 포인트:</strong> 기존에는 <code>orders</code> 단일 테이블에서 <code>biz_owner.douzone_code</code>로 간접 매핑했으나, 신규 <code>order_mst</code>는 <code>partner_cd</code>를 직접 보유하므로 매핑 변환이 불필요합니다. 또한 <code>company_cd</code> + <code>plant_cd</code>가 ERP <code>COMPANY_CD</code> + <code>PLANT_CD</code>와 직접 대응됩니다.
+            </div>
+        </div>
+    </div>
+
+    <!-- NIF-005 발주 쓰기 -->
+    <div class="intf-card">
+        <div class="intf-header">
+            <h4>NIF-005 | 발주 등록 (신규)</h4>
+            <span class="tag tag-write">WRITE</span>
+        </div>
+        <div class="intf-body">
+            <div class="intf-row">
+                <span class="label">방향</span>
+                <span class="value"><span class="arrow-left">SM &rarr; ERP</span> (쓰기)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">소스 테이블</span>
+                <span class="value"><code>po_mst</code> + <code>po_dtl</code> (MariaDB)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">대상 테이블</span>
+                <span class="value"><code>PU_PURORDER_MST</code> + <code>PU_PURORDER_DTL</code> (Oracle)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">기본값</span>
+                <span class="value"><code>company_cd=1000</code>, <code>plant_cd=1000</code></span>
+            </div>
+
+            <h4>필드 매핑 (MST)</h4>
+            <table class="mapping-table">
+                <thead>
+                    <tr>
+                        <th>신규 SM 컬럼 (po_mst)</th>
+                        <th>SM 타입</th>
+                        <th></th>
+                        <th>ERP 컬럼 (PU_PURORDER_MST)</th>
+                        <th>변환규칙</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>company_cd</code></td>
+                        <td>INTEGER (PK)</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>COMPANY_CD</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>plant_cd</code></td>
+                        <td>INTEGER (PK)</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>PLANT_CD</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>po_no</code></td>
+                        <td>VARCHAR (PK)</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>PURORDER_NO</code></td>
+                        <td>채번 (GPO + YYYYMMDD + 순번)</td>
+                    </tr>
+                    <tr>
+                        <td><code>order_no</code></td>
+                        <td>VARCHAR</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>ORDDOC_NO</code> (참조)</td>
+                        <td>연관 주문번호</td>
+                    </tr>
+                    <tr>
+                        <td><code>po_qty</code></td>
+                        <td>INTEGER</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>PURORDER_QT</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>po_amt</code></td>
+                        <td>NUMBER</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>SUM_AMT</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>po_status_cd</code></td>
+                        <td>VARCHAR</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>PURORDER_ST</code></td>
+                        <td>코드 매핑</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h4>필드 매핑 (DTL)</h4>
+            <table class="mapping-table">
+                <thead>
+                    <tr>
+                        <th>신규 SM 컬럼 (po_dtl)</th>
+                        <th>SM 타입</th>
+                        <th></th>
+                        <th>ERP 컬럼 (PU_PURORDER_DTL)</th>
+                        <th>변환규칙</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>company_cd</code></td>
+                        <td>INTEGER (PK)</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>COMPANY_CD</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>po_no</code></td>
+                        <td>VARCHAR (PK)</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>PURORDER_NO</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>po_sq</code></td>
+                        <td>INTEGER (PK)</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>PURORDER_SQ</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>po_partner_cd</code></td>
+                        <td>VARCHAR</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>PARTNER_CD</code></td>
+                        <td>외주거래처코드 직접 사용</td>
+                    </tr>
+                    <tr>
+                        <td><code>po_qty</code></td>
+                        <td>INTEGER</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>PURORDER_QT</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>po_amt</code></td>
+                        <td>NUMBER</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>SUM_AMT</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>order_nm</code></td>
+                        <td>VARCHAR</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>ITEM_NM</code></td>
+                        <td>작업명</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="note">
+                <strong>개선 포인트:</strong> 기존 <code>outsourcing_pos</code> 단일 테이블에서 ERP와 동일한 <code>po_mst</code>/<code>po_dtl</code> 마스터/디테일 분리 구조로 변경되어, ERP <code>PU_PURORDER_MST</code>/<code>DTL</code>과의 구조적 매핑이 직관적입니다. <code>po_partner_cd</code>는 ERP <code>PARTNER_CD</code>를 직접 사용합니다.
+            </div>
+        </div>
+    </div>
+
+    <!-- NIF-006 매출 연동 -->
+    <div class="intf-card">
+        <div class="intf-header">
+            <h4>NIF-006 | 매출 연동 (신규)</h4>
+            <span class="tag tag-write">WRITE</span>
+        </div>
+        <div class="intf-body">
+            <div class="intf-row">
+                <span class="label">방향</span>
+                <span class="value"><span class="arrow-left">SM &rarr; ERP</span> (쓰기)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">소스 테이블</span>
+                <span class="value"><code>sales_mst</code> + <code>sales_dtl</code> (MariaDB)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">대상 테이블</span>
+                <span class="value"><code>SD_BILL_MST</code> + <code>SD_BILL_DTL</code> (Oracle)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">동기화 상태</span>
+                <span class="value"><code>sales_mst.erp_sync_status</code> = ENUM('PENDING','SYNCED','FAILED')</span>
+            </div>
+
+            <h4>필드 매핑 (MST)</h4>
+            <table class="mapping-table">
+                <thead>
+                    <tr>
+                        <th>신규 SM 컬럼 (sales_mst)</th>
+                        <th>SM 타입</th>
+                        <th></th>
+                        <th>ERP 컬럼 (SD_BILL_MST)</th>
+                        <th>변환규칙</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>company_cd</code></td>
+                        <td>INTEGER (PK)</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>COMPANY_CD</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>plant_cd</code></td>
+                        <td>INTEGER (PK)</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>PLANT_CD</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>sales_no</code></td>
+                        <td>VARCHAR (PK)</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>BILL_NO</code></td>
+                        <td>채번 (BIL + YYYYMMDD + 순번)</td>
+                    </tr>
+                    <tr>
+                        <td><code>partner_cd</code></td>
+                        <td>VARCHAR</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>PARTNER_CD</code></td>
+                        <td>그대로 (ERP 코드 직접 사용)</td>
+                    </tr>
+                    <tr>
+                        <td><code>sales_dt</code></td>
+                        <td>DATETIME</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>BILL_DT</code></td>
+                        <td>YYYYMMDD 변환</td>
+                    </tr>
+                    <tr>
+                        <td><code>total_amt</code></td>
+                        <td>NUMBER</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>TOT_AMT</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>status_cd</code></td>
+                        <td>VARCHAR</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>BILL_ST</code></td>
+                        <td>코드 매핑</td>
+                    </tr>
+                    <tr>
+                        <td><code>slip_no</code></td>
+                        <td>VARCHAR</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>SLIP_NO</code></td>
+                        <td>매출전표번호 (ERP 연동 후 수신)</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h4>필드 매핑 (DTL)</h4>
+            <table class="mapping-table">
+                <thead>
+                    <tr>
+                        <th>신규 SM 컬럼 (sales_dtl)</th>
+                        <th>SM 타입</th>
+                        <th></th>
+                        <th>ERP 컬럼 (SD_BILL_DTL)</th>
+                        <th>변환규칙</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>sales_no</code></td>
+                        <td>VARCHAR (PK)</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>BILL_NO</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>sales_sq</code></td>
+                        <td>INTEGER (PK)</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>BILL_SQ</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>order_no</code></td>
+                        <td>VARCHAR</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>ORDDOC_NO</code> (참조)</td>
+                        <td>연관 주문번호</td>
+                    </tr>
+                    <tr>
+                        <td><code>sales_qty</code></td>
+                        <td>INTEGER</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>BILL_QT</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>sales_price</code></td>
+                        <td>NUMBER</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>BILL_AMT</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>sales_amt</code></td>
+                        <td>NUMBER</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>SUM_AMT</code></td>
+                        <td>그대로</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="note">
+                <strong>개선 포인트:</strong> 기존 <code>sales</code> 단일 테이블의 <code>confirmed</code>(boolean) 방식에서, <code>sales_mst.erp_sync_status</code>(ENUM)로 변경하여 연동 상태를 'PENDING' &rarr; 'SYNCED' / 'FAILED' 3단계로 세밀하게 관리합니다. <code>slip_no</code>(매출전표번호) 필드를 통해 ERP 전표 생성 결과를 추적합니다.
+            </div>
+        </div>
+    </div>
+
+    <!-- NIF-007 목표 연동 -->
+    <div class="intf-card">
+        <div class="intf-header">
+            <h4>NIF-007 | 목표 연동 (신규)</h4>
+            <span class="tag tag-write">WRITE</span>
+        </div>
+        <div class="intf-body">
+            <div class="intf-row">
+                <span class="label">방향</span>
+                <span class="value"><span class="arrow-left">SM &rarr; ERP</span> (쓰기)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">소스 테이블</span>
+                <span class="value"><code>goal_mst</code> (MariaDB)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">대상 테이블</span>
+                <span class="value"><code>SD_MMBLPL_MST_X20329</code> (Oracle)</span>
+            </div>
+            <div class="intf-row">
+                <span class="label">설명</span>
+                <span class="value">부서/영업담당자별 월별 매출 목표금액을 ERP에 반영</span>
+            </div>
+
+            <h4>필드 매핑</h4>
+            <table class="mapping-table">
+                <thead>
+                    <tr>
+                        <th>신규 SM 컬럼 (goal_mst)</th>
+                        <th>SM 타입</th>
+                        <th></th>
+                        <th>ERP 컬럼 (SD_MMBLPL_MST_X20329)</th>
+                        <th>변환규칙</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>company_cd</code></td>
+                        <td>INTEGER (PK)</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>COMPANY_CD</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>plant_cd</code></td>
+                        <td>INTEGER (PK)</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>PLANT_CD</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>plan_yy</code></td>
+                        <td>INTEGER (PK)</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>PLAN_YY</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>plan_mm</code></td>
+                        <td>INTEGER (PK)</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>PLAN_MM</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>dept_cd</code></td>
+                        <td>VARCHAR (PK)</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>DEPT_CD</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>sales_emp_id</code></td>
+                        <td>VARCHAR (PK)</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>EMPNO_CD</code></td>
+                        <td>사원번호 매핑</td>
+                    </tr>
+                    <tr>
+                        <td><code>field_cd</code></td>
+                        <td>VARCHAR (PK)</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>FIELD_CD</code></td>
+                        <td>구분코드 (내/외부)</td>
+                    </tr>
+                    <tr>
+                        <td><code>partner_cd</code></td>
+                        <td>VARCHAR</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>PARTNER_CD</code></td>
+                        <td>그대로</td>
+                    </tr>
+                    <tr>
+                        <td><code>target_amount</code></td>
+                        <td>INTEGER</td>
+                        <td class="arrow-left">&rarr;</td>
+                        <td><code>TARGET_AMT</code></td>
+                        <td>그대로</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="note">
+                <strong>신규 인터페이스:</strong> 기존 SM에는 목표 관리 기능이 없었으며, 신규 <code>goal_mst</code> 테이블을 통해 부서/영업담당자별 월별 매출 목표를 관리하고 ERP <code>SD_MMBLPL_MST_X20329</code>에 반영합니다. 7개 필드 복합 PK 구조는 ERP 목표 테이블과 동일합니다.
+            </div>
+        </div>
+    </div>
+
+    <!-- 5.3 설계 참고사항 -->
+    <h3>5.3 설계 참고사항</h3>
+
+    <div class="note">
+        <strong>복합 PK 설계 (ERP 정렬):</strong> 신규 SM 스키마의 모든 트랜잭션 테이블(<code>order_mst</code>, <code>order_dtl</code>, <code>po_mst</code>, <code>po_dtl</code>, <code>sales_mst</code>, <code>sales_dtl</code>, <code>goal_mst</code>)은 <code>company_cd</code> + <code>plant_cd</code>를 PK의 선행 컬럼으로 포함합니다. 이는 ERP(iCUBE)의 <code>COMPANY_CD</code> + <code>PLANT_CD</code> 구조와 동일하며, 향후 다중 회사/공장 확장 시에도 인터페이스 변경 없이 대응 가능합니다.
+    </div>
+
+    <div class="note">
+        <strong>ERP 동기화 상태 추적:</strong> 신규 스키마에는 ERP 연동 결과를 추적하기 위한 상태 필드가 포함되어 있습니다.
+        <ul style="margin: 8px 0 0 20px; font-size: 13px;">
+            <li><code>sales_mst.erp_sync_status</code> - 더존 ERP 연동 상태 (PENDING / SYNCED / FAILED)</li>
+            <li><code>po_settle_mst.gitgo_sync_status</code> - 깃고(외주정산시스템) 연동 상태 (PENDING / SYNCED / FAILED)</li>
+        </ul>
+        기존에는 별도의 <code>erp_sync_logs</code> 테이블에서만 추적했으나, 신규 설계에서는 개별 레코드 수준에서 동기화 상태를 관리하여 재시도 및 오류 추적이 용이합니다.
+    </div>
+
+    <div class="note">
+        <strong>마스터/디테일 분리 패턴:</strong> 신규 SM 스키마는 ERP의 MST/DTL 구조를 그대로 반영하여 인터페이스 매핑을 단순화합니다.
+        <table style="margin-top: 8px; font-size: 12px; width: auto;">
+            <thead>
+                <tr>
+                    <th>SM 마스터</th>
+                    <th>SM 디테일</th>
+                    <th>ERP 마스터</th>
+                    <th>ERP 디테일</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>order_mst</code></td>
+                    <td><code>order_dtl</code> + <code>order_info</code></td>
+                    <td><code>SD_ORDER_MST_X20329</code></td>
+                    <td><code>SD_ORDER_DTL_X20329</code></td>
+                </tr>
+                <tr>
+                    <td><code>po_mst</code></td>
+                    <td><code>po_dtl</code></td>
+                    <td><code>PU_PURORDER_MST</code></td>
+                    <td><code>PU_PURORDER_DTL</code></td>
+                </tr>
+                <tr>
+                    <td><code>sales_mst</code></td>
+                    <td><code>sales_dtl</code></td>
+                    <td><code>SD_BILL_MST</code></td>
+                    <td><code>SD_BILL_DTL</code></td>
+                </tr>
+                <tr>
+                    <td><code>po_settle_mst</code></td>
+                    <td><code>po_settle_dtl</code></td>
+                    <td colspan="2">(깃고 연동 - ERP 직접 대응 없음)</td>
+                </tr>
+            </tbody>
+        </table>
+        기존에는 <code>orders</code>(단일), <code>outsourcing_pos</code>(단일), <code>sales</code>(단일) 구조였으나, ERP와 구조를 정렬함으로써 INSERT/UPDATE 시 필드 변환 로직이 대폭 감소합니다.
+    </div>
+
+    <div class="critical">
+        <strong>마이그레이션 참고:</strong> 기존 테이블(Section 2~3에서 정의한 <code>business_owners</code>, <code>orders</code>, <code>outsourcing_pos</code>, <code>sales</code> 등)의 데이터는 신규 스키마로 마이그레이션이 필요합니다. 기존 인터페이스(IF-001 ~ IF-013)는 마이그레이션 완료 후 신규 인터페이스(NIF-001 ~ NIF-007)로 순차 전환합니다.
+    </div>
+
+</div>
+
+<div class="footer">
+    &copy; 2026 HM소프트 &nbsp;|&nbsp; SM-ERP-IF-001
+</div>
+
+</body>
+</html>

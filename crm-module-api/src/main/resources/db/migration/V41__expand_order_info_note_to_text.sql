@@ -1,0 +1,1 @@
+ALTER TABLE order_info MODIFY COLUMN note TEXT;

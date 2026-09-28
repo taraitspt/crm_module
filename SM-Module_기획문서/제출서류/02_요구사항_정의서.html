@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>요구사항 정의서 - SM Module Oracle ERP 연동</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; background: #fff; color: #333; line-height: 1.7; }
+        .header { background: #1a237e; color: #fff; padding: 40px; text-align: center; }
+        .header h1 { font-size: 28px; margin-bottom: 8px; }
+        .header p { font-size: 14px; opacity: 0.8; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 40px 30px; }
+        h2 { font-size: 22px; color: #1a237e; border-bottom: 3px solid #1a237e; padding-bottom: 8px; margin: 40px 0 20px; }
+        h3 { font-size: 17px; color: #283593; margin: 24px 0 12px; }
+        table { width: 100%; border-collapse: collapse; margin: 16px 0 24px; font-size: 13px; }
+        th { background: #e8eaf6; color: #1a237e; padding: 10px 12px; text-align: left; border: 1px solid #c5cae9; font-weight: 600; }
+        td { padding: 8px 12px; border: 1px solid #e0e0e0; vertical-align: top; }
+        tr:nth-child(even) { background: #fafafa; }
+        tr:hover { background: #f0f0ff; }
+        .priority-high { color: #c62828; font-weight: 700; }
+        .priority-mid { color: #ef6c00; font-weight: 600; }
+        .priority-low { color: #2e7d32; }
+        .category-tag { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; color: #fff; }
+        .cat-master { background: #1565c0; }
+        .cat-read { background: #2e7d32; }
+        .cat-write { background: #c62828; }
+        .cat-dashboard { background: #6a1b9a; }
+        .cat-ui { background: #00838f; }
+        .cat-admin { background: #4e342e; }
+        .cat-nfr { background: #37474f; }
+        .note { background: #fff8e1; border-left: 4px solid #ffc107; padding: 12px 16px; margin: 16px 0; font-size: 13px; border-radius: 0 4px 4px 0; }
+        .summary-box { display: flex; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+        .summary-card { flex: 1; min-width: 120px; background: #f5f5f5; border-radius: 8px; padding: 16px; text-align: center; }
+        .summary-card .num { font-size: 32px; font-weight: 700; color: #1a237e; }
+        .summary-card .label { font-size: 12px; color: #666; margin-top: 4px; }
+        .footer { text-align: center; padding: 30px; color: #999; font-size: 12px; border-top: 1px solid #eee; margin-top: 40px; }
+        @media print { .header { background: #1a237e !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+    </style>
+</head>
+<body>
+
+<!-- ==================== HEADER ==================== -->
+<div class="header">
+    <h1>요구사항 정의서</h1>
+    <p>SM Module - Oracle ERP 연동 프로젝트 | 작성일: 2026-03-24 | 작성: HM소프트 | 문서번호: SM-ERP-REQ-001</p>
+</div>
+
+<div class="container">
+
+    <!-- ==================== 1. 문서 개요 ==================== -->
+    <h2>1. 문서 개요</h2>
+    <p>본 문서는 <strong>SM Module - Oracle ERP 연동 프로젝트</strong>의 요구사항을 정의한 문서입니다. 기존 SM Module(MariaDB 기반)과 고객사 Oracle ERP(iCUBE) 시스템 간의 데이터 연동에 필요한 기능 요구사항 및 비기능 요구사항을 체계적으로 정리하여, 개발팀과 이해관계자 간의 명확한 합의 기준을 제공합니다.</p>
+
+    <div class="note">
+        본 요구사항 정의서는 Phase 1(환경 구성) ~ Phase 5(대시보드 연동)까지의 전체 개발 범위를 포괄하며, 우선순위에 따라 단계적으로 구현됩니다.
+    </div>
+
+    <div class="summary-box">
+        <div class="summary-card">
+            <div class="num">41</div>
+            <div class="label">총 요구사항</div>
+        </div>
+        <div class="summary-card">
+            <div class="num">31</div>
+            <div class="label">기능 요구사항</div>
+        </div>
+        <div class="summary-card">
+            <div class="num">10</div>
+            <div class="label">비기능 요구사항</div>
+        </div>
+        <div class="summary-card">
+            <div class="num">24</div>
+            <div class="label">우선순위 상</div>
+        </div>
+    </div>
+
+    <!-- ==================== 2. 기능 요구사항 ==================== -->
+    <h2>2. 기능 요구사항</h2>
+
+    <!-- 2.1 마스터 데이터 동기화 -->
+    <h3>2.1 마스터 데이터 동기화 <span class="category-tag cat-master">FR-M</span></h3>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:90px;">요구사항 ID</th>
+                <th style="width:140px;">요구사항명</th>
+                <th>상세 설명</th>
+                <th style="width:180px;">입력/출력</th>
+                <th style="width:110px;">선행조건</th>
+                <th style="width:60px;">우선순위</th>
+                <th style="width:160px;">관련 테이블</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>FR-M-001</td>
+                <td>거래처 마스터 동기화</td>
+                <td>ERP CI_PARTNER_MST의 거래처 정보(거래처코드, 거래처명, 사업자번호, 대표자명, 주소, 연락처)를 SM business_owners 테이블에 자동 동기화한다. USE_YN='Y'인 활성 거래처만 대상으로 한다.</td>
+                <td>입력: CI_PARTNER_MST (46,361건)<br>출력: business_owners</td>
+                <td>Oracle 연결 정상</td>
+                <td class="priority-high">상</td>
+                <td>CI_PARTNER_MST &rarr; business_owners</td>
+            </tr>
+            <tr>
+                <td>FR-M-002</td>
+                <td>거래처 매핑 연결</td>
+                <td>SM business_owners.douzone_code와 ERP CI_PARTNER_MST.PARTNER_CD를 연결키로 사용하여 거래처를 식별한다. 신규 거래처는 INSERT, 기존 거래처는 UPDATE 처리한다.</td>
+                <td>연결키: douzone_code = PARTNER_CD</td>
+                <td>FR-M-001</td>
+                <td class="priority-high">상</td>
+                <td>CI_PARTNER_MST &harr; business_owners</td>
+            </tr>
+            <tr>
+                <td>FR-M-003</td>
+                <td>품목 마스터 동기화</td>
+                <td>ERP CI_ITEM의 품목 정보(품목코드, 품목명, 규격, 단위)를 SM 매핑 테이블(erp_item_mappings)에 동기화한다.</td>
+                <td>입력: CI_ITEM (38,169건)<br>출력: erp_item_mappings</td>
+                <td>Oracle 연결 정상</td>
+                <td class="priority-high">상</td>
+                <td>CI_ITEM &rarr; erp_item_mappings</td>
+            </tr>
+            <tr>
+                <td>FR-M-004</td>
+                <td>사원 마스터 동기화</td>
+                <td>ERP HR_EMP_MST의 재직 사원(HLOF_FG_CD='1', 754명)을 SM users 테이블에 동기화한다. 사원번호(EMP_NO), 이름(KOR_NM), 부서(DEPT_CD), 직위(POSI_CD) 포함.</td>
+                <td>입력: HR_EMP_MST (재직 754건)<br>출력: users</td>
+                <td>Oracle 연결 정상</td>
+                <td class="priority-high">상</td>
+                <td>HR_EMP_MST &rarr; users</td>
+            </tr>
+            <tr>
+                <td>FR-M-005</td>
+                <td>부서 마스터 동기화</td>
+                <td>ERP VW_MA_DEPT_MST의 부서 정보(부서코드, 부서명, 상위부서, 부서레벨)를 SM departments 테이블에 동기화한다.</td>
+                <td>입력: VW_MA_DEPT_MST (96건)<br>출력: departments</td>
+                <td>Oracle 연결 정상</td>
+                <td class="priority-high">상</td>
+                <td>VW_MA_DEPT_MST &rarr; departments</td>
+            </tr>
+            <tr>
+                <td>FR-M-006</td>
+                <td>마스터 동기화 스케줄</td>
+                <td>마스터 데이터 동기화를 매일 02:00에 자동 실행한다. Spring @Scheduled Cron 기반.</td>
+                <td>Cron: 0 0 2 * * ?</td>
+                <td>4.2.5 개발 완료</td>
+                <td class="priority-mid">중</td>
+                <td>-</td>
+            </tr>
+            <tr>
+                <td>FR-M-007</td>
+                <td>수동 동기화 기능</td>
+                <td>관리자가 /api/erp/sync/master API를 통해 수동으로 마스터 데이터 동기화를 실행할 수 있다.</td>
+                <td>입력: POST 요청<br>출력: 동기화 결과</td>
+                <td>관리자 권한</td>
+                <td class="priority-mid">중</td>
+                <td>-</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- 2.2 트랜잭션 데이터 조회 -->
+    <h3>2.2 트랜잭션 데이터 조회 - ERP &rarr; SM <span class="category-tag cat-read">FR-R</span></h3>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:90px;">요구사항 ID</th>
+                <th style="width:140px;">요구사항명</th>
+                <th>상세 설명</th>
+                <th style="width:180px;">입력/출력</th>
+                <th style="width:110px;">선행조건</th>
+                <th style="width:60px;">우선순위</th>
+                <th style="width:160px;">관련 테이블</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>FR-R-001</td>
+                <td>ERP 주문 현황 조회</td>
+                <td>ERP SD_ORDER_MST/DTL_X20329의 주문 데이터(주문번호, 주문일자, 주문명, 거래처, 부서, 담당자, 작업구분, 품목, 수량, 금액)를 SM에서 조회할 수 있다.</td>
+                <td>입력: SD_ORDER_MST/DTL_X20329 (116,841/202,795건)<br>출력: 주문목록, 주문상세</td>
+                <td>Oracle 연결 정상, 마스터 동기화 완료</td>
+                <td class="priority-high">상</td>
+                <td>SD_ORDER_MST/DTL_X20329</td>
+            </tr>
+            <tr>
+                <td>FR-R-002</td>
+                <td>ERP 수주 현황 조회</td>
+                <td>ERP SD_SO_MST/DTL의 수주 데이터(수주번호, 수주일자, 거래처, 수주금액, 수주상태)를 SM에서 조회할 수 있다.</td>
+                <td>입력: SD_SO_MST/DTL (52,557/288,026건)</td>
+                <td>동일</td>
+                <td class="priority-high">상</td>
+                <td>SD_SO_MST/DTL</td>
+            </tr>
+            <tr>
+                <td>FR-R-003</td>
+                <td>ERP 출하 현황 조회</td>
+                <td>ERP SD_DLV_MST/DTL의 출하 데이터(출하번호, 출하일자, 출하처, 출고상태)를 SM에서 조회할 수 있다.</td>
+                <td>입력: SD_DLV_MST/DTL (39,761/260,521건)</td>
+                <td>동일</td>
+                <td class="priority-high">상</td>
+                <td>SD_DLV_MST/DTL</td>
+            </tr>
+            <tr>
+                <td>FR-R-004</td>
+                <td>ERP 매출 현황 조회</td>
+                <td>ERP SD_BILL_MST/DTL의 매출 데이터(매출번호, 매출일자, 거래처, 거래금액, 공급가액, 세액, 매출상태)를 SM에서 조회할 수 있다.</td>
+                <td>입력: SD_BILL_MST/DTL (44,557/286,277건)</td>
+                <td>동일</td>
+                <td class="priority-high">상</td>
+                <td>SD_BILL_MST/DTL</td>
+            </tr>
+            <tr>
+                <td>FR-R-005</td>
+                <td>ERP 매출계획 조회</td>
+                <td>ERP SD_MMBLPL_MST_X20329의 월별 매출계획(부서별/사원별 월별 가공비/재료비 목표)을 SM에서 조회할 수 있다.</td>
+                <td>입력: SD_MMBLPL_MST_X20329 (451건)</td>
+                <td>동일</td>
+                <td class="priority-mid">중</td>
+                <td>SD_MMBLPL_MST_X20329</td>
+            </tr>
+            <tr>
+                <td>FR-R-006</td>
+                <td>ERP 카드거래 조회</td>
+                <td>ERP FI_CARD_TRADE의 법인카드 거래내역(거래일, 금액, 거래처, 승인번호)을 SM에서 조회할 수 있다.</td>
+                <td>입력: FI_CARD_TRADE (20,207건)</td>
+                <td>동일</td>
+                <td class="priority-mid">중</td>
+                <td>FI_CARD_TRADE</td>
+            </tr>
+            <tr>
+                <td>FR-R-007</td>
+                <td>ERP 매출채권 조회</td>
+                <td>ERP SD_ARSUMM_MST의 거래처별 월별 매출채권 요약(매출금액, 수금금액)을 SM에서 조회할 수 있다.</td>
+                <td>입력: SD_ARSUMM_MST (16,141건)</td>
+                <td>동일</td>
+                <td class="priority-mid">중</td>
+                <td>SD_ARSUMM_MST</td>
+            </tr>
+            <tr>
+                <td>FR-R-008</td>
+                <td>변경분 동기화</td>
+                <td>UPDATE_DTS 기반으로 마지막 동기화 시점 이후 변경된 데이터만 선택 조회하여 동기화 성능을 최적화한다.</td>
+                <td>WHERE UPDATE_DTS &gt;= :lastSyncTime</td>
+                <td>동기화 이력 관리</td>
+                <td class="priority-high">상</td>
+                <td>모든 ERP 테이블</td>
+            </tr>
+            <tr>
+                <td>FR-R-009</td>
+                <td>트랜잭션 동기화 스케줄</td>
+                <td>트랜잭션 데이터 동기화를 매 1시간 간격으로 자동 실행한다.</td>
+                <td>Cron: 0 0 * * * ?</td>
+                <td>4.3 개발 완료</td>
+                <td class="priority-mid">중</td>
+                <td>-</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- 2.3 데이터 쓰기 -->
+    <h3>2.3 데이터 쓰기 - SM &rarr; ERP <span class="category-tag cat-write">FR-W</span></h3>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:90px;">요구사항 ID</th>
+                <th style="width:140px;">요구사항명</th>
+                <th>상세 설명</th>
+                <th style="width:180px;">입력/출력</th>
+                <th style="width:110px;">선행조건</th>
+                <th style="width:60px;">우선순위</th>
+                <th style="width:160px;">관련 테이블</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>FR-W-001</td>
+                <td>주문 등록 ERP 반영</td>
+                <td>SM에서 주문 생성 시 ERP SD_ORDER_MST_X20329 및 SD_ORDER_DTL_X20329에 INSERT한다. 주문번호(ORDDOC_NO)는 GOR+날짜+순번 규칙으로 채번.</td>
+                <td>입력: SM orders<br>출력: SD_ORDER_MST/DTL INSERT</td>
+                <td>거래처/사원 매핑 완료</td>
+                <td class="priority-high">상</td>
+                <td>orders &rarr; SD_ORDER_MST/DTL_X20329</td>
+            </tr>
+            <tr>
+                <td>FR-W-002</td>
+                <td>주문 수정 ERP 반영</td>
+                <td>SM에서 주문 수정 시 해당 ERP 주문 데이터를 UPDATE한다. 상세항목은 DELETE 후 INSERT(전체 교체).</td>
+                <td>입력: SM orders 수정<br>출력: SD_ORDER_MST UPDATE + DTL 교체</td>
+                <td>ERP 주문 존재</td>
+                <td class="priority-high">상</td>
+                <td>SD_ORDER_MST/DTL_X20329</td>
+            </tr>
+            <tr>
+                <td>FR-W-003</td>
+                <td>주문 상태변경 ERP 반영</td>
+                <td>SM에서 주문 상태 변경 시 ERP SD_ORDER_MST_X20329.WRK_FG를 UPDATE한다.</td>
+                <td>입력: SM 상태변경<br>출력: WRK_FG UPDATE</td>
+                <td>ERP 주문 존재</td>
+                <td class="priority-high">상</td>
+                <td>SD_ORDER_MST_X20329</td>
+            </tr>
+            <tr>
+                <td>FR-W-004</td>
+                <td>외주발주 ERP 반영</td>
+                <td>SM에서 외주발주 확정 시 ERP PU_PURORDER_MST 및 PU_PURORDER_DTL에 INSERT한다. 발주번호는 PUR+날짜+순번 규칙.</td>
+                <td>입력: SM outsourcing_pos<br>출력: PU_PURORDER INSERT</td>
+                <td>거래처 매핑 완료</td>
+                <td class="priority-mid">중</td>
+                <td>outsourcing_pos &rarr; PU_PURORDER_MST/DTL</td>
+            </tr>
+            <tr>
+                <td>FR-W-005</td>
+                <td>매출확정 ERP 반영</td>
+                <td>SM에서 매출 확정 시 ERP SD_BILL_MST의 상태를 UPDATE한다.</td>
+                <td>입력: SM 매출확정<br>출력: BILL_ST UPDATE</td>
+                <td>ERP 매출 존재</td>
+                <td class="priority-mid">중</td>
+                <td>SD_BILL_MST</td>
+            </tr>
+            <tr>
+                <td>FR-W-006</td>
+                <td>쓰기 실패 재시도</td>
+                <td>ERP 쓰기 실패 시 integration_retry_queue 테이블에 실패 건을 등록하고, 5분 간격 스케줄러로 자동 재시도한다. 최대 3회 재시도 후 관리자 알림.</td>
+                <td>입력: 실패 건<br>출력: 재시도 또는 알림</td>
+                <td>-</td>
+                <td class="priority-high">상</td>
+                <td>integration_retry_queue</td>
+            </tr>
+            <tr>
+                <td>FR-W-007</td>
+                <td>주문번호 채번</td>
+                <td>ERP 규칙에 맞는 주문번호(ORDDOC_NO)를 자동 생성한다. 접두어: GOR(일반)/TOR(특수) + YYYYMMDD + 5자리 순번.</td>
+                <td>채번 규칙: GOR20260324XXXXX</td>
+                <td>-</td>
+                <td class="priority-high">상</td>
+                <td>SD_ORDER_MST_X20329</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- 2.4 대시보드/통계 연동 -->
+    <h3>2.4 대시보드/통계 연동 <span class="category-tag cat-dashboard">FR-D</span></h3>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:90px;">요구사항 ID</th>
+                <th style="width:140px;">요구사항명</th>
+                <th>상세 설명</th>
+                <th style="width:180px;">입력/출력</th>
+                <th style="width:110px;">선행조건</th>
+                <th style="width:60px;">우선순위</th>
+                <th style="width:160px;">관련 테이블</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>FR-D-001</td>
+                <td>대시보드 매출현황 ERP 반영</td>
+                <td>대시보드 누적매출, 주문건수, 거래처수, 마진율에 ERP 매출 데이터를 반영한다.</td>
+                <td>/dashboard/summary API</td>
+                <td>트랜잭션 동기화 완료</td>
+                <td class="priority-high">상</td>
+                <td>SD_BILL_MST 집계</td>
+            </tr>
+            <tr>
+                <td>FR-D-002</td>
+                <td>목표 대비 실적 ERP 반영</td>
+                <td>ERP 매출계획(SD_MMBLPL_MST_X20329)과 실제 매출(SD_BILL_MST)을 비교하여 목표달성률을 표시한다.</td>
+                <td>/stats/team-goal-actual API</td>
+                <td>FR-R-005</td>
+                <td class="priority-mid">중</td>
+                <td>SD_MMBLPL_MST_X20329 + SD_BILL_MST</td>
+            </tr>
+            <tr>
+                <td>FR-D-003</td>
+                <td>프로세스 흐름 ERP 반영</td>
+                <td>주문&rarr;수주&rarr;출하&rarr;매출 프로세스 흐름 화면에 ERP 데이터(수주상태, 출하상태, 매출상태)를 반영한다.</td>
+                <td>/orders/:id/process-flow</td>
+                <td>FR-R-001~004</td>
+                <td class="priority-mid">중</td>
+                <td>SD_SO_MST + SD_DLV_MST + SD_BILL_MST</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- 2.5 화면 변경 -->
+    <h3>2.5 화면 변경 <span class="category-tag cat-ui">FR-U</span></h3>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:90px;">요구사항 ID</th>
+                <th style="width:140px;">요구사항명</th>
+                <th>상세 설명</th>
+                <th style="width:180px;">입력/출력</th>
+                <th style="width:110px;">선행조건</th>
+                <th style="width:60px;">우선순위</th>
+                <th style="width:160px;">관련 테이블</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>FR-U-001</td>
+                <td>목표입력 화면 통합</td>
+                <td>파트목표입력(PartGoalPage)과 AM목표입력(AmGoalPage)을 목표입력(GoalPage) 1개 화면으로 통합한다. 탭 UI로 파트목표/AM목표 전환. 라우팅: /info/goal로 통합.</td>
+                <td>기존 /info/part-goal + /info/am-goal &rarr; /info/goal</td>
+                <td>-</td>
+                <td class="priority-mid">중</td>
+                <td>part_goals + am_goals</td>
+            </tr>
+            <tr>
+                <td>FR-U-002</td>
+                <td>동기화 관리 화면</td>
+                <td>관리자가 동기화 현황(마지막 실행시각, 처리건수, 성공/실패), 실행 이력, 수동 실행 기능을 사용할 수 있는 화면을 제공한다.</td>
+                <td>/admin/erp-sync</td>
+                <td>관리자 권한</td>
+                <td class="priority-low">하</td>
+                <td>erp_sync_logs</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- 2.6 관리/운영 -->
+    <h3>2.6 관리/운영 <span class="category-tag cat-admin">FR-A</span></h3>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:90px;">요구사항 ID</th>
+                <th style="width:140px;">요구사항명</th>
+                <th>상세 설명</th>
+                <th style="width:180px;">입력/출력</th>
+                <th style="width:110px;">선행조건</th>
+                <th style="width:60px;">우선순위</th>
+                <th style="width:160px;">관련 테이블</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>FR-A-001</td>
+                <td>동기화 이력 관리</td>
+                <td>모든 동기화 실행 이력(실행일시, 유형, 처리건수, 성공/실패, 소요시간)을 erp_sync_logs 테이블에 기록한다.</td>
+                <td>erp_sync_logs INSERT</td>
+                <td>-</td>
+                <td class="priority-high">상</td>
+                <td>erp_sync_logs</td>
+            </tr>
+            <tr>
+                <td>FR-A-002</td>
+                <td>동기화 실패 알림</td>
+                <td>동기화 실패 또는 재시도 초과 시 관리자에게 이메일 알림을 발송하고 대시보드에 경고를 표시한다.</td>
+                <td>이메일 발송 / 대시보드 표시</td>
+                <td>FR-A-001</td>
+                <td class="priority-mid">중</td>
+                <td>-</td>
+            </tr>
+            <tr>
+                <td>FR-A-003</td>
+                <td>Oracle 연결 상태 확인</td>
+                <td>/api/erp/health API로 Oracle DB 연결 상태(정상/실패/응답시간)를 확인할 수 있다.</td>
+                <td>GET /api/erp/health</td>
+                <td>Oracle DS 설정</td>
+                <td class="priority-high">상</td>
+                <td>-</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- ==================== 3. 비기능 요구사항 ==================== -->
+    <h2>3. 비기능 요구사항</h2>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:90px;">요구사항 ID</th>
+                <th style="width:70px;">구분</th>
+                <th style="width:160px;">요구사항명</th>
+                <th>상세 설명</th>
+                <th style="width:180px;">측정 기준</th>
+                <th style="width:60px;">우선순위</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><span class="category-tag cat-nfr">NFR-001</span></td>
+                <td>성능</td>
+                <td>마스터 동기화 처리 시간</td>
+                <td>마스터 데이터 전체 동기화(거래처 46,361건 + 품목 38,169건 + 사원 2,402건 + 부서 96건)가 10분 이내에 완료되어야 한다</td>
+                <td>동기화 소요시간 &lt; 600초</td>
+                <td class="priority-high">상</td>
+            </tr>
+            <tr>
+                <td><span class="category-tag cat-nfr">NFR-002</span></td>
+                <td>성능</td>
+                <td>트랜잭션 조회 응답시간</td>
+                <td>ERP 데이터 조회 API(주문/수주/출하/매출)가 3초 이내에 응답해야 한다</td>
+                <td>API 응답시간 &lt; 3000ms</td>
+                <td class="priority-high">상</td>
+            </tr>
+            <tr>
+                <td><span class="category-tag cat-nfr">NFR-003</span></td>
+                <td>성능</td>
+                <td>커넥션 풀 제한</td>
+                <td>Oracle 커넥션 풀을 최대 5개로 제한하여 ERP DB 부하를 최소화한다</td>
+                <td>HikariCP max-pool-size: 5</td>
+                <td class="priority-high">상</td>
+            </tr>
+            <tr>
+                <td><span class="category-tag cat-nfr">NFR-004</span></td>
+                <td>가용성</td>
+                <td>Oracle 장애 격리</td>
+                <td>Oracle 연결 실패 시에도 SM Module의 기본 기능(MariaDB 기반)이 정상 동작해야 한다</td>
+                <td>Oracle 장애 시 SM 정상 여부</td>
+                <td class="priority-high">상</td>
+            </tr>
+            <tr>
+                <td><span class="category-tag cat-nfr">NFR-005</span></td>
+                <td>가용성</td>
+                <td>재시도 메커니즘</td>
+                <td>Oracle 연결 실패 시 30초 후 재시도, 최대 3회. 모두 실패 시 관리자 알림</td>
+                <td>재시도 횟수 및 간격</td>
+                <td class="priority-high">상</td>
+            </tr>
+            <tr>
+                <td><span class="category-tag cat-nfr">NFR-006</span></td>
+                <td>보안</td>
+                <td>DB 접속정보 암호화</td>
+                <td>Oracle 접속 비밀번호를 application.yml에 평문으로 저장하지 않는다. Jasypt 또는 환경변수 사용</td>
+                <td>설정파일 점검</td>
+                <td class="priority-high">상</td>
+            </tr>
+            <tr>
+                <td><span class="category-tag cat-nfr">NFR-007</span></td>
+                <td>보안</td>
+                <td>네트워크 접근제어</td>
+                <td>EC2 &rarr; Oracle 통신은 방화벽으로 허용된 IP(3.35.116.156)만 접속 가능하도록 한다</td>
+                <td>방화벽 규칙 확인</td>
+                <td class="priority-high">상</td>
+            </tr>
+            <tr>
+                <td><span class="category-tag cat-nfr">NFR-008</span></td>
+                <td>데이터</td>
+                <td>데이터 정합성</td>
+                <td>마스터 데이터는 ERP를 원본(Single Source of Truth)으로 한다. 트랜잭션 충돌 시 최신 UPDATE_DTS 기준 적용</td>
+                <td>동기화 전후 건수 비교</td>
+                <td class="priority-high">상</td>
+            </tr>
+            <tr>
+                <td><span class="category-tag cat-nfr">NFR-009</span></td>
+                <td>데이터</td>
+                <td>감사 추적</td>
+                <td>모든 ERP 연동 작업(동기화, INSERT, UPDATE)의 실행일시, 결과, 처리건수, 소요시간을 로그에 기록한다</td>
+                <td>로그 테이블 기록 여부</td>
+                <td class="priority-mid">중</td>
+            </tr>
+            <tr>
+                <td><span class="category-tag cat-nfr">NFR-010</span></td>
+                <td>운영</td>
+                <td>동기화 모니터링</td>
+                <td>동기화 상태(마지막 실행, 성공/실패, 처리건수)를 관리 화면 또는 대시보드에서 확인할 수 있어야 한다</td>
+                <td>관리 화면 제공 여부</td>
+                <td class="priority-mid">중</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- ==================== 4. 제약사항 ==================== -->
+    <h2>4. 제약사항</h2>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:70px;">#</th>
+                <th style="width:240px;">제약사항</th>
+                <th style="width:240px;">영향범위</th>
+                <th>대응방안</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>C-001</td>
+                <td>EC2 &rarr; Oracle 방화벽 차단</td>
+                <td>운영 환경에서 ERP 연동 불가</td>
+                <td>네트워크 관리자에 방화벽 개방 요청</td>
+            </tr>
+            <tr>
+                <td>C-002</td>
+                <td>Oracle COMET 계정 권한 미확인</td>
+                <td>Phase 4 (쓰기) 진행 불가</td>
+                <td>DBA에 INSERT/UPDATE 권한 확인</td>
+            </tr>
+            <tr>
+                <td>C-003</td>
+                <td>ERP 비즈니스 로직 미파악</td>
+                <td>주문 생성 시 필수 필드/규칙 불명</td>
+                <td>ERP 담당자 확인</td>
+            </tr>
+            <tr>
+                <td>C-004</td>
+                <td>소스코드 미확보</td>
+                <td>빌드 결과물(JAR)만 존재</td>
+                <td>Git 저장소 구성</td>
+            </tr>
+            <tr>
+                <td>C-005</td>
+                <td>iCUBE 커스텀(X20329) 테이블</td>
+                <td>표준 API 사용 불가</td>
+                <td>JdbcTemplate 직접 SQL</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- ==================== 5. 요구사항 추적 매트릭스 ==================== -->
+    <h2>5. 요구사항 추적 매트릭스 (요약)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>구분</th>
+                <th style="text-align:center;">총 건수</th>
+                <th style="text-align:center;">상</th>
+                <th style="text-align:center;">중</th>
+                <th style="text-align:center;">하</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><span class="category-tag cat-master">FR-M</span> 마스터 동기화</td>
+                <td style="text-align:center;">7</td>
+                <td style="text-align:center;" class="priority-high">5</td>
+                <td style="text-align:center;" class="priority-mid">2</td>
+                <td style="text-align:center;">0</td>
+            </tr>
+            <tr>
+                <td><span class="category-tag cat-read">FR-R</span> 트랜잭션 조회</td>
+                <td style="text-align:center;">9</td>
+                <td style="text-align:center;" class="priority-high">4</td>
+                <td style="text-align:center;" class="priority-mid">5</td>
+                <td style="text-align:center;">0</td>
+            </tr>
+            <tr>
+                <td><span class="category-tag cat-write">FR-W</span> 데이터 쓰기</td>
+                <td style="text-align:center;">7</td>
+                <td style="text-align:center;" class="priority-high">5</td>
+                <td style="text-align:center;" class="priority-mid">2</td>
+                <td style="text-align:center;">0</td>
+            </tr>
+            <tr>
+                <td><span class="category-tag cat-dashboard">FR-D</span> 대시보드/통계</td>
+                <td style="text-align:center;">3</td>
+                <td style="text-align:center;" class="priority-high">1</td>
+                <td style="text-align:center;" class="priority-mid">2</td>
+                <td style="text-align:center;">0</td>
+            </tr>
+            <tr>
+                <td><span class="category-tag cat-ui">FR-U</span> 화면 변경</td>
+                <td style="text-align:center;">2</td>
+                <td style="text-align:center;">0</td>
+                <td style="text-align:center;" class="priority-mid">1</td>
+                <td style="text-align:center;" class="priority-low">1</td>
+            </tr>
+            <tr>
+                <td><span class="category-tag cat-admin">FR-A</span> 관리/운영</td>
+                <td style="text-align:center;">3</td>
+                <td style="text-align:center;" class="priority-high">2</td>
+                <td style="text-align:center;" class="priority-mid">1</td>
+                <td style="text-align:center;">0</td>
+            </tr>
+            <tr>
+                <td><span class="category-tag cat-nfr">NFR</span> 비기능</td>
+                <td style="text-align:center;">10</td>
+                <td style="text-align:center;" class="priority-high">7</td>
+                <td style="text-align:center;" class="priority-mid">3</td>
+                <td style="text-align:center;">0</td>
+            </tr>
+            <tr style="background:#e8eaf6; font-weight:700;">
+                <td>합계</td>
+                <td style="text-align:center; font-size:16px; color:#1a237e;">41</td>
+                <td style="text-align:center; font-size:16px;" class="priority-high">24</td>
+                <td style="text-align:center; font-size:16px;" class="priority-mid">16</td>
+                <td style="text-align:center; font-size:16px;" class="priority-low">1</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="note">
+        우선순위 '상' 요구사항(24건)은 Phase 1~3에서 우선 구현하며, '중' 요구사항(16건)은 Phase 4~5에서 순차적으로 구현합니다. '하' 요구사항(1건)은 운영 안정화 이후 구현합니다.
+    </div>
+
+    <!-- ==================== 6. 신규 DB 설계 반영사항 ==================== -->
+    <h2>6. 참고: 신규 DB 설계 반영사항</h2>
+    <p>신규 타겟 DB 스키마(14개 테이블)가 상기 요구사항을 어떻게 지원하는지 정리합니다. (참고: <a href="https://dbdiagram.io/d/69ae32f7f18be96a591e82db" target="_blank" style="color:#1a237e;">dbdiagram.io 스키마</a>)</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width:50px;">#</th>
+                <th style="width:220px;">설계 반영사항</th>
+                <th>상세 설명</th>
+                <th style="width:160px;">관련 요구사항</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>1</td>
+                <td><strong>company_cd + plant_cd 복합키</strong></td>
+                <td>신규 설계 스키마에서 모든 테이블은 <code>company_cd + plant_cd</code> 복합키를 선두 컬럼으로 사용하여 ERP 멀티컴퍼니/멀티플랜트 구조와 정렬됩니다. 이를 통해 ERP 데이터와의 1:1 키 매핑이 가능합니다.</td>
+                <td>전체 요구사항</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td><strong>order &rarr; order_mst/dtl/info 마스터-디테일 분리</strong></td>
+                <td>주문 데이터를 <code>order_mst</code>(마스터) &rarr; <code>order_dtl</code>(디테일) &rarr; <code>order_info</code>(상세사양) 3계층으로 분리하여 ERP SD_ORDER_MST/DTL_X20329 구조와 1:1 대응합니다. 추가로 <code>order_dlv</code>(납품)와 <code>file_info</code>(첨부파일)가 연결됩니다. 이를 통해 주문 등록/수정/조회 시 ERP 테이블과 직접 매핑 가능합니다.</td>
+                <td>FR-R-001, FR-R-002, FR-R-003, FR-R-004<br>FR-W-001, FR-W-002, FR-W-003</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td><strong>goal_mst 통합 테이블</strong></td>
+                <td><code>goal_mst</code> 단일 테이블로 파트목표/AM목표를 통합합니다. <code>field_cd</code> 컬럼(내부/외부)으로 구분하며, PK는 <code>company_cd + plant_cd + plan_yy + plan_mm + dept_cd + sales_emp_id + field_cd</code>입니다. 이를 통해 FR-U-001 요구사항(목표입력 화면 통합)이 DB 레벨에서 지원됩니다.</td>
+                <td>FR-U-001</td>
+            </tr>
+            <tr>
+                <td>4</td>
+                <td><strong>sales_mst.erp_sync_status</strong></td>
+                <td><code>sales_mst</code> 테이블의 <code>erp_sync_status</code> 필드(ENUM: PENDING/SYNCED/FAILED)를 통해 매출확정 후 ERP 반영 상태를 추적할 수 있습니다. 매출확정 시 SM &rarr; ERP 쓰기 결과를 이 필드에 기록하여 동기화 상태를 관리합니다.</td>
+                <td>FR-W-005</td>
+            </tr>
+            <tr>
+                <td>5</td>
+                <td><strong>po_settle_mst.gitgo_sync_status</strong></td>
+                <td><code>po_settle_mst</code> 테이블의 <code>gitgo_sync_status</code> 필드(ENUM: PENDING/SYNCED/FAILED)를 통해 외주정산의 깃고(전자결재) 연동 상태를 추적할 수 있습니다. 정산 생성 후 깃고 매입정산 결과를 이 필드에 기록하여 프로세스 진행 상황을 관리합니다.</td>
+                <td>FR-W-004 (관련)</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="note">
+        <strong>참고:</strong> 신규 타겟 스키마는 총 14개 테이블(users, departments, order_mst, order_dtl, order_info, order_dlv, file_info, po_mst, po_dtl, po_settle_mst, po_settle_dtl, sales_mst, sales_dtl, goal_mst)로 구성됩니다. 기존 SM Module의 단일 테이블 구조를 ERP 정합성 중심의 마스터-디테일 구조로 재설계하여, ERP 연동 시 데이터 변환 없이 직접 매핑이 가능합니다.
+    </div>
+
+</div>
+
+<!-- ==================== FOOTER ==================== -->
+<div class="footer">
+    &copy; 2026 HM소프트 | SM Module - Oracle ERP 연동 프로젝트 | 문서번호: SM-ERP-REQ-001
+</div>
+
+</body>
+</html>

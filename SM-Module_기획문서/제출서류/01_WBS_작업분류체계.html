@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WBS (작업분류체계) - SM Module Oracle ERP 연동</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; background: #fff; color: #333; line-height: 1.7; }
+        .header { background: #1a237e; color: #fff; padding: 40px; text-align: center; }
+        .header h1 { font-size: 28px; margin-bottom: 8px; }
+        .header p { font-size: 14px; opacity: 0.8; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 40px 30px; }
+        h2 { font-size: 22px; color: #1a237e; border-bottom: 3px solid #1a237e; padding-bottom: 8px; margin: 40px 0 20px; }
+        h3 { font-size: 17px; color: #283593; margin: 24px 0 12px; }
+        h4 { font-size: 15px; color: #3949ab; margin: 16px 0 8px; }
+        table { width: 100%; border-collapse: collapse; margin: 16px 0 24px; font-size: 13px; }
+        th { background: #e8eaf6; color: #1a237e; padding: 10px 12px; text-align: left; border: 1px solid #c5cae9; font-weight: 600; }
+        td { padding: 8px 12px; border: 1px solid #e0e0e0; vertical-align: top; }
+        tr:nth-child(even) { background: #fafafa; }
+        tr:hover { background: #f0f0ff; }
+        .phase-header td { background: #e8eaf6; font-weight: 700; color: #1a237e; }
+        .complete { color: #2e7d32; font-weight: 600; }
+        .in-progress { color: #ef6c00; font-weight: 600; }
+        .pending { color: #757575; }
+        .blocked { color: #c62828; font-weight: 600; }
+        .note { background: #fff8e1; border-left: 4px solid #ffc107; padding: 12px 16px; margin: 16px 0; font-size: 13px; border-radius: 0 4px 4px 0; }
+        .critical { background: #ffebee; border-left: 4px solid #e53935; padding: 12px 16px; margin: 16px 0; font-size: 13px; border-radius: 0 4px 4px 0; }
+        .footer { text-align: center; padding: 30px; color: #999; font-size: 12px; border-top: 1px solid #eee; margin-top: 40px; }
+        @media print { .header { background: #1a237e !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } body { font-size: 11px; } }
+
+        /* WBS Tree Styles */
+        .wbs-tree { margin: 20px 0; }
+        .wbs-l1 { padding: 12px 16px; background: #1a237e; color: #fff; font-weight: 700; font-size: 15px; border-radius: 6px; margin: 8px 0; }
+        .wbs-l2 { padding: 10px 16px; background: #e8eaf6; color: #1a237e; font-weight: 600; font-size: 14px; border-radius: 4px; margin: 4px 0 4px 30px; border-left: 4px solid #3949ab; }
+        .wbs-l3 { padding: 6px 16px; background: #f5f5f5; color: #333; font-size: 13px; margin: 2px 0 2px 60px; border-left: 3px solid #9fa8da; border-radius: 2px; }
+
+        /* Additional utility styles */
+        .overview-box { background: #f5f7ff; border: 1px solid #c5cae9; border-radius: 6px; padding: 20px; margin: 16px 0; font-size: 14px; }
+        .task-indent { padding-left: 24px; }
+    </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+    <h1>WBS (작업분류체계)</h1>
+    <p>SM Module - Oracle ERP 연동 프로젝트 &nbsp;|&nbsp; 작성일: 2026-03-24 &nbsp;|&nbsp; 작성: HM소프트 &nbsp;|&nbsp; 문서번호: SM-ERP-WBS-001</p>
+</div>
+
+<div class="container">
+
+    <!-- Section 1: WBS 개요 -->
+    <h2>1. WBS 개요</h2>
+    <div class="overview-box">
+        <p>
+            본 문서는 <strong>SM Module - Oracle ERP 연동 프로젝트</strong>의 작업분류체계(WBS, Work Breakdown Structure)를 정의합니다.
+            프로젝트는 총 <strong>6개 단계(Phase)</strong>로 구성되며, <strong>50개 이상의 세부 작업(Task)</strong>을 포함합니다.
+            각 단계는 프로젝트 관리, 분석, 설계, 개발, 테스트, 이행/배포로 분류되며, 단계별 선행관계와 담당자, 산출물이 명확히 정의되어 있습니다.
+            WBS는 프로젝트 전 과정에 걸쳐 진행 현황을 추적하고, 일정 관리 및 리소스 배분의 기준 문서로 활용됩니다.
+        </p>
+    </div>
+
+    <!-- Section 2: WBS 트리 구조 -->
+    <h2>2. WBS 트리 구조</h2>
+    <p style="margin-bottom: 12px; font-size: 14px; color: #555;">프로젝트의 전체 작업 계층 구조를 시각적으로 표현합니다.</p>
+
+    <div class="wbs-tree">
+        <!-- 1. 프로젝트 관리 -->
+        <div class="wbs-l1">1. 프로젝트 관리</div>
+        <div class="wbs-l2">1.1 착수</div>
+        <div class="wbs-l3">1.1.1 킥오프 미팅</div>
+        <div class="wbs-l3">1.1.2 프로젝트 계획서 작성</div>
+        <div class="wbs-l3">1.1.3 개발환경 구성</div>
+        <div class="wbs-l2">1.2 진행관리</div>
+        <div class="wbs-l3">1.2.1 주간 진행보고</div>
+        <div class="wbs-l2">1.3 종료</div>
+        <div class="wbs-l3">1.3.1 완료보고</div>
+
+        <!-- 2. 분석 -->
+        <div class="wbs-l1">2. 분석</div>
+        <div class="wbs-l2">2.1 현행시스템 분석</div>
+        <div class="wbs-l3">2.1.1 SM Module 백엔드 분석</div>
+        <div class="wbs-l3">2.1.2 SM Module 프론트엔드 분석</div>
+        <div class="wbs-l3">2.1.3 SM Module DB 분석</div>
+        <div class="wbs-l2">2.2 ERP 데이터 분석</div>
+        <div class="wbs-l3">2.2.1 Oracle ERP 접속 확인</div>
+        <div class="wbs-l3">2.2.2 ERP 테이블 구조 분석</div>
+        <div class="wbs-l3">2.2.3 ERP 데이터 현황 파악</div>
+        <div class="wbs-l3">2.2.4 ERP 문서 흐름 분석</div>
+        <div class="wbs-l2">2.3 요구사항 정의</div>
+        <div class="wbs-l3">2.3.1 기능 요구사항 정의</div>
+        <div class="wbs-l3">2.3.2 비기능 요구사항 정의</div>
+        <div class="wbs-l3">2.3.3 요구사항 검토/확정</div>
+
+        <!-- 3. 설계 -->
+        <div class="wbs-l1">3. 설계</div>
+        <div class="wbs-l2">3.1 아키텍처 설계</div>
+        <div class="wbs-l3">3.1.1 듀얼 데이터소스 아키텍처 설계</div>
+        <div class="wbs-l3">3.1.2 동기화 아키텍처 설계</div>
+        <div class="wbs-l2">3.2 DB 설계</div>
+        <div class="wbs-l3">3.2.1 SM Module 추가 테이블 설계</div>
+        <div class="wbs-l3">3.2.2 데이터 매핑 설계</div>
+        <div class="wbs-l2">3.3 인터페이스 설계</div>
+        <div class="wbs-l3">3.3.1 ERP 읽기 인터페이스 설계</div>
+        <div class="wbs-l3">3.3.2 ERP 쓰기 인터페이스 설계</div>
+        <div class="wbs-l2">3.4 화면 설계</div>
+        <div class="wbs-l3">3.4.1 목표입력 통합 화면 설계</div>
+        <div class="wbs-l3">3.4.2 ERP 동기화 관리 화면 설계</div>
+
+        <!-- 4. 개발 -->
+        <div class="wbs-l1">4. 개발</div>
+        <div class="wbs-l2">4.1 Phase 1: Oracle 연결</div>
+        <div class="wbs-l3">4.1.1 Oracle JDBC 드라이버 추가</div>
+        <div class="wbs-l3">4.1.2 듀얼 데이터소스 설정</div>
+        <div class="wbs-l3">4.1.3 Oracle JdbcTemplate 빈 설정</div>
+        <div class="wbs-l3">4.1.4 연결 테스트 API 개발</div>
+        <div class="wbs-l3">4.1.5 application-prod.yml 설정</div>
+        <div class="wbs-l2">4.2 Phase 2: 마스터 동기화</div>
+        <div class="wbs-l3">4.2.1 거래처 동기화 개발</div>
+        <div class="wbs-l3">4.2.2 품목 매핑 테이블 개발</div>
+        <div class="wbs-l3">4.2.3 사원 동기화 개발</div>
+        <div class="wbs-l3">4.2.4 부서 동기화 개발</div>
+        <div class="wbs-l3">4.2.5 동기화 스케줄러 개발</div>
+        <div class="wbs-l3">4.2.6 동기화 이력 관리 개발</div>
+        <div class="wbs-l2">4.3 Phase 3: 트랜잭션 동기화</div>
+        <div class="wbs-l3">4.3.1 주문 현황 조회 개발</div>
+        <div class="wbs-l3">4.3.2 수주 현황 조회 개발</div>
+        <div class="wbs-l3">4.3.3 출하 현황 조회 개발</div>
+        <div class="wbs-l3">4.3.4 매출 현황 조회 개발</div>
+        <div class="wbs-l3">4.3.5 매출계획 조회 개발</div>
+        <div class="wbs-l3">4.3.6 대시보드 ERP 데이터 연동</div>
+        <div class="wbs-l2">4.4 Phase 4: SM → ERP 쓰기</div>
+        <div class="wbs-l3">4.4.1 주문 등록 → ERP 반영</div>
+        <div class="wbs-l3">4.4.2 주문 수정 → ERP 반영</div>
+        <div class="wbs-l3">4.4.3 주문 상태변경 → ERP 반영</div>
+        <div class="wbs-l3">4.4.4 외주발주 → ERP 반영</div>
+        <div class="wbs-l3">4.4.5 매출확정 → ERP 반영</div>
+        <div class="wbs-l3">4.4.6 재시도 큐 처리 개발</div>
+        <div class="wbs-l2">4.5 목표입력 통합</div>
+        <div class="wbs-l3">4.5.1 GoalPage 통합 화면 개발</div>
+        <div class="wbs-l3">4.5.2 라우팅/메뉴 변경</div>
+
+        <!-- 5. 테스트 -->
+        <div class="wbs-l1">5. 테스트</div>
+        <div class="wbs-l2">5.1 단위 테스트</div>
+        <div class="wbs-l3">5.1.1 Oracle 연결 테스트</div>
+        <div class="wbs-l3">5.1.2 마스터 동기화 테스트</div>
+        <div class="wbs-l3">5.1.3 트랜잭션 동기화 테스트</div>
+        <div class="wbs-l3">5.1.4 ERP 쓰기 테스트</div>
+        <div class="wbs-l2">5.2 통합 테스트</div>
+        <div class="wbs-l3">5.2.1 전체 동기화 시나리오 테스트</div>
+        <div class="wbs-l3">5.2.2 에러/재시도 시나리오 테스트</div>
+        <div class="wbs-l2">5.3 UAT</div>
+        <div class="wbs-l3">5.3.1 UAT 시나리오 작성</div>
+        <div class="wbs-l3">5.3.2 UAT 수행</div>
+        <div class="wbs-l3">5.3.3 결함 수정</div>
+
+        <!-- 6. 이행/배포 -->
+        <div class="wbs-l1">6. 이행/배포</div>
+        <div class="wbs-l2">6.1 운영환경 준비</div>
+        <div class="wbs-l3">6.1.1 EC2 → Oracle 방화벽 개방</div>
+        <div class="wbs-l3">6.1.2 Oracle COMET 계정 권한 확인</div>
+        <div class="wbs-l3">6.1.3 운영 서버 설정</div>
+        <div class="wbs-l2">6.2 데이터 이행</div>
+        <div class="wbs-l3">6.2.1 초기 마스터 데이터 동기화</div>
+        <div class="wbs-l3">6.2.2 기존 매핑 데이터 정비</div>
+        <div class="wbs-l2">6.3 배포/안정화</div>
+        <div class="wbs-l3">6.3.1 운영 배포</div>
+        <div class="wbs-l3">6.3.2 안정화 모니터링</div>
+    </div>
+
+    <!-- Section 3: WBS 상세 테이블 -->
+    <h2>3. WBS 상세 테이블</h2>
+    <p style="margin-bottom: 12px; font-size: 14px; color: #555;">전체 작업 항목의 상세 정보, 선행관계, 담당자, 산출물 및 진행 상태를 정의합니다.</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 70px;">WBS ID</th>
+                <th style="width: 180px;">작업명</th>
+                <th>상세 내용</th>
+                <th style="width: 70px;">선행작업</th>
+                <th style="width: 70px;">담당</th>
+                <th style="width: 110px;">산출물</th>
+                <th style="width: 70px;">상태</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Phase 1: 프로젝트 관리 -->
+            <tr class="phase-header">
+                <td>1</td>
+                <td colspan="6">프로젝트 관리</td>
+            </tr>
+            <tr class="phase-header">
+                <td>1.1</td>
+                <td colspan="6">&nbsp;&nbsp;착수</td>
+            </tr>
+            <tr>
+                <td>1.1.1</td>
+                <td class="task-indent">킥오프 미팅</td>
+                <td>프로젝트 범위/일정/R&amp;R 확정</td>
+                <td>-</td>
+                <td>PM</td>
+                <td>회의록</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>1.1.2</td>
+                <td class="task-indent">프로젝트 계획서 작성</td>
+                <td>WBS/일정/리소스 계획</td>
+                <td>1.1.1</td>
+                <td>PM</td>
+                <td>프로젝트 계획서</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>1.1.3</td>
+                <td class="task-indent">개발환경 구성</td>
+                <td>Git 저장소/개발서버/CI/CD</td>
+                <td>1.1.1</td>
+                <td>개발</td>
+                <td>환경구성 완료보고</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr class="phase-header">
+                <td>1.2</td>
+                <td colspan="6">&nbsp;&nbsp;진행관리</td>
+            </tr>
+            <tr>
+                <td>1.2.1</td>
+                <td class="task-indent">주간 진행보고</td>
+                <td>주 1회 진행현황 보고</td>
+                <td>1.1.1</td>
+                <td>PM</td>
+                <td>주간보고서</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr class="phase-header">
+                <td>1.3</td>
+                <td colspan="6">&nbsp;&nbsp;종료</td>
+            </tr>
+            <tr>
+                <td>1.3.1</td>
+                <td class="task-indent">완료보고</td>
+                <td>프로젝트 결과 보고</td>
+                <td>6.3.2</td>
+                <td>PM</td>
+                <td>완료보고서</td>
+                <td class="pending">미착수</td>
+            </tr>
+
+            <!-- Phase 2: 분석 -->
+            <tr class="phase-header">
+                <td>2</td>
+                <td colspan="6">분석</td>
+            </tr>
+            <tr class="phase-header">
+                <td>2.1</td>
+                <td colspan="6">&nbsp;&nbsp;현행시스템 분석</td>
+            </tr>
+            <tr>
+                <td>2.1.1</td>
+                <td class="task-indent">SM Module 백엔드 분석</td>
+                <td>Spring Boot 구조/Entity/API 분석</td>
+                <td>-</td>
+                <td>개발</td>
+                <td>현황분석서</td>
+                <td class="complete">완료</td>
+            </tr>
+            <tr>
+                <td>2.1.2</td>
+                <td class="task-indent">SM Module 프론트엔드 분석</td>
+                <td>React 페이지/컴포넌트/라우팅</td>
+                <td>-</td>
+                <td>개발</td>
+                <td>현황분석서</td>
+                <td class="complete">완료</td>
+            </tr>
+            <tr>
+                <td>2.1.3</td>
+                <td class="task-indent">SM Module DB 분석</td>
+                <td>MariaDB 테이블/Flyway 마이그레이션</td>
+                <td>-</td>
+                <td>개발</td>
+                <td>테이블 정의서</td>
+                <td class="complete">완료</td>
+            </tr>
+            <tr class="phase-header">
+                <td>2.2</td>
+                <td colspan="6">&nbsp;&nbsp;ERP 데이터 분석</td>
+            </tr>
+            <tr>
+                <td>2.2.1</td>
+                <td class="task-indent">Oracle ERP 접속 확인</td>
+                <td>네트워크 연결/계정 확인</td>
+                <td>-</td>
+                <td>개발</td>
+                <td>접속확인서</td>
+                <td class="complete">완료</td>
+            </tr>
+            <tr>
+                <td>2.2.2</td>
+                <td class="task-indent">ERP 테이블 구조 분석</td>
+                <td>SD_/PU_/CI_/HR_ 테이블 분석</td>
+                <td>2.2.1</td>
+                <td>개발</td>
+                <td>ERP DB 분석서</td>
+                <td class="complete">완료</td>
+            </tr>
+            <tr>
+                <td>2.2.3</td>
+                <td class="task-indent">ERP 데이터 현황 파악</td>
+                <td>레코드 수/날짜범위/코드값</td>
+                <td>2.2.2</td>
+                <td>개발</td>
+                <td>ERP DB 분석서</td>
+                <td class="complete">완료</td>
+            </tr>
+            <tr>
+                <td>2.2.4</td>
+                <td class="task-indent">ERP 문서 흐름 분석</td>
+                <td>견적 → 주문 → 수주 → 출하 → 매출 흐름</td>
+                <td>2.2.2</td>
+                <td>개발</td>
+                <td>업무흐름도</td>
+                <td class="complete">완료</td>
+            </tr>
+            <tr class="phase-header">
+                <td>2.3</td>
+                <td colspan="6">&nbsp;&nbsp;요구사항 정의</td>
+            </tr>
+            <tr>
+                <td>2.3.1</td>
+                <td class="task-indent">기능 요구사항 정의</td>
+                <td>연동 기능별 상세 요구사항</td>
+                <td>2.1+2.2</td>
+                <td>기획/개발</td>
+                <td>요구사항 정의서</td>
+                <td class="complete">완료</td>
+            </tr>
+            <tr>
+                <td>2.3.2</td>
+                <td class="task-indent">비기능 요구사항 정의</td>
+                <td>성능/보안/가용성 요구사항</td>
+                <td>2.3.1</td>
+                <td>기획</td>
+                <td>요구사항 정의서</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>2.3.3</td>
+                <td class="task-indent">요구사항 검토/확정</td>
+                <td>클라이언트 검토 및 승인</td>
+                <td>2.3.2</td>
+                <td>기획/고객</td>
+                <td>승인된 요구사항</td>
+                <td class="pending">미착수</td>
+            </tr>
+
+            <!-- Phase 3: 설계 -->
+            <tr class="phase-header">
+                <td>3</td>
+                <td colspan="6">설계</td>
+            </tr>
+            <tr class="phase-header">
+                <td>3.1</td>
+                <td colspan="6">&nbsp;&nbsp;아키텍처 설계</td>
+            </tr>
+            <tr>
+                <td>3.1.1</td>
+                <td class="task-indent">듀얼 데이터소스 아키텍처 설계</td>
+                <td>MariaDB + Oracle 구조 설계</td>
+                <td>2.3.3</td>
+                <td>개발</td>
+                <td>아키텍처 설계서</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>3.1.2</td>
+                <td class="task-indent">동기화 아키텍처 설계</td>
+                <td>스케줄러/재시도/큐 설계</td>
+                <td>3.1.1</td>
+                <td>개발</td>
+                <td>아키텍처 설계서</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr class="phase-header">
+                <td>3.2</td>
+                <td colspan="6">&nbsp;&nbsp;DB 설계</td>
+            </tr>
+            <tr>
+                <td>3.2.1</td>
+                <td class="task-indent">SM Module 추가 테이블 설계</td>
+                <td>매핑 테이블/동기화 이력 테이블</td>
+                <td>3.1.1</td>
+                <td>개발</td>
+                <td>테이블 정의서</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>3.2.2</td>
+                <td class="task-indent">데이터 매핑 설계</td>
+                <td>SM ↔ ERP 필드 매핑 확정</td>
+                <td>3.2.1</td>
+                <td>개발</td>
+                <td>인터페이스 정의서</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr class="phase-header">
+                <td>3.3</td>
+                <td colspan="6">&nbsp;&nbsp;인터페이스 설계</td>
+            </tr>
+            <tr>
+                <td>3.3.1</td>
+                <td class="task-indent">ERP 읽기 인터페이스 설계</td>
+                <td>조회 쿼리/동기화 로직</td>
+                <td>3.2.2</td>
+                <td>개발</td>
+                <td>인터페이스 정의서</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>3.3.2</td>
+                <td class="task-indent">ERP 쓰기 인터페이스 설계</td>
+                <td>INSERT/UPDATE 쿼리/트랜잭션</td>
+                <td>3.3.1</td>
+                <td>개발</td>
+                <td>인터페이스 정의서</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr class="phase-header">
+                <td>3.4</td>
+                <td colspan="6">&nbsp;&nbsp;화면 설계</td>
+            </tr>
+            <tr>
+                <td>3.4.1</td>
+                <td class="task-indent">목표입력 통합 화면 설계</td>
+                <td>탭 UI/레이아웃</td>
+                <td>2.3.3</td>
+                <td>기획/개발</td>
+                <td>화면설계서</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>3.4.2</td>
+                <td class="task-indent">ERP 동기화 관리 화면 설계</td>
+                <td>동기화 현황/이력 조회</td>
+                <td>3.1.2</td>
+                <td>기획/개발</td>
+                <td>화면설계서</td>
+                <td class="pending">미착수</td>
+            </tr>
+
+            <!-- Phase 4: 개발 -->
+            <tr class="phase-header">
+                <td>4</td>
+                <td colspan="6">개발</td>
+            </tr>
+            <tr class="phase-header">
+                <td>4.1</td>
+                <td colspan="6">&nbsp;&nbsp;Phase 1: Oracle 연결</td>
+            </tr>
+            <tr>
+                <td>4.1.1</td>
+                <td class="task-indent">Oracle JDBC 드라이버 추가</td>
+                <td>ojdbc11 의존성 추가</td>
+                <td>3.1.1</td>
+                <td>개발</td>
+                <td>소스코드</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>4.1.2</td>
+                <td class="task-indent">듀얼 데이터소스 설정</td>
+                <td>@Primary MariaDB + Oracle DS</td>
+                <td>4.1.1</td>
+                <td>개발</td>
+                <td>소스코드</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>4.1.3</td>
+                <td class="task-indent">Oracle JdbcTemplate 빈 설정</td>
+                <td>@Qualifier 기반 분리</td>
+                <td>4.1.2</td>
+                <td>개발</td>
+                <td>소스코드</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>4.1.4</td>
+                <td class="task-indent">연결 테스트 API 개발</td>
+                <td>/api/erp/health 엔드포인트</td>
+                <td>4.1.3</td>
+                <td>개발</td>
+                <td>소스코드</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>4.1.5</td>
+                <td class="task-indent">application-prod.yml 설정</td>
+                <td>Oracle 접속정보/HikariCP</td>
+                <td>4.1.2</td>
+                <td>개발</td>
+                <td>설정파일</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr class="phase-header">
+                <td>4.2</td>
+                <td colspan="6">&nbsp;&nbsp;Phase 2: 마스터 동기화</td>
+            </tr>
+            <tr>
+                <td>4.2.1</td>
+                <td class="task-indent">거래처 동기화 개발</td>
+                <td>CI_PARTNER_MST → business_owners</td>
+                <td>4.1.4</td>
+                <td>개발</td>
+                <td>소스코드</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>4.2.2</td>
+                <td class="task-indent">품목 매핑 테이블 개발</td>
+                <td>CI_ITEM → erp_item_mappings</td>
+                <td>4.1.4</td>
+                <td>개발</td>
+                <td>소스코드</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>4.2.3</td>
+                <td class="task-indent">사원 동기화 개발</td>
+                <td>HR_EMP_MST → users</td>
+                <td>4.1.4</td>
+                <td>개발</td>
+                <td>소스코드</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>4.2.4</td>
+                <td class="task-indent">부서 동기화 개발</td>
+                <td>VW_MA_DEPT_MST → departments</td>
+                <td>4.1.4</td>
+                <td>개발</td>
+                <td>소스코드</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>4.2.5</td>
+                <td class="task-indent">동기화 스케줄러 개발</td>
+                <td>Cron 기반 일배치</td>
+                <td>4.2.1~4</td>
+                <td>개발</td>
+                <td>소스코드</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>4.2.6</td>
+                <td class="task-indent">동기화 이력 관리 개발</td>
+                <td>로그 테이블/모니터링</td>
+                <td>4.2.5</td>
+                <td>개발</td>
+                <td>소스코드</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr class="phase-header">
+                <td>4.3</td>
+                <td colspan="6">&nbsp;&nbsp;Phase 3: 트랜잭션 동기화</td>
+            </tr>
+            <tr>
+                <td>4.3.1</td>
+                <td class="task-indent">주문 현황 조회 개발</td>
+                <td>SD_ORDER_MST/DTL_X20329</td>
+                <td>4.2.5</td>
+                <td>개발</td>
+                <td>소스코드</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>4.3.2</td>
+                <td class="task-indent">수주 현황 조회 개발</td>
+                <td>SD_SO_MST/DTL</td>
+                <td>4.2.5</td>
+                <td>개발</td>
+                <td>소스코드</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>4.3.3</td>
+                <td class="task-indent">출하 현황 조회 개발</td>
+                <td>SD_DLV_MST/DTL</td>
+                <td>4.2.5</td>
+                <td>개발</td>
+                <td>소스코드</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>4.3.4</td>
+                <td class="task-indent">매출 현황 조회 개발</td>
+                <td>SD_BILL_MST/DTL</td>
+                <td>4.2.5</td>
+                <td>개발</td>
+                <td>소스코드</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>4.3.5</td>
+                <td class="task-indent">매출계획 조회 개발</td>
+                <td>SD_MMBLPL_MST_X20329</td>
+                <td>4.2.5</td>
+                <td>개발</td>
+                <td>소스코드</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>4.3.6</td>
+                <td class="task-indent">대시보드 ERP 데이터 연동</td>
+                <td>대시보드에 ERP 집계 반영</td>
+                <td>4.3.1~4</td>
+                <td>개발</td>
+                <td>소스코드</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr class="phase-header">
+                <td>4.4</td>
+                <td colspan="6">&nbsp;&nbsp;Phase 4: SM → ERP 쓰기</td>
+            </tr>
+            <tr>
+                <td>4.4.1</td>
+                <td class="task-indent">주문 등록 → ERP 반영</td>
+                <td>SD_ORDER_MST/DTL INSERT</td>
+                <td>4.3.1</td>
+                <td>개발</td>
+                <td>소스코드</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>4.4.2</td>
+                <td class="task-indent">주문 수정 → ERP 반영</td>
+                <td>SD_ORDER_MST/DTL UPDATE</td>
+                <td>4.4.1</td>
+                <td>개발</td>
+                <td>소스코드</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>4.4.3</td>
+                <td class="task-indent">주문 상태변경 → ERP 반영</td>
+                <td>WRK_FG UPDATE</td>
+                <td>4.4.1</td>
+                <td>개발</td>
+                <td>소스코드</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>4.4.4</td>
+                <td class="task-indent">외주발주 → ERP 반영</td>
+                <td>PU_PURORDER INSERT</td>
+                <td>4.3.1</td>
+                <td>개발</td>
+                <td>소스코드</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>4.4.5</td>
+                <td class="task-indent">매출확정 → ERP 반영</td>
+                <td>SD_BILL_MST UPDATE</td>
+                <td>4.3.4</td>
+                <td>개발</td>
+                <td>소스코드</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>4.4.6</td>
+                <td class="task-indent">재시도 큐 처리 개발</td>
+                <td>integration_retry_queue</td>
+                <td>4.4.1</td>
+                <td>개발</td>
+                <td>소스코드</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr class="phase-header">
+                <td>4.5</td>
+                <td colspan="6">&nbsp;&nbsp;목표입력 통합</td>
+            </tr>
+            <tr>
+                <td>4.5.1</td>
+                <td class="task-indent">GoalPage 통합 화면 개발</td>
+                <td>탭 UI (파트목표/AM목표)</td>
+                <td>3.4.1</td>
+                <td>개발</td>
+                <td>소스코드</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>4.5.2</td>
+                <td class="task-indent">라우팅/메뉴 변경</td>
+                <td>/info/goal 통합</td>
+                <td>4.5.1</td>
+                <td>개발</td>
+                <td>소스코드</td>
+                <td class="pending">미착수</td>
+            </tr>
+
+            <!-- Phase 5: 테스트 -->
+            <tr class="phase-header">
+                <td>5</td>
+                <td colspan="6">테스트</td>
+            </tr>
+            <tr class="phase-header">
+                <td>5.1</td>
+                <td colspan="6">&nbsp;&nbsp;단위 테스트</td>
+            </tr>
+            <tr>
+                <td>5.1.1</td>
+                <td class="task-indent">Oracle 연결 테스트</td>
+                <td>접속/풀링/타임아웃</td>
+                <td>4.1</td>
+                <td>개발</td>
+                <td>테스트 결과서</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>5.1.2</td>
+                <td class="task-indent">마스터 동기화 테스트</td>
+                <td>거래처/품목/사원/부서</td>
+                <td>4.2</td>
+                <td>개발</td>
+                <td>테스트 결과서</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>5.1.3</td>
+                <td class="task-indent">트랜잭션 동기화 테스트</td>
+                <td>수주/출하/매출</td>
+                <td>4.3</td>
+                <td>개발</td>
+                <td>테스트 결과서</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>5.1.4</td>
+                <td class="task-indent">ERP 쓰기 테스트</td>
+                <td>INSERT/UPDATE 검증</td>
+                <td>4.4</td>
+                <td>개발</td>
+                <td>테스트 결과서</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr class="phase-header">
+                <td>5.2</td>
+                <td colspan="6">&nbsp;&nbsp;통합 테스트</td>
+            </tr>
+            <tr>
+                <td>5.2.1</td>
+                <td class="task-indent">전체 동기화 시나리오 테스트</td>
+                <td>End-to-End 흐름 검증</td>
+                <td>5.1</td>
+                <td>개발</td>
+                <td>테스트 결과서</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>5.2.2</td>
+                <td class="task-indent">에러/재시도 시나리오 테스트</td>
+                <td>장애 상황 검증</td>
+                <td>5.2.1</td>
+                <td>개발</td>
+                <td>테스트 결과서</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr class="phase-header">
+                <td>5.3</td>
+                <td colspan="6">&nbsp;&nbsp;UAT</td>
+            </tr>
+            <tr>
+                <td>5.3.1</td>
+                <td class="task-indent">UAT 시나리오 작성</td>
+                <td>사용자 관점 테스트케이스</td>
+                <td>5.2</td>
+                <td>기획/고객</td>
+                <td>UAT 시나리오</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>5.3.2</td>
+                <td class="task-indent">UAT 수행</td>
+                <td>실제 업무 시나리오 검증</td>
+                <td>5.3.1</td>
+                <td>고객</td>
+                <td>UAT 결과서</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>5.3.3</td>
+                <td class="task-indent">결함 수정</td>
+                <td>UAT 발견 이슈 수정</td>
+                <td>5.3.2</td>
+                <td>개발</td>
+                <td>소스코드</td>
+                <td class="pending">미착수</td>
+            </tr>
+
+            <!-- Phase 6: 이행/배포 -->
+            <tr class="phase-header">
+                <td>6</td>
+                <td colspan="6">이행/배포</td>
+            </tr>
+            <tr class="phase-header">
+                <td>6.1</td>
+                <td colspan="6">&nbsp;&nbsp;운영환경 준비</td>
+            </tr>
+            <tr>
+                <td>6.1.1</td>
+                <td class="task-indent">EC2 → Oracle 방화벽 개방</td>
+                <td>EC2 IP 3.35.116.156 허용</td>
+                <td>-</td>
+                <td>네트워크</td>
+                <td>방화벽 설정</td>
+                <td class="blocked">차단됨</td>
+            </tr>
+            <tr>
+                <td>6.1.2</td>
+                <td class="task-indent">Oracle COMET 계정 권한 확인</td>
+                <td>INSERT/UPDATE 권한</td>
+                <td>-</td>
+                <td>DBA</td>
+                <td>권한 설정</td>
+                <td class="blocked">미확인</td>
+            </tr>
+            <tr>
+                <td>6.1.3</td>
+                <td class="task-indent">운영 서버 설정</td>
+                <td>application-prod.yml 반영</td>
+                <td>6.1.1+6.1.2</td>
+                <td>개발</td>
+                <td>설정파일</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr class="phase-header">
+                <td>6.2</td>
+                <td colspan="6">&nbsp;&nbsp;데이터 이행</td>
+            </tr>
+            <tr>
+                <td>6.2.1</td>
+                <td class="task-indent">초기 마스터 데이터 동기화</td>
+                <td>거래처/품목/사원 최초 적재</td>
+                <td>6.1.3</td>
+                <td>개발</td>
+                <td>이행 결과</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>6.2.2</td>
+                <td class="task-indent">기존 매핑 데이터 정비</td>
+                <td>douzone_code ↔ PARTNER_CD</td>
+                <td>6.2.1</td>
+                <td>기획/개발</td>
+                <td>매핑 데이터</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr class="phase-header">
+                <td>6.3</td>
+                <td colspan="6">&nbsp;&nbsp;배포/안정화</td>
+            </tr>
+            <tr>
+                <td>6.3.1</td>
+                <td class="task-indent">운영 배포</td>
+                <td>빌드/배포 수행</td>
+                <td>6.2</td>
+                <td>개발</td>
+                <td>배포 완료</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>6.3.2</td>
+                <td class="task-indent">안정화 모니터링</td>
+                <td>동기화 정상 동작 확인 (2주)</td>
+                <td>6.3.1</td>
+                <td>개발</td>
+                <td>모니터링 보고</td>
+                <td class="pending">미착수</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Section 4: 산출물 목록 -->
+    <h2>4. 산출물 목록</h2>
+    <p style="margin-bottom: 12px; font-size: 14px; color: #555;">프로젝트 수행 과정에서 생성되는 주요 산출물 현황입니다.</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 50px;">#</th>
+                <th>산출물</th>
+                <th style="width: 120px;">단계</th>
+                <th style="width: 100px;">상태</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>1</td>
+                <td>프로젝트 계획서 (WBS 포함)</td>
+                <td>1. 착수</td>
+                <td class="in-progress">작성중</td>
+            </tr>
+            <tr>
+                <td>2</td>
+                <td>현황분석서</td>
+                <td>2. 분석</td>
+                <td class="complete">완료</td>
+            </tr>
+            <tr>
+                <td>3</td>
+                <td>ERP DB 분석서</td>
+                <td>2. 분석</td>
+                <td class="complete">완료</td>
+            </tr>
+            <tr>
+                <td>4</td>
+                <td>요구사항 정의서</td>
+                <td>2. 분석</td>
+                <td class="in-progress">작성중</td>
+            </tr>
+            <tr>
+                <td>5</td>
+                <td>아키텍처 설계서</td>
+                <td>3. 설계</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>6</td>
+                <td>테이블 정의서</td>
+                <td>3. 설계</td>
+                <td class="in-progress">작성중</td>
+            </tr>
+            <tr>
+                <td>7</td>
+                <td>인터페이스 정의서</td>
+                <td>3. 설계</td>
+                <td class="in-progress">작성중</td>
+            </tr>
+            <tr>
+                <td>8</td>
+                <td>화면설계서</td>
+                <td>3. 설계</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>9</td>
+                <td>소스코드</td>
+                <td>4. 개발</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>10</td>
+                <td>테스트 결과서</td>
+                <td>5. 테스트</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>11</td>
+                <td>UAT 시나리오/결과서</td>
+                <td>5. 테스트</td>
+                <td class="pending">미착수</td>
+            </tr>
+            <tr>
+                <td>12</td>
+                <td>배포/이행 결과서</td>
+                <td>6. 이행</td>
+                <td class="pending">미착수</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Section 5: 선결과제 -->
+    <h2>5. 선결과제 (Critical)</h2>
+    <p style="margin-bottom: 12px; font-size: 14px; color: #555;">프로젝트 진행을 위해 반드시 사전 해결되어야 하는 핵심 과제입니다.</p>
+
+    <div class="critical">
+        <h4 style="color: #c62828; margin-top: 0;">프로젝트 선결과제 (Pre-requisites)</h4>
+        <ol style="margin: 12px 0 0 20px; line-height: 2.2;">
+            <li><strong>EC2 → Oracle 방화벽 개방</strong><br>
+                EC2 IP: <code style="background: #fff; padding: 2px 6px; border-radius: 3px;">3.35.116.156</code> → Oracle: <code style="background: #fff; padding: 2px 6px; border-radius: 3px;">39.125.168.136:15253</code><br>
+                운영 환경에서 Oracle ERP에 접속하기 위한 네트워크 방화벽 개방이 필요합니다.
+            </li>
+            <li><strong>Oracle COMET 계정 INSERT/UPDATE 권한 확인</strong><br>
+                현재 COMET 계정의 읽기 권한은 확인되었으나, SM Module에서 ERP로 데이터를 쓰기 위한 INSERT/UPDATE 권한 여부가 미확인 상태입니다.
+            </li>
+            <li><strong>SM Module 소스코드 Git 저장소 구성</strong><br>
+                현재 빌드 결과물(JAR)만 존재하며, 소스코드 Git 저장소가 구성되어 있지 않습니다. 형상관리를 위한 Git 저장소 구성이 선행되어야 합니다.
+            </li>
+            <li><strong>ERP 거래처코드(PARTNER_CD) ↔ SM 사업자번호 매핑 규칙 확정</strong><br>
+                ERP의 거래처 코드 체계와 SM Module의 사업자번호 간 매핑 규칙이 확정되어야 거래처 동기화 개발이 가능합니다.
+            </li>
+            <li><strong>iCUBE 주문 생성 시 필수 필드/비즈니스 로직 확인</strong><br>
+                SM Module에서 ERP(iCUBE)로 주문을 생성할 때 필수 입력 필드와 비즈니스 로직(채번 규칙, 상태 코드 등)에 대한 확인이 필요합니다.
+            </li>
+        </ol>
+    </div>
+
+    <div class="note">
+        <strong>참고:</strong> 위 선결과제들은 프로젝트 일정에 직접적인 영향을 미치는 항목으로, 설계 단계 진입 전까지 해결이 완료되어야 합니다.
+        특히 1번(방화벽)과 2번(계정 권한)은 외부 의존성이 있으므로 조기 요청이 필요합니다.
+    </div>
+
+</div>
+
+<!-- Footer -->
+<div class="footer">
+    &copy; 2026 HM소프트 &nbsp;|&nbsp; SM Module - Oracle ERP 연동 프로젝트 &nbsp;|&nbsp; 문서번호: SM-ERP-WBS-001
+</div>
+
+</body>
+</html>

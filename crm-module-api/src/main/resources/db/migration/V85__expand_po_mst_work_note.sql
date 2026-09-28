@@ -1,0 +1,2 @@
+ALTER TABLE po_mst
+    MODIFY COLUMN work_note VARCHAR(2000) NULL COMMENT '작업주의사항';

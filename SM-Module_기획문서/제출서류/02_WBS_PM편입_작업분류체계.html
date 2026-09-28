@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WBS (작업분류체계) - PM 사업본부 GROW 편입</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; background: #fff; color: #333; line-height: 1.7; }
+        .header { background: #1a237e; color: #fff; padding: 40px; text-align: center; }
+        .header h1 { font-size: 28px; margin-bottom: 8px; }
+        .header p { font-size: 14px; opacity: 0.8; }
+        .container { max-width: 1260px; margin: 0 auto; padding: 40px 30px; }
+        h2 { font-size: 22px; color: #1a237e; border-bottom: 3px solid #1a237e; padding-bottom: 8px; margin: 40px 0 20px; }
+        table { width: 100%; border-collapse: collapse; margin: 16px 0 24px; font-size: 13px; }
+        th { background: #e8eaf6; color: #1a237e; padding: 10px 12px; text-align: left; border: 1px solid #c5cae9; font-weight: 600; }
+        td { padding: 8px 12px; border: 1px solid #e0e0e0; vertical-align: top; }
+        tr:nth-child(even) { background: #fafafa; }
+        tr:hover { background: #f0f0ff; }
+        .phase-header td { background: #e8eaf6; font-weight: 700; color: #1a237e; }
+        .group-header td { background: #f3f4fb; font-weight: 600; color: #283593; }
+        .complete { color: #2e7d32; font-weight: 600; }
+        .in-progress { color: #ef6c00; font-weight: 600; }
+        .ongoing { color: #1565c0; font-weight: 600; }
+        .pending { color: #757575; }
+        .blocked { color: #c62828; font-weight: 600; }
+        .note { background: #fff8e1; border-left: 4px solid #ffc107; padding: 12px 16px; margin: 16px 0; font-size: 13px; border-radius: 0 4px 4px 0; }
+        .critical { background: #ffebee; border-left: 4px solid #e53935; padding: 12px 16px; margin: 16px 0; font-size: 13px; border-radius: 0 4px 4px 0; }
+        .wbs-tree { margin: 20px 0; }
+        .wbs-l1 { padding: 12px 16px; background: #1a237e; color: #fff; font-weight: 700; font-size: 15px; border-radius: 6px; margin: 8px 0; display: flex; justify-content: space-between; }
+        .wbs-l1 small { font-weight: 400; opacity: .85; }
+        .wbs-l2 { padding: 10px 16px; background: #e8eaf6; color: #1a237e; font-weight: 600; font-size: 14px; border-radius: 4px; margin: 4px 0 4px 30px; border-left: 4px solid #3949ab; display: flex; justify-content: space-between; gap: 12px; }
+        .wbs-l2 small { font-weight: 500; font-size: 12px; }
+        .wbs-l3 { padding: 6px 16px; background: #f5f5f5; color: #333; font-size: 13px; margin: 2px 0 2px 60px; border-left: 3px solid #9fa8da; border-radius: 2px; display: flex; justify-content: space-between; gap: 12px; }
+        .wbs-l3 span:last-child { white-space: nowrap; font-size: 12px; }
+        .overview-box { background: #f5f7ff; border: 1px solid #c5cae9; border-radius: 6px; padding: 20px; margin: 16px 0; font-size: 14px; }
+        .ms { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 12px 0 8px; }
+        .ms div { border: 1px solid #c5cae9; border-radius: 6px; padding: 12px 14px; background: #fff; font-size: 13px; }
+        .ms b { display: block; color: #1a237e; font-size: 14px; margin-bottom: 4px; }
+        .ms .key { border-color: #e53935; background: #fff5f5; }
+        .ms .key b { color: #c62828; }
+        .gantt-wrap { overflow-x: auto; }
+        .gantt { border-collapse: collapse; font-size: 12px; min-width: 1040px; }
+        .gantt th, .gantt td { border: 1px solid #d5d8e8; padding: 4px 6px; text-align: center; }
+        .gantt th.m { background: #1a237e; color: #fff; }
+        .gantt th.w { background: #e8eaf6; color: #1a237e; font-weight: 600; min-width: 42px; }
+        .gantt td.lbl { text-align: left; white-space: nowrap; background: #fafafa; font-weight: 600; color: #283593; min-width: 200px; }
+        .gantt td.lbl.p { background: #e8eaf6; color: #1a237e; font-weight: 700; }
+        .gantt td.on { background: #5c6bc0; }
+        .gantt td.ms2 { box-shadow: inset 0 0 0 3px #e53935; }
+        .legend { font-size: 12px; color: #555; margin: 6px 0 16px; display: flex; gap: 18px; flex-wrap: wrap; }
+        .legend i { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; margin-right: 5px; border: 1px solid #ccc; }
+        @media print { .header { background: #1a237e !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } body { font-size: 11px; } .gantt td.on, .gantt th.m { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>WBS (작업분류체계)</h1>
+    <p>PM 사업본부 GROW 편입 프로젝트 &nbsp;|&nbsp; 문서번호: SM-PM-WBS-001</p>
+</div>
+
+<div class="container">
+
+    <h2>1. WBS 개요</h2>
+    <div class="overview-box">
+        <p>본 문서는 <strong>PM 사업본부 GROW 편입 프로젝트</strong>(PM 자체사이트 폐쇄 → GROW 통합, PLANT_CD 3000)의 작업분류체계를 정의합니다.
+        <strong>6개 단계</strong>(프로젝트 관리 / 분석 / 설계 / 개발 / 테스트 / 이행·배포)로 구성되며, 기획·설계 단계는 3레벨까지 상세화하고 개발 단계는 대분류로만 정의합니다.
+        일정은 <strong>주차 단위</strong>(9월은 5주차까지, 이후 매월 1~4주차)로 관리하며, 공수(M/D)는 추정치로 진행 회의에서 조정합니다.</p>
+        <div class="ms">
+            <div class="key"><b>9월 4주</b>목업 확정 · DB 설계 · 인터페이스 연동 설계</div>
+            <div><b>9월 5주</b>GROW 편입 영향 분석 완료</div>
+            <div><b>10월 1주</b>개발 착수</div>
+            <div><b>11월 4주</b>개발 완료 (권한 설계 11월 3~4주)</div>
+            <div><b>12월</b>통합테스트 · 결함수정 · 추가메뉴 개발 (3~4주 데이터 이행 병행)</div>
+            <div class="key"><b>2027-01-01 오픈</b>12월 4주 배포 · 1월 1주~ 안정화·추가개발 요청 진행</div>
+        </div>
+    </div>
+
+    <h2>2. WBS 트리 구조</h2>
+    <div class="wbs-tree" id="tree"></div>
+
+    <h2>3. WBS 상세</h2>
+    <p style="font-size:13px;color:#555;margin-bottom:6px;">담당: 기획 / 개발 / PM본부 / 더존 / 회계 &nbsp;·&nbsp; 상태: <span class="complete">완료</span> / <span class="in-progress">진행중</span> / <span class="ongoing">상시진행</span> / <span class="pending">미착수</span> / <span class="blocked">미결정</span> &nbsp;·&nbsp; 공수는 추정치</p>
+    <table id="detail">
+        <thead><tr><th>WBS ID</th><th>작업명</th><th>상세 내용</th><th>선행작업</th><th>담당</th><th>일정(주차)</th><th>공수(M/D)</th><th>산출물</th><th>상태</th></tr></thead>
+        <tbody></tbody>
+    </table>
+
+    <h2>4. 월별 주차 일정표</h2>
+    <div class="legend"><span><i style="background:#5c6bc0"></i>계획 기간</span><span><i style="box-shadow:inset 0 0 0 3px #e53935"></i>2027-01-01 오픈(12월 4주 배포)</span></div>
+    <div class="gantt-wrap"><table class="gantt" id="gantt"></table></div>
+
+    <h2>5. 미결정 사항 · 리스크</h2>
+    <div class="critical"><strong>미결정 7건 (2.3.2)</strong> — 별도 확정 회의 없이 화면·DB 구성 중 결정하고 1.2.1 회의에서 확인한다. 3.4.3·3.4.5·4.2·4.5에 영향.</div>
+    <table>
+        <thead><tr><th>#</th><th>항목</th><th>내용</th><th>영향 WBS</th></tr></thead>
+        <tbody>
+            <tr><td>1</td><td>M→1→N 금액 배부</td><td>작업처 GRP 견적항목 M건 → ERP 1건 → GROW N건에서 견적매입가 배부 기준·귀속 (균등/수동은 임시 옵션)</td><td>3.4.3, 4.2</td></tr>
+            <tr><td>2</td><td>PM 직접(구매·외주) 후속흐름</td><td>구매발주·외주발주 기존 메뉴 연결 방식</td><td>4.2, 4.5</td></tr>
+            <tr><td>3</td><td>견적 금액출처 표기</td><td>타라그래픽스 = 주문매핑 vs 견적 직접확정입력</td><td>3.1.8</td></tr>
+            <tr><td>4</td><td>표준 수수료율 사이트별 값</td><td>실제 기본값 세팅</td><td>3.4.1, 4.2</td></tr>
+            <tr><td>5</td><td>비교견적 화면 분리</td><td>견적정보 탭 내 vs 별도 페이지</td><td>3.1.7</td></tr>
+            <tr><td>6</td><td>고객사(담당자)관리 구성</td><td>사업자관리·고객관리에 컬럼 추가 vs GRP/PM 별도 동일메뉴</td><td>3.1.7, 4.3</td></tr>
+            <tr><td>7</td><td>GRP 매출확정 시점</td><td>발송완료 후에만 vs 주문확정 시 즉시 매출등록</td><td>3.4.5, 4.5</td></tr>
+        </tbody>
+    </table>
+    <table>
+        <thead><tr><th>#</th><th>리스크</th><th>대응</th></tr></thead>
+        <tbody>
+            <tr><td>R1</td><td>위임 INSERT 채움값 불일치 (WRK_FG 202면 GROW 0원, 부속테이블 누락 시 생산 흐름 단절)</td><td>3.3.3 더존 실물 주문 대조, erpdev 검증(5.1) 선행</td></tr>
+            <tr><td>R2</td><td>QODOC_NO 컬럼이 더존 견적서 기능에 쓰이면 충돌</td><td>3.3.2 실측·더존 확인, 대안 컬럼 예비</td></tr>
+            <tr><td>R3</td><td>plantCd=2000 하드코딩 누락 → PM 데이터 미조회</td><td>2.2.1 목록화 후 4.1에서 일괄 동적화</td></tr>
+            <tr><td>R4</td><td>매출 이원화 이중집계</td><td>2.2.2, PLANT 분리 집계 테스트(5.1)</td></tr>
+            <tr><td>R5</td><td>9월 4주에 목업 확정·DB 설계·인터페이스 설계가 몰림</td><td>목업 리뷰 병행, 미결정은 구성 중 확정으로 병목 제거</td></tr>
+            <tr><td>R6</td><td>12월 통합테스트·추가개발·이행 병행 일정 압박</td><td>통합테스트 12월 1주 즉시 착수, 데이터 이행 리허설 12월 3주</td></tr>
+            <tr><td>R7</td><td>전표 귀속사업장 9000(그래픽스사업부문)·회계단위 9000·JWT plantCd 2000 고정 → PM 매출/매입 전표가 GRP 사업장으로 잡힘</td><td>PM 귀속사업장 8000 확정(회계운영팀 확인 완료, 3.4.6), 4.5에서 사업장(PM 8000/GRP 9000) 분기, erpdev 전표 검증(5.1)</td></tr>
+        </tbody>
+    </table>
+    <div class="note"><strong>확정된 설계(참고)</strong> — 매핑 M:1:N(작업이력 1 : GRP 견적항목 M : ERP 1 : GROW N, erp_order_no) · PM↔ERP 양방향 키 = SD_ORDER_MST.QODOC_NO(위임 INSERT 기록 / 역방향 UPDATE IS NULL / 삭제 NULL) · 판매가 산정·절사 규칙 · 진행상태 자동 전이 · 마진 이중관점(견적 vs 실제) · 작업처는 견적항목 단위.</div>
+
+    <h2>6. 산출물 목록</h2>
+    <table>
+        <thead><tr><th>#</th><th>산출물</th><th>단계</th><th>상태</th></tr></thead>
+        <tbody>
+            <tr><td>1</td><td>WBS (이 문서 · PM WBS 프로토 페이지)</td><td>1.착수</td><td class="in-progress">작성중</td></tr>
+            <tr><td>2</td><td>미결정 관리대장</td><td>1.착수</td><td class="pending">미착수</td></tr>
+            <tr><td>3</td><td>프로세스 흐름도(프로토)</td><td>2.분석</td><td class="in-progress">진행중</td></tr>
+            <tr><td>4</td><td>영향분석서(PLANT·매출이원화·ERP)</td><td>2.분석</td><td class="in-progress">진행중</td></tr>
+            <tr><td>5</td><td>요구사항 정의서</td><td>2.분석</td><td class="in-progress">진행중</td></tr>
+            <tr><td>6</td><td>화면설계서(목업 6종 + 후순위 화면 목록)</td><td>3.설계</td><td class="in-progress">진행중</td></tr>
+            <tr><td>7</td><td>테이블 정의서 / Flyway</td><td>3.설계</td><td class="pending">미착수</td></tr>
+            <tr><td>8</td><td>인터페이스 정의서(QODOC_NO·위임 INSERT·sync·TCPS 수신)</td><td>3.설계</td><td class="in-progress">진행중</td></tr>
+            <tr><td>9</td><td>전체 프로세스 설계서(판매가·상태·배부·마진)</td><td>3.설계</td><td class="in-progress">진행중</td></tr>
+            <tr><td>10</td><td>권한 설계서</td><td>3.설계</td><td class="pending">미착수</td></tr>
+            <tr><td>11</td><td>소스코드</td><td>4.개발</td><td class="pending">미착수</td></tr>
+            <tr><td>12</td><td>통합테스트 결과서</td><td>5.테스트</td><td class="pending">미착수</td></tr>
+            <tr><td>13</td><td>이행·배포 결과서</td><td>6.이행</td><td class="pending">미착수</td></tr>
+        </tbody>
+    </table>
+
+</div>
+
+<script>
+// lv: 1=단계, 2=중분류, 3=작업. w: 주차 열 인덱스 범위 (0=9월3주 … 16=1월2주).
+const ROWS = [
+ {id:'1',lv:1,name:'프로젝트 관리',when:'9월3주~ (일정 전체, 오픈 후 안정화까지)',w:[0,16]},
+ {id:'1.1',lv:2,name:'착수'},
+ {id:'1.1.1',lv:3,name:'킥오프·범위/R&R 확정',desc:'편입 범위, 기획/개발/PM본부/더존/회계 역할',pre:'-',own:'기획/PM본부',when:'9월3주',md:'0.5',out:'회의록',st:'진행중'},
+ {id:'1.1.2',lv:3,name:'WBS·일정 확정',desc:'이 문서, 주차 일정·마일스톤',pre:'1.1.1',own:'기획',when:'9월3주',md:'1',out:'WBS',st:'진행중'},
+ {id:'1.1.3',lv:3,name:'미결정 관리대장 개설',desc:'미결정 7건 등록·담당·기한',pre:'1.1.2',own:'기획',when:'9월3주',md:'0.5',out:'미결정 관리대장',st:'미착수'},
+ {id:'1.2',lv:2,name:'진행관리'},
+ {id:'1.2.1',lv:3,name:'이슈·미결정 확정 회의',desc:'격주 상시 진행(개발·테스트·안정화 기간 이슈 포함), 미결정 사항은 구성하면서 확정(2.3.2)',pre:'1.1.3',own:'기획/PM본부',when:'9월4주~ (일정 전체)',md:'0.5/회',out:'회의록',st:'상시진행'},
+ {id:'1.2.2',lv:3,name:'목업 리뷰',desc:'프로토 페이지·말풍선 리뷰 → 목업 반영',pre:'3.1',own:'기획/PM본부',when:'9월3주~9월4주',md:'1',out:'리뷰 이력',st:'진행중'},
+
+ {id:'2',lv:1,name:'분석',when:'9월3주~9월5주 · 미결정 정리는 11월4주까지 상시'},
+ {id:'2.1',lv:2,name:'PM 현행 업무 분석',when:'9월3주~9월4주',w:[0,1]},
+ {id:'2.1.1',lv:3,name:'PM 자체사이트 화면/기능 분석',desc:'작업이력·견적·비교견적·서플라이어·문의·월매출목표',pre:'-',own:'기획',when:'9월3주~9월4주',md:'2',out:'현황분석',st:'진행중'},
+ {id:'2.1.2',lv:3,name:'PM 프로세스 정의',desc:'작업이력등록→견적→저장→GROW주문생성→매핑→생산→매출등록→대사 8단계, 작업처별 3갈래(GRP/PM직접 구매/외주)',pre:'2.1.1',own:'기획/PM본부',when:'9월3주~9월4주',md:'2',out:'프로세스 흐름도(프로토)',st:'진행중'},
+ {id:'2.1.3',lv:3,name:'PM 메뉴 구성 확정',desc:'작업 / 정보관리 / 통계관리 + 기존 메뉴 대체안(고객사=사업자관리, 담당자=고객관리)',pre:'2.1.1',own:'PM본부/기획',when:'9월3주~9월4주',md:'0.5',out:'메뉴 맵',st:'진행중'},
+ {id:'2.2',lv:2,name:'GROW 편입 영향 분석',when:'9월4주~9월5주',w:[1,2]},
+ {id:'2.2.1',lv:3,name:'PLANT_CD 분리 영향',desc:'plantCd=2000 하드코딩(PoController·Oracle repo 등) 동적화 대상 목록',pre:'2.1.2',own:'개발',when:'9월4주~9월5주',md:'2',out:'영향분석서',st:'미착수'},
+ {id:'2.2.2',lv:3,name:'매출 이원화 영향',desc:'PM 대고객(3000) vs GRP 사내실적(2000) 통합실적 이중집계 방지',pre:'2.1.2',own:'기획/개발',when:'9월4주',md:'1',out:'영향분석서',st:'진행중'},
+ {id:'2.2.3',lv:3,name:'ERP 연동 영향',desc:'QODOC_NO 매핑, 위임 INSERT 채움값(WRK_FG·ORDDOC_ST·PLANT·부속테이블)',pre:'2.1.2',own:'개발/더존',when:'9월4주~9월5주',md:'2',out:'영향분석서',st:'진행중'},
+ {id:'2.2.4',lv:3,name:'TCPS(비즈렉트)→PM 작업이력 연동 영향',desc:'현행 TCPS→PM 자체사이트 작업이력 연동 방식(API/스케줄/수동)·전달 항목·인증 확인, TCPS→ERP 주문(insert_id tcps_api, WRK_FG 201, 교안/R7 0원)과의 관계(같은 건 이중 생성 여부·연결키), 편입 후 수신 대상 = GROW PM 작업이력',pre:'2.1.2',own:'기획/개발/PM본부',when:'9월4주~9월5주',md:'1.5',out:'영향분석서',st:'미착수'},
+ {id:'2.3',lv:2,name:'요구사항 정의',when:'9월3주~11월4주(2.3.2 상시)',w:[0,10]},
+ {id:'2.3.1',lv:3,name:'화면별 기능 요구사항',desc:'목업 기준 화면별 기능·규칙',pre:'2.1.3, 3.1',own:'기획',when:'9월3주~9월4주',md:'2',out:'요구사항 정의서',st:'진행중'},
+ {id:'2.3.2',lv:3,name:'미결정 사항 정리(구성하면서 확정)',desc:'①M→1→N 금액 배부 ②PM직접(구매·외주) 후속흐름 ③견적 금액출처 표기 ④표준 수수료율 사이트별 값 ⑤비교견적 화면 분리 ⑥고객사(담당자)관리 구성 ⑦GRP 매출확정 시점 — 별도 확정 회의 없이 화면·DB 구성 중 결정, 1.2.1 회의에서 확인',pre:'1.1.3, 2.2',own:'PM본부/기획',when:'9월4주~11월4주',md:'1',out:'결정 이력',st:'상시진행'},
+
+ {id:'3',lv:1,name:'설계',when:'9월3주~9월4주 ★목업·DB 설계·인터페이스 설계 9월4주 완료 · 권한 설계 11월3~4주'},
+ {id:'3.1',lv:2,name:'화면 설계(목업)',when:'9월3주~9월4주',w:[0,1]},
+ {id:'3.1.1',lv:3,name:'PM 작업이력',desc:'작업정보·견적정보(견적항목별 작업처·판매가 산정·합산)·주문매핑(M:1:N·배부) 탭, 매출등록 팝업, 주문 불러와 매핑(N→1)',pre:'2.1.2',own:'기획',when:'9월1주~9월3주',md:'5',out:'프로토 페이지',st:'완료(목업)'},
+ {id:'3.1.2',lv:3,name:'PM 프로세스 흐름도',desc:'메뉴맵·8단계·3갈래·결정대기 카드',pre:'2.1.2',own:'기획',when:'9월2주~9월3주',md:'2',out:'프로토 페이지',st:'완료(목업)'},
+ {id:'3.1.3',lv:3,name:'사이트관리',desc:'사이트 기준정보 + 거래처→사이트 지정',pre:'2.1.3',own:'기획',when:'9월2주',md:'1',out:'프로토 페이지',st:'완료(목업)'},
+ {id:'3.1.4',lv:3,name:'서플라이어관리',desc:'구매거래처별 거래총액 + 추가정보(정산분류·주기 등) + 최근 거래내역, 기본정보는 거래처 마스터 연동',pre:'2.1.3',own:'기획',when:'9월3주',md:'1',out:'프로토 페이지',st:'완료(목업)'},
+ {id:'3.1.5',lv:3,name:'싹해도 문의',desc:'독립 관리 게시판',pre:'2.1.3',own:'기획',when:'9월2주',md:'1',out:'프로토 페이지',st:'완료(목업)'},
+ {id:'3.1.6',lv:3,name:'PM 월매출목표 통계',desc:'사이트별 목표·실적·PM수수료율',pre:'2.1.1',own:'기획',when:'9월1주',md:'1',out:'프로토 페이지',st:'완료(목업)'},
+ {id:'3.1.7',lv:3,name:'후순위 화면 리스트 수준 정의',desc:'작업관련파일·전체작업이력검색·PE관리·사이트별 매출총액·고객사(담당자)관리 대체안 — 컬럼/조건만',pre:'2.1.3',own:'기획',when:'9월4주',md:'1',out:'화면 목록',st:'미착수'},
+ {id:'3.1.8',lv:3,name:'목업 확정 리뷰 → 화면설계서',desc:'리뷰·미결정 반영, 최종 화면설계서',pre:'2.3.2, 1.2.2',own:'기획/PM본부',when:'9월4주',md:'2',out:'화면설계서',st:'진행중'},
+ {id:'3.2',lv:2,name:'DB 설계 ★9월4주 완료',when:'9월4주',w:[1,1]},
+ {id:'3.2.1',lv:3,name:'작업이력 테이블군',desc:'작업이력 mst / 견적항목 dtl(작업처·매입가·수수료율·절사) / 비교견적 / 배부',pre:'3.1.7, 2.3.2',own:'개발',when:'9월4주',md:'2',out:'테이블 정의서',st:'미착수'},
+ {id:'3.2.2',lv:3,name:'사이트·서플라이어·PE 테이블',desc:'사이트 코드(common_code), 서플라이어 추가정보(partner_cd별), PE 권한',pre:'3.1.7',own:'개발',when:'9월4주',md:'1',out:'테이블 정의서',st:'미착수'},
+ {id:'3.2.3',lv:3,name:'기존 테이블 확장',desc:'order_mst.pm_worklog_no / po_mst 작업이력 참조 / sales_mst 작업이력번호 / business_owners 최근매출일',pre:'3.3.1, 3.4.4',own:'개발',when:'9월4주',md:'1',out:'테이블 정의서',st:'미착수'},
+ {id:'3.2.4',lv:3,name:'Flyway 마이그레이션 작성',desc:'MySQL, 버전=숫자 max+1, 다중 ADD COLUMN 분리 (적용은 4.1)',pre:'3.2.1~3.2.3',own:'개발',when:'9월4주',md:'1',out:'마이그레이션',st:'미착수'},
+ {id:'3.2.5',lv:3,name:'테이블 정의서',desc:'신규·확장 테이블 정의',pre:'3.2.4',own:'개발',when:'9월4주',md:'1',out:'테이블 정의서',st:'미착수'},
+ {id:'3.3',lv:2,name:'인터페이스(ERP) 연동 설계 ★9월4주 완료',when:'9월3주~9월4주',w:[0,1]},
+ {id:'3.3.1',lv:3,name:'QODOC_NO 양방향 매핑 설계',desc:'SD_ORDER_MST.QODOC_NO=작업이력번호. 위임 INSERT 기록 / 역방향 UPDATE(IS NULL 조건+UPDATE_DTS) / 삭제·해제 NULL. 안전장치 4',pre:'2.2.3',own:'개발',when:'9월3주',md:'1',out:'인터페이스 정의서',st:'완료'},
+ {id:'3.3.2',lv:3,name:'QODOC_NO 실측',desc:'컬럼 타입·길이(작업일련번호 수용), 더존 「견적서→주문 전환」 사용 여부 — EC2/SSM',pre:'3.3.1',own:'개발/더존',when:'9월4주',md:'0.5',out:'실측 결과',st:'미착수'},
+ {id:'3.3.3',lv:3,name:'위임 INSERT 채움값 확정',desc:'WRK_FG(PM 코드, 201만 금액 반영)·ORDDOC_ST=1·PLANT_CD 2000·SD_ORDDIG_INFO/PP_ORDPOD 범위 — 더존 실물 주문 대조',pre:'3.3.2',own:'개발/더존',when:'9월4주',md:'2',out:'인터페이스 정의서',st:'미착수'},
+ {id:'3.3.4',lv:3,name:'sync 확장 설계',desc:'QODOC_NO 읽기 → order_mst.pm_worklog_no, copy N건 전파',pre:'3.3.2',own:'개발',when:'9월4주',md:'1',out:'인터페이스 정의서',st:'미착수'},
+ {id:'3.3.5',lv:3,name:'write 게이트 예외 명문화',desc:'대전제 "SD_ORDER write 금지" 예외 = 위임 INSERT + QODOC_NO 단일컬럼 UPDATE (CLAUDE.md 개정)',pre:'3.3.1',own:'기획/개발',when:'9월4주',md:'0.5',out:'설계 노트',st:'미착수'},
+ {id:'3.3.6',lv:3,name:'TCPS(비즈렉트)→PM 작업이력 수신 인터페이스 설계',desc:'GROW 수신 API(인증·엔드포인트), TCPS 주문→작업이력 헤더·견적항목·고객사 매핑, 중복 방지 키(TCPS 주문번호), TCPS→ERP 주문(tcps_api)과 QODOC_NO 매핑 연결 규칙, 실패 재처리',pre:'2.2.4, 3.3.1',own:'개발/PM본부',when:'9월4주',md:'1.5',out:'인터페이스 정의서',st:'미착수'},
+ {id:'3.4',lv:2,name:'전체 프로세스 설계',when:'9월3주~9월4주',w:[0,1]},
+ {id:'3.4.1',lv:3,name:'판매가 산정 규칙',desc:'매입가→PM서비스 수수료(사이트별 표준수수료율)→판매가, 공급가절사 항목별·총액절사 원단위, 매입가 절사 없음',pre:'2.1.2',own:'기획/PM본부',when:'9월3주',md:'1',out:'프로세스 설계서',st:'완료'},
+ {id:'3.4.2',lv:3,name:'진행상태 자동 전이',desc:'준비→주문확정→작업완료→매출확정(+취소/반품), 리스트 수동편집 없음',pre:'2.1.2',own:'기획/PM본부',when:'9월3주',md:'0.5',out:'프로세스 설계서',st:'완료'},
+ {id:'3.4.3',lv:3,name:'M→1→N 금액 배부 규칙',desc:'견적항목=ERP순번 1:1 + 순번 링크 귀속, 사양 분리 순번만 규칙(비율/원본귀속)',pre:'2.3.2',own:'기획/PM본부',when:'9월4주',md:'1',out:'프로세스 설계서',st:'미결정'},
+ {id:'3.4.4',lv:3,name:'마진 이중관점·연결키',desc:'견적 기준(작업이력 매입가 고정) vs 실제(깃고 승인 매입) 통계 정의, 연결키 3개(작업이력.erp_order_no / po_mst / sales_mst)',pre:'2.1.2',own:'기획/개발',when:'9월3주',md:'1',out:'프로세스 설계서',st:'완료'},
+ {id:'3.4.5',lv:3,name:'결제방식·매출확정 시점',desc:'매출등록 결제방식=계산서/카드/이체(확정) · GRP 매출확정 시점=발송완료 후 vs 주문확정 즉시(미결정)',pre:'2.3.2',own:'기획/PM본부',when:'9월4주',md:'0.5',out:'프로세스 설계서',st:'일부 미결정'},
+ {id:'3.4.6',lv:3,name:'매출·매입 기존 로직 재사용 검토',desc:'코드 확인 결과(2026-09-16): ①로그인 JWT plantCd=2000 고정(AuthService) → 매출·전표·비대면·월마감 테이블이 plantCd 기준이라 PM 데이터를 사업장(PM/GRP)으로 어떻게 나눌지(plantCd 3000 분리 vs 2000+사이트구분) 먼저 결정 ②ERP 전표 귀속사업장 A01/BIZAREA_CD=9000 "그래픽스사업부문"·회계단위 PC_CD 9000 고정(ErpFiProperties) → PM 귀속사업장 8000 확정(회계운영팀 확인 완료), 회계단위는 같이 확인 → 사업장(PM 8000/GRP 9000) 분기 ③매출등록 결제방식 division=GRP만 계산서/카드/이체, 그 외 사내실적 고정(OrderListPage) → PM 작업이력 매출등록 팝업은 자체 규칙, GROW 위임 N건은 사내실적 유지 ④비대면결제(토스 05378·12002)·선매출차감·위하고 발행·카드/계좌이체 전표는 회사 단위 상수라 로직 재사용 가능 ⑤매입: 깃고 상신 costCenterCd=상신자 ccCd·writerDeptName=상신자 부서, 매입전표 CC=발주부서(PoMst.deptCd→Department.ccCd) → PM 부서·PE 사용자 ccCd 마스터 등록 필수, 깃고 전송 규칙 동일 적용 ⑥매출목록·카드/이체·선매출·정산·전표 메뉴는 화면 그대로 쓰고 사업장(PM/GRP) 분기만 추가',pre:'2.2.1, 3.4.4',own:'기획/개발/회계',when:'9월4주',md:'1',out:'프로세스 설계서',st:'진행중'},
+ {id:'3.5',lv:2,name:'권한 설계',when:'11월3주~11월4주',w:[9,10]},
+ {id:'3.5.1',lv:3,name:'PE관리 권한 및 PM 메뉴별 권한 셋팅',desc:'PE관리 계정별·부서(사이트)별 권한 + PM 메뉴별 권한(PLANT 3000/2000 메뉴·데이터 게이팅, 전체작업이력검색은 무권한)',pre:'2.2.1, 3.1.7',own:'기획/개발',when:'11월3주~11월4주',md:'2',out:'권한 설계서',st:'미착수'},
+
+ {id:'4',lv:1,name:'개발 (대분류)',when:'10월1주~11월4주',w:[3,10]},
+ {id:'4.1',lv:2,name:'DB 구성·기초 API',desc:'Flyway 적용(DB 구성), 작업이력 CRUD, 사이트/서플라이어 마스터 API',pre:'3.2.4',own:'개발',when:'10월1주~10월2주',md:'8',out:'소스코드',st:'미착수',w:[3,4]},
+ {id:'4.2',lv:2,name:'작업이력·견적·주문매핑',desc:'화면/백엔드(판매가 산정·배부·매출등록·N→1 매핑)',pre:'3.4, 4.1(병행)',own:'개발',when:'10월1주~10월4주',md:'15',out:'소스코드',st:'미착수',w:[3,6]},
+ {id:'4.3',lv:2,name:'정보관리',desc:'사이트·서플라이어·PE권한·싹해도문의 + 사업자/고객관리 확장(최근매출일 등)',pre:'4.1',own:'개발',when:'10월1주~10월2주',md:'8',out:'소스코드',st:'미착수',w:[3,4]},
+ {id:'4.4',lv:2,name:'ERP 연동',desc:'QODOC_NO 매핑 왕복, 위임 INSERT, sync 확장 + TCPS(비즈렉트)→PM 작업이력 수신 연동(3.3.6)',pre:'3.3, 4.1',own:'개발/더존',when:'10월3주~10월4주',md:'12',out:'소스코드',st:'미착수',w:[5,6]},
+ {id:'4.5',lv:2,name:'매출·정산 연계',desc:'PM 매출등록→전표, 구매/외주정산 연결, 마진 통계. 3.4.6 반영: 전표 귀속사업장 사업장(PM 8000/GRP 9000) 분기·회계단위 확인, 결제방식 규칙 PM 확장, 깃고·매입전표 CC용 PM 부서 마스터, 기존 매출/정산/전표 메뉴 재사용(사업장(PM/GRP) 분기)',pre:'4.2, 4.4, 3.4.6',own:'개발/회계',when:'11월1주~11월2주',md:'10',out:'소스코드',st:'미착수',w:[7,8]},
+ {id:'4.6',lv:2,name:'통계 및 기타 메뉴',desc:'사이트별 매출총액, 월매출목표 + 기타 메뉴(후순위 화면 일부)',pre:'4.2',own:'개발',when:'11월3주~11월4주',md:'5',out:'소스코드',st:'미착수',w:[9,10]},
+
+ {id:'5',lv:1,name:'테스트',when:'12월1주~12월4주 · 통합테스트+결함수정+추가메뉴 개발 병행',w:[11,14]},
+ {id:'5.1',lv:2,name:'통합 테스트',desc:'12월1주 바로 착수. 화면·API·DB + ERP 연동(erpdev: 위임 INSERT→sync→N건, QODOC_NO 왕복, 전표) + TCPS(비즈렉트)→PM 작업이력 수신 + PM본부 실업무 시나리오',pre:'4',own:'개발/PM본부/더존',when:'12월1주~12월4주',md:'10',out:'테스트 결과서',st:'미착수',w:[11,14]},
+ {id:'5.2',lv:2,name:'결함 수정·재검증',desc:'통합테스트 결함 수정 → 재검증 반복',pre:'5.1',own:'개발',when:'12월1주~12월4주',md:'8',out:'소스코드',st:'미착수',w:[11,14]},
+ {id:'5.3',lv:2,name:'추가 메뉴 개발',desc:'후순위 화면(작업관련파일·전체작업이력검색·PE관리 등) 테스트와 병행 개발',pre:'4.6',own:'개발',when:'12월1주~12월4주',md:'6',out:'소스코드',st:'미착수',w:[11,14]},
+
+ {id:'6',lv:1,name:'이행/배포',when:'12월3주~ ★2027-01-01 오픈(이후 안정화·추가개발 계속)'},
+ {id:'6.1',lv:2,name:'데이터 이행',desc:'PM 자체사이트 작업이력·거래처·서플라이어 → GROW (통합테스트와 병행)',pre:'5.1',own:'개발/PM본부',when:'12월3주~12월4주',md:'4',out:'이행 결과',st:'미착수',w:[13,14]},
+ {id:'6.2',lv:2,name:'운영 배포·자체사이트 폐쇄·오픈',desc:'api/web 배포, 자체사이트 폐쇄, 1/1 오픈',pre:'5.2, 6.1',own:'개발',when:'12월4주(12/28~12/31)',md:'2',out:'배포 완료',st:'미착수',w:[14,14]},
+ {id:'6.3',lv:2,name:'안정화 및 추가개발 요청사항 진행',desc:'오픈 후 모니터링·결함 대응 + PM본부 추가개발 요청 접수·진행(기한 없음)',pre:'6.2',own:'개발',when:'1월1주~',md:'3+',out:'모니터링 보고·요청 이력',st:'미착수',w:[15,16]},
+];
+const WEEKS = ['9월3주','9월4주','9월5주','10월1주','10월2주','10월3주','10월4주','11월1주','11월2주','11월3주','11월4주','12월1주','12월2주','12월3주','12월4주','1월1주','1월2주'];
+const MONTHS = [['9월',3],['10월',4],['11월',4],['12월',4],['1월',2]];
+const cls = s => !s ? '' : s.startsWith('완료') ? 'complete' : s === '상시진행' ? 'ongoing' : s === '진행중' ? 'in-progress' : s.includes('미결정') ? 'blocked' : 'pending';
+const esc = s => (s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+
+document.getElementById('tree').innerHTML = ROWS.map(r =>
+  r.lv === 1 ? `<div class="wbs-l1"><span>${esc(r.id)}. ${esc(r.name)}</span><small>${esc(r.when||'')}</small></div>`
+  : r.lv === 2 ? `<div class="wbs-l2"><span>${esc(r.id)} ${esc(r.name)}</span><small>${esc(r.when||'')}</small></div>`
+  : `<div class="wbs-l3"><span>${esc(r.id)} ${esc(r.name)}</span><span class="${cls(r.st)}">${esc(r.when||'')} · ${esc(r.st||'')}</span></div>`
+).join('');
+
+document.querySelector('#detail tbody').innerHTML = ROWS.map(r => {
+  if (r.lv === 1) return `<tr class="phase-header"><td>${esc(r.id)}</td><td>${esc(r.name)}</td><td colspan="3"></td><td>${esc(r.when||'')}</td><td colspan="3"></td></tr>`;
+  if (r.lv === 2 && !r.desc) return `<tr class="group-header"><td>${esc(r.id)}</td><td>${esc(r.name)}</td><td colspan="3"></td><td>${esc(r.when||'')}</td><td colspan="3"></td></tr>`;
+  return `<tr><td>${esc(r.id)}</td><td><b>${esc(r.name)}</b></td><td>${esc(r.desc)}</td><td>${esc(r.pre)}</td><td>${esc(r.own)}</td><td>${esc(r.when)}</td><td style="text-align:right">${esc(r.md)}</td><td>${esc(r.out)}</td><td class="${cls(r.st)}">${esc(r.st)}</td></tr>`;
+}).join('');
+
+const G = ROWS.filter(r => r.w);
+let h = '<thead><tr><th class="w" rowspan="2">WBS</th>' + MONTHS.map(([m,n]) => `<th class="m" colspan="${n}">${m}</th>`).join('') + '</tr><tr>' + WEEKS.map(w => `<th class="w">${w.replace(/^\d+월/, '')}</th>`).join('') + '</tr></thead><tbody>';
+for (const r of G) {
+  h += `<tr><td class="lbl ${r.lv === 1 ? 'p' : ''}">${esc(r.id)} ${esc(r.name.replace(/ ★.*$/, ''))}</td>`;
+  for (let i = 0; i < WEEKS.length; i++) {
+    const on = r.w && i >= r.w[0] && i <= r.w[1];
+    const c = [on ? 'on' : '', i === 14 && r.id === '6.2' ? 'ms2' : ''].join(' ');
+    h += `<td class="${c}"></td>`;
+  }
+  h += '</tr>';
+}
+document.getElementById('gantt').innerHTML = h + '</tbody>';
+</script>
+</body>
+</html>

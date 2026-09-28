@@ -1,0 +1,2 @@
+ALTER TABLE sales_mst
+    MODIFY COLUMN pg_txn_id VARCHAR(200) NULL COMMENT 'PG사거래ID';

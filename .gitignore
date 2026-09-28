@@ -1,0 +1,154 @@
+# === IDE ===
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+
+# === OS ===
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# === Java / Gradle ===
+crm-module-api/build/
+crm-module-api/.gradle/
+crm-module-api/bin/
+crm-module-api/out/
+*.class
+*.jar
+*.war
+
+# === Node / Frontend ===
+crm-module-web/node_modules/
+crm-module-web/dist/
+crm-module-web/.vite/
+
+# === Playwright MCP ===
+.playwright-mcp/
+
+# === Claude ===
+# 공유 구성(스킬/서브에이전트/훅/settings.json)은 커밋. 개인 로컬 설정만 무시.
+.claude/settings.local.json
+
+# === Environment / Secrets ===
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# === Test screenshots ===
+*.png
+# 백엔드 정적 리소스(인감 도장 등)는 의도적으로 포함
+!crm-module-api/src/main/resources/images/*.png
+# 프론트 브랜드 에셋(로고 등)은 의도적으로 포함
+!crm-module-web/src/assets/**/*.png
+
+# === Logs ===
+*.log
+
+# === Test data ===
+test-*.json
+login-test.json
+test-api.sh
+
+# === Build artifacts ===
+crm-module-web/tsconfig.tsbuildinfo
+crm-module-web/tsconfig.node.tsbuildinfo
+crm-module-web/vite.config.d.ts
+crm-module-web/vite.config.js
+crm-module-web/dist.tar.gz
+
+# === MCP / Tooling ===
+.mcp.json
+.serena/
+
+# === SSM / 임시 파라미터 ===
+.tmp-*.json
+.tmp-*/
+ssm_params.json
+check_dept_end_dt.py
+
+# === 스크래치/디버그 e2e (커밋된 정식 테스트는 e2e/00-*, 01-*, ... 처럼 번호 prefix) ===
+crm-module-web/e2e/check-*.spec.ts
+crm-module-web/e2e/debug-*.spec.ts
+crm-module-web/e2e/screenshot-*.spec.ts
+crm-module-web/e2e/find-*.spec.ts
+crm-module-web/e2e/verify-*.spec.ts
+crm-module-web/e2e/full-detail-*.spec.ts
+crm-module-web/e2e/dump-*.spec.ts
+crm-module-web/e2e/ui-detail-*.spec.ts
+crm-module-web/e2e/bug06-*.spec.ts
+crm-module-web/e2e/bug07-*.spec.ts
+crm-module-web/e2e/delete-*.spec.ts
+crm-module-web/e2e/gap-*.spec.ts
+crm-module-web/e2e/live-*.spec.ts
+crm-module-web/e2e/pr*.spec.ts
+crm-module-web/e2e/phase*.spec.ts
+crm-module-web/e2e/we*.spec.ts
+crm-module-web/e2e/search*.spec.ts
+crm-module-web/e2e/change*.spec.ts
+crm-module-web/e2e-local/
+crm-module-web/d1_check.*
+diag.mjs
+.tools/
+.gstack/
+crm-module-web/playwright-report/
+crm-module-web/test-results/
+crm-module-web/e2e/v31-*.spec.ts
+crm-module-web/e2e/v34-*.spec.ts
+crm-module-web/e2e/workinfo-*.spec.ts
+crm-module-web/e2e/visual-*.spec.ts
+crm-module-web/e2e/local-*.spec.ts
+crm-module-web/e2e/local-*.ts
+crm-module-web/e2e/write-spec.mjs
+crm-module-web/e2e/pr36v-*.ts
+crm-module-web/e2e/t.txt
+crm-module-web/qa*.cjs
+crm-module-web/qa*.js
+crm-module-web/wehago*.cjs
+crm-module-web/wehago*.js
+crm-module-web/gen-runner.js
+crm-module-web/playwright-local.config.ts
+crm-module-web/rt-runner.*
+crm-module-web/rt-test.js
+crm-module-api/build-log.txt
+
+# === 추가 스크래치/임시 산출물 (2026-06 정리) ===
+# e2e 디버그·회귀 스크래치 스펙 (정식 스펙은 00-/01-… 번호 prefix, helpers.ts 등은 추적 유지)
+crm-module-web/e2e/qa-*.spec.ts
+crm-module-web/e2e/reg*.spec.ts
+crm-module-web/e2e/gap*.spec.ts
+crm-module-web/e2e/v2*.spec.ts
+crm-module-web/e2e/ab*.spec.ts
+crm-module-web/e2e/fix-*
+crm-module-web/e2e/merge-*-fix.spec.ts
+crm-module-web/e2e/po-fix-*.spec.ts
+crm-module-web/e2e/po-tests-*.spec.ts
+crm-module-web/e2e/tax-issue-qa-*.spec.ts
+crm-module-web/e2e/gen-spec.js
+crm-module-web/e2e/write-spec.js
+crm-module-web/e2e/shots/
+crm-module-web/e2e/test-write.txt
+# 스크래치 스크립트/덤프 (루트 + crm-module-web)
+build-spec.*
+gen-spec*.js
+spec-gen-*.js
+writeSpec.js
+crm-module-web/verify-responsive.mjs
+crm-module-web/gfv.js
+crm-module-web/test.js
+crm-module-web/dist-check.html
+# 루트 임시 파일·데이터 덤프
+/_*
+/.commit-msg-tmp.txt
+/test.txt
+test-write.txt
+*_b64.txt
+*_base64.txt
+prod_excel*
+orders_test.xlsx
+
+# 로컬 개발용 Spring 설정 오버라이드 (접속정보 포함 — 커밋 금지)
+crm-module-api/config/

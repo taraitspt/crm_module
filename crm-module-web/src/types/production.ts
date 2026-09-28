@@ -1,0 +1,42 @@
+/** 생산계획현황 — 제판 탭 한 행 (백엔드 ProductionPlanDto.PlateRow). */
+export interface ProductionPlateRow {
+  planNo: string;
+  planSq?: number;
+  planLowSq?: number;
+  planDate?: string;
+  orderNo?: string;
+  orderName?: string;
+  orderSq?: number;
+  partnerName?: string;
+  itemCd?: string;
+  itemName?: string;
+  detailItemName?: string;
+  orderQty?: number;
+  configName?: string;
+  processName?: string;
+  workName?: string;
+  pressSq?: number;
+  equipmentName?: string;
+  materialCd?: string;
+  materialName?: string;
+  cutSize?: string;
+  pages?: number;
+  imposition?: string;
+  cutCount?: number;
+  generalFront?: number;
+  generalBack?: number;
+  spotFront?: number;
+  spotBack?: number;
+  plateCount?: number;
+  groupParentYn?: string;
+  groupChildYn?: string;
+  groupSq?: number;
+  workUnitPrice?: number;
+  workAmount?: number;
+  stdUnitPrice?: number;
+  stdAmount?: number;
+  pressCloseYn?: string;
+  resultStatusCd?: string;
+  resultStatusName?: string;
+  resultDate?: string;
+}

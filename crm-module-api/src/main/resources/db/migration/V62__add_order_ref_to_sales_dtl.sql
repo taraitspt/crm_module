@@ -1,0 +1,2 @@
+ALTER TABLE sales_dtl ADD COLUMN order_no VARCHAR(30) NULL;
+ALTER TABLE sales_dtl ADD COLUMN order_sq INT NULL;

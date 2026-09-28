@@ -1,0 +1,31 @@
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useAuthStore } from '@/store/authStore';
+import { permissionApi } from '@/api/permission.api';
+import { MENU_ITEMS, filterMenuByKeys, filterMenuByRole, type AppMenuItem } from '@/components/layout/menuItems';
+
+/**
+ * 로그인 사용자가 볼 메뉴.
+ * 서버의 메뉴 권한 설정을 우선 쓰고, 아직 못 받았거나 백엔드가 구버전이면
+ * 기존 역할 기반 필터로 떨어져 화면이 비지 않게 한다.
+ */
+export function useMenuAccess(): { items: AppMenuItem[]; scopes: Record<string, string> } {
+  const { user, isAuthenticated } = useAuthStore();
+
+  const { data } = useQuery({
+    queryKey: ['my-access', user?.id],
+    queryFn: () => permissionApi.myAccess(),
+    enabled: isAuthenticated && !!user?.id,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+
+  const items = useMemo(() => {
+    if (data?.menuKeys && data.menuKeys.length > 0) {
+      return filterMenuByKeys(MENU_ITEMS, new Set(data.menuKeys));
+    }
+    return filterMenuByRole(MENU_ITEMS, user?.role, user?.deptCd);
+  }, [data, user?.role, user?.deptCd]);
+
+  return { items, scopes: data?.scopes ?? {} };
+}

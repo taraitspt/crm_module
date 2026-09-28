@@ -1,0 +1,1895 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>테이블 정의서 - SM Module Oracle ERP 연동</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; background: #fff; color: #333; line-height: 1.7; }
+.header { background: #1a237e; color: #fff; padding: 40px; text-align: center; }
+.header h1 { font-size: 28px; margin-bottom: 8px; }
+.header p { font-size: 14px; opacity: 0.8; }
+.container { max-width: 1200px; margin: 0 auto; padding: 40px 30px; }
+h2 { font-size: 22px; color: #1a237e; border-bottom: 3px solid #1a237e; padding-bottom: 8px; margin: 40px 0 20px; }
+h3 { font-size: 17px; color: #283593; margin: 24px 0 12px; }
+h4 { font-size: 15px; color: #3949ab; margin: 16px 0 8px; }
+table { width: 100%; border-collapse: collapse; margin: 16px 0 24px; font-size: 13px; }
+th { background: #e8eaf6; color: #1a237e; padding: 10px 12px; text-align: left; border: 1px solid #c5cae9; font-weight: 600; }
+td { padding: 8px 12px; border: 1px solid #e0e0e0; vertical-align: top; }
+tr:nth-child(even) { background: #fafafa; }
+tr:hover { background: #f0f0ff; }
+.pk { color: #c62828; font-weight: 700; }
+.fk { color: #1565c0; font-weight: 600; }
+.nullable { color: #999; }
+.tbl-title { background: #283593; color: #fff; padding: 12px 16px; border-radius: 6px 6px 0 0; font-weight: 700; font-size: 15px; margin-top: 24px; display: flex; justify-content: space-between; align-items: center; }
+.tbl-title .badge { background: rgba(255,255,255,0.2); padding: 2px 10px; border-radius: 10px; font-size: 12px; font-weight: 400; }
+.tbl-meta { background: #f5f5f5; padding: 8px 16px; font-size: 12px; color: #666; border: 1px solid #e0e0e0; border-top: none; }
+.note { background: #fff8e1; border-left: 4px solid #ffc107; padding: 12px 16px; margin: 16px 0; font-size: 13px; border-radius: 0 4px 4px 0; }
+.new-tag { background: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; margin-left: 8px; }
+.erp-tag { background: #fff3e0; color: #ef6c00; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; margin-left: 8px; }
+code { background: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-size: 12px; font-family: 'Consolas', monospace; }
+.footer { text-align: center; padding: 30px; color: #999; font-size: 12px; border-top: 1px solid #eee; margin-top: 40px; }
+@media print { .header { background: #1a237e !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } body { font-size: 11px; } .tbl-title { background: #283593 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+
+/* ER Diagram Styles */
+.er-diagram { position: relative; padding: 40px 20px; overflow-x: auto; }
+.er-section { margin-bottom: 40px; }
+.er-row { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; align-items: flex-start; margin: 20px 0; }
+.er-box { border: 2px solid #1a237e; border-radius: 8px; min-width: 180px; max-width: 220px; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.er-box-header { background: #283593; color: #fff; padding: 8px 14px; border-radius: 6px 6px 0 0; font-weight: 700; font-size: 13px; text-align: center; }
+.er-box-header.erp { background: #e65100; }
+.er-box-header.new { background: #2e7d32; }
+.er-box-body { padding: 8px 14px; font-size: 11px; }
+.er-box-body div { padding: 2px 0; border-bottom: 1px solid #f0f0f0; }
+.er-box-body div:last-child { border-bottom: none; }
+.er-box-body .pk-col { color: #c62828; font-weight: 700; }
+.er-box-body .fk-col { color: #1565c0; font-weight: 600; }
+.er-connector { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 12px 0; font-size: 13px; color: #555; flex-wrap: wrap; }
+.er-connector .arrow { color: #1a237e; font-weight: 700; font-size: 18px; }
+.er-connector .arrow.erp-arrow { color: #e65100; }
+.er-connector .label { background: #e8eaf6; padding: 4px 12px; border-radius: 12px; font-size: 11px; color: #283593; }
+.er-connector .label.erp-label { background: #fff3e0; color: #e65100; }
+.er-cross-ref { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 10px 0; padding: 10px 16px; background: #fafafa; border-radius: 8px; border: 1px dashed #c5cae9; flex-wrap: wrap; }
+.er-cross-ref .sm-side { background: #e8eaf6; padding: 6px 14px; border-radius: 6px; font-size: 12px; color: #283593; font-weight: 600; }
+.er-cross-ref .erp-side { background: #fff3e0; padding: 6px 14px; border-radius: 6px; font-size: 12px; color: #e65100; font-weight: 600; }
+.er-cross-ref .link-arrow { font-size: 20px; color: #9e9e9e; font-weight: 700; }
+.summary-stat { display: flex; gap: 16px; margin: 16px 0; flex-wrap: wrap; }
+.stat-card { flex: 1; min-width: 200px; background: #f5f5f5; border-radius: 8px; padding: 16px; border-left: 4px solid #1a237e; }
+.stat-card.new-card { border-left-color: #2e7d32; }
+.stat-card.erp-card { border-left-color: #e65100; }
+.stat-card .stat-label { font-size: 12px; color: #666; margin-bottom: 4px; }
+.stat-card .stat-value { font-size: 22px; font-weight: 700; color: #1a237e; }
+.stat-card.new-card .stat-value { color: #2e7d32; }
+.stat-card.erp-card .stat-value { color: #e65100; }
+.stat-card.target-card { border-left-color: #6a1b9a; }
+.stat-card.target-card .stat-value { color: #6a1b9a; }
+.target-tag { background: #f3e5f5; color: #6a1b9a; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; margin-left: 8px; }
+.tbl-title.target-title { background: #6a1b9a; }
+.er-box-header.target { background: #6a1b9a; }
+.design-note { background: #f3e5f5; border-left: 4px solid #6a1b9a; padding: 16px 20px; margin: 16px 0; font-size: 13px; border-radius: 0 4px 4px 0; }
+.design-note strong { color: #6a1b9a; }
+.design-principle { background: #fafafa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px 20px; margin: 16px 0; }
+.design-principle h4 { color: #6a1b9a; margin-top: 0; }
+.design-principle ul { margin: 8px 0 0 20px; font-size: 13px; }
+.design-principle li { margin-bottom: 4px; }
+@media print { .tbl-title.target-title { background: #6a1b9a !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+    <h1>테이블 정의서</h1>
+    <p>SM Module - Oracle ERP 연동 프로젝트 &nbsp;|&nbsp; 작성일: 2026-03-24 &nbsp;|&nbsp; 작성: HM소프트 &nbsp;|&nbsp; 문서번호: SM-ERP-TBL-001</p>
+</div>
+
+<div class="container">
+
+<!-- ============================================================ -->
+<!-- Section 1: 문서 개요 -->
+<!-- ============================================================ -->
+<h2>1. 문서 개요</h2>
+<p>
+    본 문서는 <strong>SM Module - Oracle ERP 연동 프로젝트</strong>에서 사용되는 데이터베이스 테이블의 구조를 정의합니다.
+    SM Module은 MariaDB를 주 데이터베이스로 사용하며, Oracle 19c 기반의 더존 ERP 시스템과 실시간/배치 연동을 수행합니다.
+    기존 SM Module 테이블, 신규 설계 테이블(Target DB), 신규 추가 테이블(ERP 연동용), 그리고 Oracle ERP 핵심 참조 테이블을 포함합니다.
+</p>
+
+<div class="summary-stat">
+    <div class="stat-card target-card">
+        <div class="stat-label">신규 설계 테이블 (Target DB)</div>
+        <div class="stat-value">14개</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">SM Module 기존 테이블</div>
+        <div class="stat-value">17개</div>
+    </div>
+    <div class="stat-card new-card">
+        <div class="stat-label">SM Module 신규 추가</div>
+        <div class="stat-value">3개</div>
+    </div>
+    <div class="stat-card erp-card">
+        <div class="stat-label">Oracle ERP 핵심 테이블</div>
+        <div class="stat-value">25개+</div>
+    </div>
+</div>
+
+<table>
+    <thead>
+        <tr><th>구분</th><th>DB</th><th>테이블 수</th><th>비고</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><strong>SM Module 신규 설계 (Target)</strong></td><td>MariaDB</td><td>14개</td><td>ERP 체계 정렬 복합PK 기반 신규 스키마 설계</td></tr>
+        <tr><td>SM Module 기존</td><td>MariaDB</td><td>17개</td><td>Flyway V1~V6 마이그레이션 관리</td></tr>
+        <tr><td>SM Module 신규 추가</td><td>MariaDB</td><td>3개</td><td>ERP 연동용 매핑/이력 테이블</td></tr>
+        <tr><td>Oracle ERP 핵심</td><td>Oracle 19c</td><td>25개+</td><td>더존 ERP 참조 테이블 (읽기/쓰기)</td></tr>
+    </tbody>
+</table>
+
+<div class="note">
+    <strong>참고:</strong> SM Module 테이블은 Flyway를 통한 버전 관리 마이그레이션으로 생성됩니다. Oracle ERP 테이블은 더존 ERP 시스템 소유이며, SM Module에서는 DB Link 또는 API를 통해 접근합니다.
+</div>
+
+
+<!-- ============================================================ -->
+<!-- Section 2: SM Module 신규 설계 스키마 (Target DB 설계) -->
+<!-- ============================================================ -->
+<h2>2. SM Module 신규 설계 스키마 (Target DB 설계)</h2>
+
+<div class="design-note">
+    <strong>TARGET 스키마 안내:</strong> 본 섹션은 SM Module 시스템 재설계를 위한 <strong>목표(Target) 데이터베이스 스키마</strong>입니다.
+    기존 JAR 분석 기반 테이블(섹션 3)을 대체하는 신규 설계이며, 더존 ERP(Oracle) 체계에 맞춘 <code>company_cd</code> + <code>plant_cd</code> 복합 PK 구조를 채택합니다.
+    모든 테이블은 MariaDB에서 운영되며, Master/Detail 패턴으로 정규화되어 있습니다.
+    <br><br>
+    <strong>dbdiagram.io 설계 원본:</strong> <code>https://dbdiagram.io/d/69ae32f7f18be96a591e82db</code>
+</div>
+
+<div class="design-principle">
+    <h4>핵심 설계 원칙</h4>
+    <ul>
+        <li><strong>ERP 정렬 복합 PK:</strong> 모든 테이블이 <code>company_cd</code>(회사코드) + <code>plant_cd</code>(공장코드)를 PK에 포함하여 ERP 멀티 회사/공장 구조와 일치</li>
+        <li><strong>Master/Detail 패턴:</strong> order_mst &rarr; order_dtl &rarr; order_info, po_mst &rarr; po_dtl, sales_mst &rarr; sales_dtl, po_settle_mst &rarr; po_settle_dtl</li>
+        <li><strong>목표 통합:</strong> goal_mst가 파트목표/AM목표를 <code>field_cd</code> 구분으로 단일 테이블에 통합</li>
+        <li><strong>ERP 동기화 추적:</strong> sales_mst에 <code>erp_sync_status</code> ENUM(PENDING/SYNCED/FAILED)으로 더존 ERP 연동 상태 관리</li>
+        <li><strong>깃고 동기화 추적:</strong> po_settle_mst에 <code>gitgo_sync_status</code> ENUM(PENDING/SYNCED/FAILED)으로 깃고 연동 상태 관리</li>
+        <li><strong>14개 테이블, 11개 관계:</strong> 주문/발주/정산/매출 도메인을 완전히 커버하는 정규화된 스키마</li>
+    </ul>
+</div>
+
+
+<!-- ======================== 2.1 기초 도메인 ======================== -->
+<h3>2.1 기초 도메인</h3>
+
+<!-- users -->
+<div class="tbl-title target-title">
+    <span>users (사용자) <span class="target-tag">TARGET</span></span>
+    <span class="badge">신규설계</span>
+</div>
+<div class="tbl-meta">시스템 사용자 &nbsp;|&nbsp; 복합PK: company_cd + id &nbsp;|&nbsp; ENUM: role, status</div>
+<table>
+    <thead>
+        <tr><th>#</th><th>컬럼명</th><th>데이터타입</th><th>PK</th><th>NULL허용</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td><span class="pk">company_cd</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>회사코드</td></tr>
+        <tr><td>2</td><td><span class="pk">id</span></td><td>VARCHAR</td><td class="pk">PK</td><td>NO</td><td>사용자 ID</td></tr>
+        <tr><td>3</td><td>employee_no</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>사번</td></tr>
+        <tr><td>4</td><td>password</td><td>VARCHAR</td><td></td><td>NO</td><td>비밀번호</td></tr>
+        <tr><td>5</td><td>name</td><td>VARCHAR</td><td></td><td>NO</td><td>이름</td></tr>
+        <tr><td>6</td><td>phone</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>휴대폰번호</td></tr>
+        <tr><td>7</td><td>email</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>이메일</td></tr>
+        <tr><td>8</td><td>dept_cd</td><td>INTEGER</td><td></td><td class="nullable">YES</td><td>부서코드 (FK &rarr; departments)</td></tr>
+        <tr><td>9</td><td>role</td><td>ENUM('ADMIN','MANAGER','STAFF')</td><td></td><td>NO</td><td>권한</td></tr>
+        <tr><td>10</td><td>status</td><td>ENUM('ACTIVE','INACTIVE')</td><td></td><td>NO</td><td>계정상태</td></tr>
+        <tr><td>11</td><td>created_at</td><td>DATETIME</td><td></td><td class="nullable">YES</td><td>생성일시</td></tr>
+        <tr><td>12</td><td>updated_at</td><td>DATETIME</td><td></td><td class="nullable">YES</td><td>수정일시</td></tr>
+    </tbody>
+</table>
+
+<!-- departments -->
+<div class="tbl-title target-title">
+    <span>departments (부서) <span class="target-tag">TARGET</span></span>
+    <span class="badge">신규설계</span>
+</div>
+<div class="tbl-meta">조직 관리 &nbsp;|&nbsp; 복합PK: company_cd + dept_cd &nbsp;|&nbsp; 상위부서 참조(UP_DEPT_CD)</div>
+<table>
+    <thead>
+        <tr><th>#</th><th>컬럼명</th><th>데이터타입</th><th>PK</th><th>NULL허용</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td><span class="pk">company_cd</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>회사코드</td></tr>
+        <tr><td>2</td><td><span class="pk">dept_cd</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>부서코드</td></tr>
+        <tr><td>3</td><td>dept_nm</td><td>VARCHAR</td><td></td><td>NO</td><td>부서이름</td></tr>
+        <tr><td>4</td><td>UP_DEPT_CD</td><td>INTEGER</td><td></td><td class="nullable">YES</td><td>상위부서코드</td></tr>
+        <tr><td>5</td><td>created_at</td><td>DATETIME</td><td></td><td class="nullable">YES</td><td>생성일</td></tr>
+    </tbody>
+</table>
+
+
+<!-- ======================== 2.2 주문 도메인 ======================== -->
+<h3>2.2 주문 도메인</h3>
+
+<!-- order_mst -->
+<div class="tbl-title target-title">
+    <span>order_mst (주문마스터) <span class="target-tag">TARGET</span></span>
+    <span class="badge">신규설계</span>
+</div>
+<div class="tbl-meta">주문 마스터 &nbsp;|&nbsp; 복합PK: company_cd + plant_cd + order_no &nbsp;|&nbsp; 주문 허브 테이블</div>
+<table>
+    <thead>
+        <tr><th>#</th><th>컬럼명</th><th>데이터타입</th><th>PK</th><th>NULL허용</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td><span class="pk">company_cd</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>회사코드</td></tr>
+        <tr><td>2</td><td><span class="pk">plant_cd</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>공장코드</td></tr>
+        <tr><td>3</td><td><span class="pk">order_no</span></td><td>VARCHAR</td><td class="pk">PK</td><td>NO</td><td>주문번호</td></tr>
+        <tr><td>4</td><td>order_nm</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>주문명</td></tr>
+        <tr><td>5</td><td>insert_id</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>접수자 ID</td></tr>
+        <tr><td>6</td><td>due_dt</td><td>DATETIME</td><td></td><td class="nullable">YES</td><td>완료요청일시</td></tr>
+        <tr><td>7</td><td>partner_cd</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>거래처코드</td></tr>
+        <tr><td>8</td><td>order_dt</td><td>DATE</td><td></td><td class="nullable">YES</td><td>주문일</td></tr>
+        <tr><td>9</td><td>customer_nm</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>고객명</td></tr>
+        <tr><td>10</td><td>sales_emp_id</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>영업담당자 ID</td></tr>
+        <tr><td>11</td><td>tax_type_cd</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>세무구분코드</td></tr>
+        <tr><td>12</td><td>remark</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>특이사항</td></tr>
+        <tr><td>13</td><td>created_id</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>생성자 ID</td></tr>
+        <tr><td>14</td><td>created_at</td><td>DATETIME</td><td></td><td class="nullable">YES</td><td>생성일</td></tr>
+        <tr><td>15</td><td>updated_id</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>수정자 ID</td></tr>
+        <tr><td>16</td><td>updated_at</td><td>DATETIME</td><td></td><td class="nullable">YES</td><td>수정일</td></tr>
+    </tbody>
+</table>
+
+<!-- order_dtl -->
+<div class="tbl-title target-title">
+    <span>order_dtl (주문디테일) <span class="target-tag">TARGET</span></span>
+    <span class="badge">신규설계</span>
+</div>
+<div class="tbl-meta">주문 상세 &nbsp;|&nbsp; 복합PK: company_cd + plant_cd + order_no + order_sq &nbsp;|&nbsp; FK &rarr; order_mst</div>
+<table>
+    <thead>
+        <tr><th>#</th><th>컬럼명</th><th>데이터타입</th><th>PK</th><th>NULL허용</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td><span class="pk">company_cd</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>회사코드</td></tr>
+        <tr><td>2</td><td><span class="pk">plant_cd</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>공장코드</td></tr>
+        <tr><td>3</td><td><span class="pk">order_no</span></td><td>VARCHAR</td><td class="pk">PK</td><td>NO</td><td>주문번호 (FK &rarr; order_mst)</td></tr>
+        <tr><td>4</td><td><span class="pk">order_sq</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>주문순번</td></tr>
+        <tr><td>5</td><td>contract_dt</td><td>DATETIME</td><td></td><td class="nullable">YES</td><td>수주일 (YYYYMMDD)</td></tr>
+        <tr><td>6</td><td>delivery_dt</td><td>DATETIME</td><td></td><td class="nullable">YES</td><td>납품일 (YYYYMMDD)</td></tr>
+        <tr><td>7</td><td>ord_qty</td><td>INTEGER</td><td></td><td class="nullable">YES</td><td>수량</td></tr>
+        <tr><td>8</td><td>ord_price</td><td>NUMBER</td><td></td><td class="nullable">YES</td><td>단가</td></tr>
+        <tr><td>9</td><td>ord_amt</td><td>NUMBER</td><td></td><td class="nullable">YES</td><td>금액</td></tr>
+        <tr><td>10</td><td>prod_cd</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>작업처</td></tr>
+        <tr><td>11</td><td>prod_qty</td><td>INTEGER</td><td></td><td class="nullable">YES</td><td>제작부수</td></tr>
+        <tr><td>12</td><td>work_nm</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>작업명</td></tr>
+        <tr><td>13</td><td>file_cnt</td><td>INTEGER</td><td></td><td class="nullable">YES</td><td>파일 수</td></tr>
+        <tr><td>14</td><td>remark</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>기타사항</td></tr>
+        <tr><td>15</td><td>status_cd</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>상태값</td></tr>
+        <tr><td>16</td><td>created_id</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>생성자 ID</td></tr>
+        <tr><td>17</td><td>created_at</td><td>DATETIME</td><td></td><td class="nullable">YES</td><td>생성일</td></tr>
+        <tr><td>18</td><td>updated_id</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>수정자 ID</td></tr>
+        <tr><td>19</td><td>updated_at</td><td>DATETIME</td><td></td><td class="nullable">YES</td><td>수정일</td></tr>
+    </tbody>
+</table>
+
+<!-- order_info -->
+<div class="tbl-title target-title">
+    <span>order_info (주문상세 - 인쇄사양) <span class="target-tag">TARGET</span></span>
+    <span class="badge">신규설계</span>
+</div>
+<div class="tbl-meta">인쇄사양 상세 &nbsp;|&nbsp; 복합PK: company_cd + plant_cd + order_no + order_sq + info_sq &nbsp;|&nbsp; FK &rarr; order_dtl</div>
+<table>
+    <thead>
+        <tr><th>#</th><th>컬럼명</th><th>데이터타입</th><th>PK</th><th>NULL허용</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td><span class="pk">company_cd</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>회사코드</td></tr>
+        <tr><td>2</td><td><span class="pk">plant_cd</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>공장코드</td></tr>
+        <tr><td>3</td><td><span class="pk">order_no</span></td><td>VARCHAR</td><td class="pk">PK</td><td>NO</td><td>주문번호 (FK &rarr; order_dtl)</td></tr>
+        <tr><td>4</td><td><span class="pk">order_sq</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>주문순번 (FK &rarr; order_dtl)</td></tr>
+        <tr><td>5</td><td><span class="pk">info_sq</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>상세순번</td></tr>
+        <tr><td>6</td><td>ord_qty</td><td>INTEGER</td><td></td><td class="nullable">YES</td><td>수량</td></tr>
+        <tr><td>7</td><td>ord_price</td><td>NUMBER</td><td></td><td class="nullable">YES</td><td>단가</td></tr>
+        <tr><td>8</td><td>ord_amt</td><td>NUMBER</td><td></td><td class="nullable">YES</td><td>금액</td></tr>
+        <tr><td>9</td><td>item_type</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>구분 (용지, 원자재 등)</td></tr>
+        <tr><td>10</td><td>config_cd</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>구성</td></tr>
+        <tr><td>11</td><td>work_cd</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>작업코드 (작업명 표기)</td></tr>
+        <tr><td>12</td><td>page_cnt</td><td>INTEGER</td><td></td><td class="nullable">YES</td><td>페이지</td></tr>
+        <tr><td>13</td><td>print_front</td><td>INTEGER</td><td></td><td class="nullable">YES</td><td>인쇄도수(전)</td></tr>
+        <tr><td>14</td><td>print_back</td><td>INTEGER</td><td></td><td class="nullable">YES</td><td>인쇄도수(후)</td></tr>
+        <tr><td>15</td><td>remark</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>비고</td></tr>
+        <tr><td>16</td><td>vendor_cd</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>업체</td></tr>
+        <tr><td>17</td><td>created_id</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>생성자 ID</td></tr>
+        <tr><td>18</td><td>created_at</td><td>DATETIME</td><td></td><td class="nullable">YES</td><td>생성일</td></tr>
+        <tr><td>19</td><td>updated_id</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>수정자 ID</td></tr>
+        <tr><td>20</td><td>updated_at</td><td>DATETIME</td><td></td><td class="nullable">YES</td><td>수정일</td></tr>
+    </tbody>
+</table>
+
+<!-- order_dlv -->
+<div class="tbl-title target-title">
+    <span>order_dlv (주문납품) <span class="target-tag">TARGET</span></span>
+    <span class="badge">신규설계</span>
+</div>
+<div class="tbl-meta">주문 납품 정보 &nbsp;|&nbsp; 복합PK: company_cd + plant_cd + order_no + order_sq + dlv_sq &nbsp;|&nbsp; FK &rarr; order_dtl</div>
+<table>
+    <thead>
+        <tr><th>#</th><th>컬럼명</th><th>데이터타입</th><th>PK</th><th>NULL허용</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td><span class="pk">company_cd</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>회사코드</td></tr>
+        <tr><td>2</td><td><span class="pk">plant_cd</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>공장코드</td></tr>
+        <tr><td>3</td><td><span class="pk">order_no</span></td><td>VARCHAR</td><td class="pk">PK</td><td>NO</td><td>주문번호 (FK &rarr; order_dtl)</td></tr>
+        <tr><td>4</td><td><span class="pk">order_sq</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>주문순번 (FK &rarr; order_dtl)</td></tr>
+        <tr><td>5</td><td><span class="pk">dlv_sq</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>납품순번</td></tr>
+        <tr><td>6</td><td>dlv_qt</td><td>INTEGER</td><td></td><td class="nullable">YES</td><td>납품수량</td></tr>
+        <tr><td>7</td><td>dlv_method_cd</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>배송방법</td></tr>
+        <tr><td>8</td><td>recv_nm</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>받는사람</td></tr>
+        <tr><td>9</td><td>recv_tel</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>연락처</td></tr>
+        <tr><td>10</td><td>addr_postcode</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>우편번호</td></tr>
+        <tr><td>11</td><td>addr_base</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>기본주소</td></tr>
+        <tr><td>12</td><td>addr_detail</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>상세주소</td></tr>
+        <tr><td>13</td><td>created_id</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>생성자 ID</td></tr>
+        <tr><td>14</td><td>created_at</td><td>DATETIME</td><td></td><td class="nullable">YES</td><td>생성일</td></tr>
+        <tr><td>15</td><td>updated_id</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>수정자 ID</td></tr>
+        <tr><td>16</td><td>updated_at</td><td>DATETIME</td><td></td><td class="nullable">YES</td><td>수정일</td></tr>
+    </tbody>
+</table>
+
+<!-- file_info -->
+<div class="tbl-title target-title">
+    <span>file_info (파일정보) <span class="target-tag">TARGET</span></span>
+    <span class="badge">신규설계</span>
+</div>
+<div class="tbl-meta">파일 관리 &nbsp;|&nbsp; 복합PK: company_cd + plant_cd + file_id &nbsp;|&nbsp; FK &rarr; order_dtl (order_no + order_sq)</div>
+<table>
+    <thead>
+        <tr><th>#</th><th>컬럼명</th><th>데이터타입</th><th>PK</th><th>NULL허용</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td><span class="pk">company_cd</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>회사코드</td></tr>
+        <tr><td>2</td><td><span class="pk">plant_cd</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>공장코드</td></tr>
+        <tr><td>3</td><td><span class="pk">file_id</span></td><td>VARCHAR</td><td class="pk">PK</td><td>NO</td><td>파일 ID</td></tr>
+        <tr><td>4</td><td>order_no</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>주문번호 (FK &rarr; order_dtl)</td></tr>
+        <tr><td>5</td><td>order_sq</td><td>INTEGER</td><td></td><td class="nullable">YES</td><td>디테일순번 (FK &rarr; order_dtl)</td></tr>
+        <tr><td>6</td><td>file_nm</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>파일명</td></tr>
+        <tr><td>7</td><td>file_path</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>파일경로</td></tr>
+        <tr><td>8</td><td>file_ext</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>파일확장자 (pdf, jpg 등)</td></tr>
+        <tr><td>9</td><td>file_size</td><td>INTEGER</td><td></td><td class="nullable">YES</td><td>파일사이즈</td></tr>
+        <tr><td>10</td><td>created_at</td><td>DATETIME</td><td></td><td class="nullable">YES</td><td>생성일</td></tr>
+    </tbody>
+</table>
+
+
+<!-- ======================== 2.3 발주 도메인 ======================== -->
+<h3>2.3 발주 도메인</h3>
+
+<!-- po_mst -->
+<div class="tbl-title target-title">
+    <span>po_mst (발주마스터) <span class="target-tag">TARGET</span></span>
+    <span class="badge">신규설계</span>
+</div>
+<div class="tbl-meta">발주 마스터 &nbsp;|&nbsp; 복합PK: company_cd + plant_cd + po_no &nbsp;|&nbsp; 주문번호 참조</div>
+<table>
+    <thead>
+        <tr><th>#</th><th>컬럼명</th><th>데이터타입</th><th>PK</th><th>NULL허용</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td><span class="pk">company_cd</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>회사코드</td></tr>
+        <tr><td>2</td><td><span class="pk">plant_cd</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>공장코드</td></tr>
+        <tr><td>3</td><td><span class="pk">po_no</span></td><td>VARCHAR</td><td class="pk">PK</td><td>NO</td><td>발주번호</td></tr>
+        <tr><td>4</td><td>order_no</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>주문번호</td></tr>
+        <tr><td>5</td><td>order_sq</td><td>INTEGER</td><td></td><td class="nullable">YES</td><td>주문순번</td></tr>
+        <tr><td>6</td><td>order_nm</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>주문명</td></tr>
+        <tr><td>7</td><td>po_qty</td><td>INTEGER</td><td></td><td class="nullable">YES</td><td>수량</td></tr>
+        <tr><td>8</td><td>po_price</td><td>NUMBER</td><td></td><td class="nullable">YES</td><td>단가</td></tr>
+        <tr><td>9</td><td>po_amt</td><td>NUMBER</td><td></td><td class="nullable">YES</td><td>금액</td></tr>
+        <tr><td>10</td><td>delivery_dt</td><td>DATETIME</td><td></td><td class="nullable">YES</td><td>납품일</td></tr>
+        <tr><td>11</td><td>po_status_cd</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>발주상태코드</td></tr>
+        <tr><td>12</td><td>created_id</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>생성자 ID</td></tr>
+        <tr><td>13</td><td>created_at</td><td>DATETIME</td><td></td><td class="nullable">YES</td><td>생성일</td></tr>
+        <tr><td>14</td><td>updated_id</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>수정자 ID</td></tr>
+        <tr><td>15</td><td>updated_at</td><td>DATETIME</td><td></td><td class="nullable">YES</td><td>수정일</td></tr>
+    </tbody>
+</table>
+
+<!-- po_dtl -->
+<div class="tbl-title target-title">
+    <span>po_dtl (발주디테일) <span class="target-tag">TARGET</span></span>
+    <span class="badge">신규설계</span>
+</div>
+<div class="tbl-meta">발주 상세 &nbsp;|&nbsp; 복합PK: company_cd + plant_cd + po_no + po_sq &nbsp;|&nbsp; FK &rarr; po_mst, FK &rarr; order_info</div>
+<table>
+    <thead>
+        <tr><th>#</th><th>컬럼명</th><th>데이터타입</th><th>PK</th><th>NULL허용</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td><span class="pk">company_cd</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>회사코드</td></tr>
+        <tr><td>2</td><td><span class="pk">plant_cd</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>공장코드</td></tr>
+        <tr><td>3</td><td><span class="pk">po_no</span></td><td>VARCHAR</td><td class="pk">PK</td><td>NO</td><td>발주번호 (FK &rarr; po_mst)</td></tr>
+        <tr><td>4</td><td><span class="pk">po_sq</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>발주순번</td></tr>
+        <tr><td>5</td><td>order_no</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>주문번호 (FK &rarr; order_info)</td></tr>
+        <tr><td>6</td><td>order_sq</td><td>INTEGER</td><td></td><td class="nullable">YES</td><td>주문순번 (FK &rarr; order_info)</td></tr>
+        <tr><td>7</td><td>info_sq</td><td>INTEGER</td><td></td><td class="nullable">YES</td><td>상세순번 (FK &rarr; order_info)</td></tr>
+        <tr><td>8</td><td>order_nm</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>작업명</td></tr>
+        <tr><td>9</td><td>po_qty</td><td>INTEGER</td><td></td><td class="nullable">YES</td><td>수량</td></tr>
+        <tr><td>10</td><td>po_price</td><td>NUMBER</td><td></td><td class="nullable">YES</td><td>단가</td></tr>
+        <tr><td>11</td><td>po_amt</td><td>NUMBER</td><td></td><td class="nullable">YES</td><td>금액</td></tr>
+        <tr><td>12</td><td>po_partner_cd</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>외주거래처코드</td></tr>
+        <tr><td>13</td><td>po_remark</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>비고</td></tr>
+        <tr><td>14</td><td>po_status_cd</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>발주상태코드 (미정산/정산/매입완료)</td></tr>
+        <tr><td>15</td><td>created_id</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>생성자 ID</td></tr>
+        <tr><td>16</td><td>created_at</td><td>DATETIME</td><td></td><td class="nullable">YES</td><td>생성일</td></tr>
+        <tr><td>17</td><td>updated_id</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>수정자 ID</td></tr>
+        <tr><td>18</td><td>updated_at</td><td>DATETIME</td><td></td><td class="nullable">YES</td><td>수정일</td></tr>
+    </tbody>
+</table>
+
+
+<!-- ======================== 2.4 정산 도메인 ======================== -->
+<h3>2.4 정산 도메인</h3>
+
+<!-- po_settle_mst -->
+<div class="tbl-title target-title">
+    <span>po_settle_mst (정산마스터) <span class="target-tag">TARGET</span></span>
+    <span class="badge">신규설계</span>
+</div>
+<div class="tbl-meta">정산 마스터 &nbsp;|&nbsp; 복합PK: company_cd + plant_cd + pos_no &nbsp;|&nbsp; <code>gitgo_sync_status</code> ENUM으로 깃고 연동 추적</div>
+<table>
+    <thead>
+        <tr><th>#</th><th>컬럼명</th><th>데이터타입</th><th>PK</th><th>NULL허용</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td><span class="pk">company_cd</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>회사코드</td></tr>
+        <tr><td>2</td><td><span class="pk">plant_cd</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>공장코드</td></tr>
+        <tr><td>3</td><td><span class="pk">pos_no</span></td><td>VARCHAR</td><td class="pk">PK</td><td>NO</td><td>정산번호</td></tr>
+        <tr><td>4</td><td>settle_dt</td><td>DATETIME</td><td></td><td class="nullable">YES</td><td>정산일</td></tr>
+        <tr><td>5</td><td>total_amt</td><td>NUMBER</td><td></td><td class="nullable">YES</td><td>정산금액</td></tr>
+        <tr><td>6</td><td>gitgo_sync_status</td><td>ENUM('PENDING','SYNCED','FAILED')</td><td></td><td class="nullable">YES</td><td>깃고 연동상태</td></tr>
+        <tr><td>7</td><td>pso_status</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>정산상태 (미매입/매입완료)</td></tr>
+        <tr><td>8</td><td>slip_no</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>매입전표번호</td></tr>
+        <tr><td>9</td><td>created_id</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>생성자 ID</td></tr>
+        <tr><td>10</td><td>created_at</td><td>DATETIME</td><td></td><td class="nullable">YES</td><td>생성일</td></tr>
+    </tbody>
+</table>
+
+<!-- po_settle_dtl -->
+<div class="tbl-title target-title">
+    <span>po_settle_dtl (정산디테일) <span class="target-tag">TARGET</span></span>
+    <span class="badge">신규설계</span>
+</div>
+<div class="tbl-meta">정산 상세 &nbsp;|&nbsp; 복합PK: company_cd + plant_cd + pos_no + pos_sq &nbsp;|&nbsp; FK &rarr; po_settle_mst, FK &rarr; po_dtl</div>
+<table>
+    <thead>
+        <tr><th>#</th><th>컬럼명</th><th>데이터타입</th><th>PK</th><th>NULL허용</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td><span class="pk">company_cd</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>회사코드</td></tr>
+        <tr><td>2</td><td><span class="pk">plant_cd</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>공장코드</td></tr>
+        <tr><td>3</td><td><span class="pk">pos_no</span></td><td>VARCHAR</td><td class="pk">PK</td><td>NO</td><td>정산번호 (FK &rarr; po_settle_mst)</td></tr>
+        <tr><td>4</td><td><span class="pk">pos_sq</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>정산순번</td></tr>
+        <tr><td>5</td><td>settle_qty</td><td>INTEGER</td><td></td><td class="nullable">YES</td><td>정산수량</td></tr>
+        <tr><td>6</td><td>settle_amt</td><td>NUMBER</td><td></td><td class="nullable">YES</td><td>정산금액</td></tr>
+        <tr><td>7</td><td>po_no</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>발주번호 (FK &rarr; po_dtl)</td></tr>
+        <tr><td>8</td><td>po_sq</td><td>INTEGER</td><td></td><td class="nullable">YES</td><td>발주순번 (FK &rarr; po_dtl)</td></tr>
+        <tr><td>9</td><td>order_nm</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>주문명</td></tr>
+        <tr><td>10</td><td>work_nm</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>작업명</td></tr>
+        <tr><td>11</td><td>order_no</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>주문번호</td></tr>
+        <tr><td>12</td><td>order_sq</td><td>INTEGER</td><td></td><td class="nullable">YES</td><td>주문순번</td></tr>
+        <tr><td>13</td><td>info_sq</td><td>INTEGER</td><td></td><td class="nullable">YES</td><td>상세순번</td></tr>
+    </tbody>
+</table>
+
+
+<!-- ======================== 2.5 매출 도메인 ======================== -->
+<h3>2.5 매출 도메인</h3>
+
+<!-- sales_mst -->
+<div class="tbl-title target-title">
+    <span>sales_mst (매출마스터) <span class="target-tag">TARGET</span></span>
+    <span class="badge">신규설계</span>
+</div>
+<div class="tbl-meta">매출 마스터 &nbsp;|&nbsp; 복합PK: company_cd + plant_cd + sales_no &nbsp;|&nbsp; <code>erp_sync_status</code> ENUM으로 더존 ERP 연동 추적 &nbsp;|&nbsp; 매출번호 자동생성: BIL + YYYYMMDD + seq</div>
+<table>
+    <thead>
+        <tr><th>#</th><th>컬럼명</th><th>데이터타입</th><th>PK</th><th>NULL허용</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td><span class="pk">company_cd</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>회사코드</td></tr>
+        <tr><td>2</td><td><span class="pk">plant_cd</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>공장코드</td></tr>
+        <tr><td>3</td><td><span class="pk">sales_no</span></td><td>VARCHAR</td><td class="pk">PK</td><td>NO</td><td>매출번호 (자동생성 BIL202603030001)</td></tr>
+        <tr><td>4</td><td>sales_title</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>결제명 (비대면, 선매출 시)</td></tr>
+        <tr><td>5</td><td>partner_cd</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>거래처코드</td></tr>
+        <tr><td>6</td><td>partner_nm</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>거래처명 (과거데이터 보존)</td></tr>
+        <tr><td>7</td><td>tax_type_cd</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>주문의 세무구분</td></tr>
+        <tr><td>8</td><td>sales_type</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>매출타입 (선매출, 선매출차감 등)</td></tr>
+        <tr><td>9</td><td>pay_type</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>결제방식 (카드, 현금 등)</td></tr>
+        <tr><td>10</td><td>sales_dt</td><td>DATETIME</td><td></td><td class="nullable">YES</td><td>매출일</td></tr>
+        <tr><td>11</td><td>total_amt</td><td>NUMBER</td><td></td><td class="nullable">YES</td><td>총 매출금액</td></tr>
+        <tr><td>12</td><td>slip_no</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>매출전표번호</td></tr>
+        <tr><td>13</td><td>status_cd</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>매출상태 (작성/확정/전표생성/마감 등)</td></tr>
+        <tr><td>14</td><td>erp_sync_status</td><td>ENUM('PENDING','SYNCED','FAILED')</td><td></td><td class="nullable">YES</td><td>더존 연동상태 (ERP)</td></tr>
+        <tr><td>15</td><td>pay_email</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>비대면결제 이메일</td></tr>
+        <tr><td>16</td><td>remark</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>비고</td></tr>
+        <tr><td>17</td><td>created_id</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>생성자 ID</td></tr>
+        <tr><td>18</td><td>created_at</td><td>DATETIME</td><td></td><td class="nullable">YES</td><td>생성일</td></tr>
+    </tbody>
+</table>
+
+<!-- sales_dtl -->
+<div class="tbl-title target-title">
+    <span>sales_dtl (매출디테일) <span class="target-tag">TARGET</span></span>
+    <span class="badge">신규설계</span>
+</div>
+<div class="tbl-meta">매출 상세 &nbsp;|&nbsp; 복합PK: company_cd + plant_cd + sales_no + sales_sq &nbsp;|&nbsp; FK &rarr; sales_mst, FK &rarr; order_dtl</div>
+<table>
+    <thead>
+        <tr><th>#</th><th>컬럼명</th><th>데이터타입</th><th>PK</th><th>NULL허용</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td><span class="pk">company_cd</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>회사코드</td></tr>
+        <tr><td>2</td><td><span class="pk">plant_cd</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>공장코드</td></tr>
+        <tr><td>3</td><td><span class="pk">sales_no</span></td><td>VARCHAR</td><td class="pk">PK</td><td>NO</td><td>매출번호 (FK &rarr; sales_mst)</td></tr>
+        <tr><td>4</td><td><span class="pk">sales_sq</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>매출순번</td></tr>
+        <tr><td>5</td><td>order_no</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>주문번호 (FK &rarr; order_dtl)</td></tr>
+        <tr><td>6</td><td>order_sq</td><td>INTEGER</td><td></td><td class="nullable">YES</td><td>주문순번 (FK &rarr; order_dtl)</td></tr>
+        <tr><td>7</td><td>sales_qty</td><td>INTEGER</td><td></td><td class="nullable">YES</td><td>수량</td></tr>
+        <tr><td>8</td><td>sales_price</td><td>NUMBER</td><td></td><td class="nullable">YES</td><td>단가</td></tr>
+        <tr><td>9</td><td>sales_amt</td><td>NUMBER</td><td></td><td class="nullable">YES</td><td>금액</td></tr>
+        <tr><td>10</td><td>remark</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>비고</td></tr>
+        <tr><td>11</td><td>created_id</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>생성자 ID</td></tr>
+        <tr><td>12</td><td>created_at</td><td>DATETIME</td><td></td><td class="nullable">YES</td><td>생성일</td></tr>
+    </tbody>
+</table>
+
+
+<!-- ======================== 2.6 목표 도메인 ======================== -->
+<h3>2.6 목표 도메인</h3>
+
+<!-- goal_mst -->
+<div class="tbl-title target-title">
+    <span>goal_mst (목표입력) <span class="target-tag">TARGET</span></span>
+    <span class="badge">신규설계</span>
+</div>
+<div class="tbl-meta">목표 마스터 &nbsp;|&nbsp; 복합PK: company_cd + plant_cd + plan_yy + plan_mm + dept_cd + sales_emp_id + field_cd &nbsp;|&nbsp; 파트목표/AM목표를 <code>field_cd</code>로 통합</div>
+<table>
+    <thead>
+        <tr><th>#</th><th>컬럼명</th><th>데이터타입</th><th>PK</th><th>NULL허용</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td><span class="pk">company_cd</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>회사코드</td></tr>
+        <tr><td>2</td><td><span class="pk">plant_cd</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>공장코드</td></tr>
+        <tr><td>3</td><td><span class="pk">plan_yy</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>연도</td></tr>
+        <tr><td>4</td><td><span class="pk">plan_mm</span></td><td>INTEGER</td><td class="pk">PK</td><td>NO</td><td>월</td></tr>
+        <tr><td>5</td><td><span class="pk">dept_cd</span></td><td>VARCHAR</td><td class="pk">PK</td><td>NO</td><td>부서코드</td></tr>
+        <tr><td>6</td><td><span class="pk">sales_emp_id</span></td><td>VARCHAR</td><td class="pk">PK</td><td>NO</td><td>영업담당자 ID</td></tr>
+        <tr><td>7</td><td><span class="pk">field_cd</span></td><td>VARCHAR</td><td class="pk">PK</td><td>NO</td><td>구분 (내/외부)</td></tr>
+        <tr><td>8</td><td>partner_cd</td><td>VARCHAR</td><td></td><td class="nullable">YES</td><td>거래처코드</td></tr>
+        <tr><td>9</td><td>target_amount</td><td>INTEGER</td><td></td><td class="nullable">YES</td><td>목표금액</td></tr>
+        <tr><td>10</td><td>created_at</td><td>DATETIME</td><td></td><td class="nullable">YES</td><td>생성일</td></tr>
+        <tr><td>11</td><td>updated_at</td><td>DATETIME</td><td></td><td class="nullable">YES</td><td>수정일</td></tr>
+    </tbody>
+</table>
+
+
+<!-- ======================== 2.7 Target ER Diagram ======================== -->
+<h3>2.7 Target DB ER 다이어그램</h3>
+<p>신규 설계 스키마의 14개 테이블 간 11개 관계를 시각적으로 표현합니다.</p>
+
+<div style="overflow-x: auto;">
+<div style="min-width: 1100px; padding: 30px 10px;">
+
+<!-- 기초 그룹: users → departments -->
+<h4 style="color: #6a1b9a;">기초 그룹</h4>
+<div class="er-row" style="justify-content: center; gap: 80px;">
+    <div class="er-box" style="border-color: #6a1b9a;">
+        <div class="er-box-header target">users</div>
+        <div class="er-box-body">
+            <div><span class="pk-col">PK</span> company_cd</div>
+            <div><span class="pk-col">PK</span> id</div>
+            <div>employee_no, name</div>
+            <div><span class="fk-col">FK</span> dept_cd &rarr; departments</div>
+            <div>role (ENUM), status (ENUM)</div>
+        </div>
+    </div>
+
+    <div style="display: flex; align-items: center; font-size: 28px; color: #6a1b9a; font-weight: 700;">&rarr;&mdash;&mdash;</div>
+
+    <div class="er-box" style="border-color: #6a1b9a;">
+        <div class="er-box-header target">departments</div>
+        <div class="er-box-body">
+            <div><span class="pk-col">PK</span> company_cd</div>
+            <div><span class="pk-col">PK</span> dept_cd</div>
+            <div>dept_nm</div>
+            <div>UP_DEPT_CD</div>
+        </div>
+    </div>
+</div>
+<div style="text-align: center; color: #999; font-size: 12px; margin: 8px 0;">users.(company_cd, dept_cd) &rarr; departments.(company_cd, dept_cd)</div>
+
+<!-- 주문 그룹 -->
+<h4 style="color: #6a1b9a; margin-top: 30px;">주문 그룹</h4>
+<div style="text-align: center; margin: 20px 0 10px;">
+    <div style="display: inline-block; border: 3px solid #6a1b9a; border-radius: 10px; background: #faf5ff; padding: 4px;">
+        <div class="er-box" style="border: none; box-shadow: none; min-width: 260px;">
+            <div class="er-box-header target" style="background: #4a148c;">order_mst (주문 허브)</div>
+            <div class="er-box-body">
+                <div><span class="pk-col">PK</span> company_cd + plant_cd + order_no</div>
+                <div>order_nm, partner_cd</div>
+                <div>sales_emp_id, order_dt</div>
+                <div>tax_type_cd, remark</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="er-row" style="justify-content: center; gap: 20px; margin-top: 10px;">
+    <div class="er-box" style="min-width: 200px; max-width: 240px; border-color: #6a1b9a;">
+        <div class="er-box-header target" style="font-size: 12px;">order_dtl (주문디테일)</div>
+        <div class="er-box-body">
+            <div><span class="pk-col">PK</span> ...+ order_sq</div>
+            <div><span class="fk-col">FK</span> &rarr; order_mst</div>
+            <div>ord_qty, ord_price, ord_amt</div>
+            <div>work_nm, status_cd</div>
+        </div>
+    </div>
+
+    <div style="display: flex; align-items: center; font-size: 22px; color: #6a1b9a; font-weight: 700;">&larr;</div>
+
+    <div class="er-box" style="min-width: 200px; max-width: 240px; border-color: #6a1b9a;">
+        <div class="er-box-header target" style="font-size: 12px;">order_info (인쇄사양)</div>
+        <div class="er-box-body">
+            <div><span class="pk-col">PK</span> ...+ info_sq</div>
+            <div><span class="fk-col">FK</span> &rarr; order_dtl</div>
+            <div>item_type, work_cd</div>
+            <div>print_front/back</div>
+        </div>
+    </div>
+</div>
+
+<div class="er-row" style="justify-content: center; gap: 40px; margin-top: 10px;">
+    <div class="er-box" style="min-width: 180px; max-width: 200px; border-color: #6a1b9a;">
+        <div class="er-box-header target" style="font-size: 12px;">order_dlv (납품)</div>
+        <div class="er-box-body">
+            <div><span class="pk-col">PK</span> ...+ dlv_sq</div>
+            <div><span class="fk-col">FK</span> &rarr; order_dtl</div>
+            <div>dlv_qt, recv_nm</div>
+            <div>addr_base, addr_detail</div>
+        </div>
+    </div>
+
+    <div class="er-box" style="min-width: 180px; max-width: 200px; border-color: #6a1b9a;">
+        <div class="er-box-header target" style="font-size: 12px;">file_info (파일)</div>
+        <div class="er-box-body">
+            <div><span class="pk-col">PK</span> ...+ file_id</div>
+            <div><span class="fk-col">FK</span> &rarr; order_dtl</div>
+            <div>file_nm, file_path</div>
+            <div>file_ext, file_size</div>
+        </div>
+    </div>
+</div>
+
+<div style="text-align: center; color: #999; font-size: 12px; margin: 8px 0;">
+    order_mst &rarr; order_dtl &rarr; order_info &nbsp;&nbsp;|&nbsp;&nbsp; order_dtl &rarr; order_dlv &nbsp;&nbsp;|&nbsp;&nbsp; order_dtl &rarr; file_info
+</div>
+
+<!-- 발주 그룹 -->
+<h4 style="color: #6a1b9a; margin-top: 30px;">발주 그룹</h4>
+<div class="er-row" style="justify-content: center; gap: 40px;">
+    <div class="er-box" style="border-color: #6a1b9a;">
+        <div class="er-box-header target">po_mst (발주마스터)</div>
+        <div class="er-box-body">
+            <div><span class="pk-col">PK</span> company_cd + plant_cd + po_no</div>
+            <div>order_no, order_sq</div>
+            <div>po_qty, po_price, po_amt</div>
+            <div>po_status_cd</div>
+        </div>
+    </div>
+
+    <div style="display: flex; align-items: center; font-size: 28px; color: #6a1b9a; font-weight: 700;">&rarr;</div>
+
+    <div class="er-box" style="border-color: #6a1b9a;">
+        <div class="er-box-header target">po_dtl (발주디테일)</div>
+        <div class="er-box-body">
+            <div><span class="pk-col">PK</span> ...+ po_sq</div>
+            <div><span class="fk-col">FK</span> &rarr; po_mst</div>
+            <div><span class="fk-col">FK</span> &rarr; order_info</div>
+            <div>po_partner_cd, po_status_cd</div>
+        </div>
+    </div>
+
+    <div style="display: flex; align-items: center; font-size: 22px; color: #999; font-weight: 700;">- - &rarr;</div>
+
+    <div class="er-box" style="border-color: #9e9e9e; border-style: dashed;">
+        <div class="er-box-header" style="background: #757575;">order_info (연결)</div>
+        <div class="er-box-body" style="color: #999;">
+            <div>order_no + order_sq + info_sq</div>
+            <div style="font-style: italic;">주문 그룹 참조</div>
+        </div>
+    </div>
+</div>
+<div style="text-align: center; color: #999; font-size: 12px; margin: 8px 0;">
+    po_mst &rarr; po_dtl &rarr; order_info (교차 참조)
+</div>
+
+<!-- 정산 그룹 -->
+<h4 style="color: #6a1b9a; margin-top: 30px;">정산 그룹</h4>
+<div class="er-row" style="justify-content: center; gap: 40px;">
+    <div class="er-box" style="border-color: #6a1b9a;">
+        <div class="er-box-header target">po_settle_mst (정산마스터)</div>
+        <div class="er-box-body">
+            <div><span class="pk-col">PK</span> company_cd + plant_cd + pos_no</div>
+            <div>settle_dt, total_amt</div>
+            <div style="color: #e65100; font-weight: 600;">gitgo_sync_status (ENUM)</div>
+            <div>pso_status, slip_no</div>
+        </div>
+    </div>
+
+    <div style="display: flex; align-items: center; font-size: 28px; color: #6a1b9a; font-weight: 700;">&rarr;</div>
+
+    <div class="er-box" style="border-color: #6a1b9a;">
+        <div class="er-box-header target">po_settle_dtl (정산디테일)</div>
+        <div class="er-box-body">
+            <div><span class="pk-col">PK</span> ...+ pos_sq</div>
+            <div><span class="fk-col">FK</span> &rarr; po_settle_mst</div>
+            <div><span class="fk-col">FK</span> &rarr; po_dtl</div>
+            <div>settle_qty, settle_amt</div>
+        </div>
+    </div>
+
+    <div style="display: flex; align-items: center; font-size: 22px; color: #999; font-weight: 700;">- - &rarr;</div>
+
+    <div class="er-box" style="border-color: #9e9e9e; border-style: dashed;">
+        <div class="er-box-header" style="background: #757575;">po_dtl (연결)</div>
+        <div class="er-box-body" style="color: #999;">
+            <div>po_no + po_sq</div>
+            <div style="font-style: italic;">발주 그룹 참조</div>
+        </div>
+    </div>
+</div>
+<div style="text-align: center; color: #999; font-size: 12px; margin: 8px 0;">
+    po_settle_mst &rarr; po_settle_dtl &rarr; po_dtl (교차 참조)
+</div>
+
+<!-- 매출 그룹 -->
+<h4 style="color: #6a1b9a; margin-top: 30px;">매출 그룹</h4>
+<div class="er-row" style="justify-content: center; gap: 40px;">
+    <div class="er-box" style="border-color: #6a1b9a;">
+        <div class="er-box-header target">sales_mst (매출마스터)</div>
+        <div class="er-box-body">
+            <div><span class="pk-col">PK</span> company_cd + plant_cd + sales_no</div>
+            <div>partner_cd, sales_dt</div>
+            <div>total_amt, status_cd</div>
+            <div style="color: #e65100; font-weight: 600;">erp_sync_status (ENUM)</div>
+        </div>
+    </div>
+
+    <div style="display: flex; align-items: center; font-size: 28px; color: #6a1b9a; font-weight: 700;">&rarr;</div>
+
+    <div class="er-box" style="border-color: #6a1b9a;">
+        <div class="er-box-header target">sales_dtl (매출디테일)</div>
+        <div class="er-box-body">
+            <div><span class="pk-col">PK</span> ...+ sales_sq</div>
+            <div><span class="fk-col">FK</span> &rarr; sales_mst</div>
+            <div><span class="fk-col">FK</span> &rarr; order_dtl</div>
+            <div>sales_qty, sales_price, sales_amt</div>
+        </div>
+    </div>
+
+    <div style="display: flex; align-items: center; font-size: 22px; color: #999; font-weight: 700;">- - &rarr;</div>
+
+    <div class="er-box" style="border-color: #9e9e9e; border-style: dashed;">
+        <div class="er-box-header" style="background: #757575;">order_dtl (연결)</div>
+        <div class="er-box-body" style="color: #999;">
+            <div>order_no + order_sq</div>
+            <div style="font-style: italic;">주문 그룹 참조</div>
+        </div>
+    </div>
+</div>
+<div style="text-align: center; color: #999; font-size: 12px; margin: 8px 0;">
+    sales_mst &rarr; sales_dtl &rarr; order_dtl (교차 참조)
+</div>
+
+<!-- 목표 (독립) -->
+<h4 style="color: #6a1b9a; margin-top: 30px;">목표 (독립)</h4>
+<div class="er-row" style="justify-content: center;">
+    <div class="er-box" style="border-color: #6a1b9a; min-width: 300px; max-width: 360px;">
+        <div class="er-box-header target">goal_mst (목표입력 - 독립)</div>
+        <div class="er-box-body">
+            <div><span class="pk-col">PK</span> company_cd + plant_cd + plan_yy + plan_mm</div>
+            <div><span class="pk-col">PK</span> dept_cd + sales_emp_id + field_cd</div>
+            <div>partner_cd, target_amount</div>
+            <div style="font-style: italic; color: #6a1b9a;">파트목표 + AM목표 통합 (field_cd로 구분)</div>
+        </div>
+    </div>
+</div>
+
+</div>
+</div>
+
+<!-- Relationship Summary Table -->
+<h4>관계(Relationship) 요약</h4>
+<table>
+    <thead>
+        <tr><th>#</th><th>From (자식)</th><th>To (부모)</th><th>참조 키</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td>users</td><td>departments</td><td>company_cd, dept_cd</td><td>사용자 &rarr; 부서</td></tr>
+        <tr><td>2</td><td>order_dtl</td><td>order_mst</td><td>company_cd, plant_cd, order_no</td><td>주문디테일 &rarr; 주문마스터</td></tr>
+        <tr><td>3</td><td>order_info</td><td>order_dtl</td><td>company_cd, plant_cd, order_no, order_sq</td><td>인쇄사양 &rarr; 주문디테일</td></tr>
+        <tr><td>4</td><td>order_dlv</td><td>order_dtl</td><td>company_cd, plant_cd, order_no, order_sq</td><td>납품 &rarr; 주문디테일</td></tr>
+        <tr><td>5</td><td>file_info</td><td>order_dtl</td><td>company_cd, plant_cd, order_no, order_sq</td><td>파일 &rarr; 주문디테일</td></tr>
+        <tr><td>6</td><td>po_dtl</td><td>po_mst</td><td>company_cd, plant_cd, po_no</td><td>발주디테일 &rarr; 발주마스터</td></tr>
+        <tr><td>7</td><td>po_dtl</td><td>order_info</td><td>company_cd, plant_cd, order_no, order_sq, info_sq</td><td>발주디테일 &rarr; 인쇄사양 (교차)</td></tr>
+        <tr><td>8</td><td>po_settle_dtl</td><td>po_settle_mst</td><td>company_cd, plant_cd, pos_no</td><td>정산디테일 &rarr; 정산마스터</td></tr>
+        <tr><td>9</td><td>po_settle_dtl</td><td>po_dtl</td><td>company_cd, plant_cd, po_no, po_sq</td><td>정산디테일 &rarr; 발주디테일 (교차)</td></tr>
+        <tr><td>10</td><td>sales_dtl</td><td>sales_mst</td><td>company_cd, plant_cd, sales_no</td><td>매출디테일 &rarr; 매출마스터</td></tr>
+        <tr><td>11</td><td>sales_dtl</td><td>order_dtl</td><td>company_cd, plant_cd, order_no, order_sq</td><td>매출디테일 &rarr; 주문디테일 (교차)</td></tr>
+    </tbody>
+</table>
+
+<div class="note">
+    <strong>교차 도메인 참조:</strong> 발주(po_dtl)는 주문 인쇄사양(order_info)을 참조하고, 정산(po_settle_dtl)은 발주(po_dtl)를, 매출(sales_dtl)은 주문(order_dtl)을 참조합니다.
+    이를 통해 주문 &rarr; 발주 &rarr; 정산, 주문 &rarr; 매출의 전체 비즈니스 흐름이 DB 레벨에서 추적 가능합니다.
+</div>
+
+
+<!-- ============================================================ -->
+<!-- Section 3: SM Module 기존 테이블 (MariaDB) -->
+<!-- ============================================================ -->
+<h2>3. SM Module 기존 테이블 (MariaDB)</h2>
+
+<!-- ======================== 3.1 인증/조직 ======================== -->
+<h3>3.1 인증/조직 도메인</h3>
+
+<!-- departments -->
+<div class="tbl-title">
+    <span>departments (부서)</span>
+    <span class="badge">MariaDB</span>
+</div>
+<div class="tbl-meta">조직 관리 &nbsp;|&nbsp; Flyway V1 &nbsp;|&nbsp; 자기참조(parent_id)로 부서 계층 구현</div>
+<table>
+    <thead>
+        <tr><th>#</th><th>컬럼명</th><th>데이터타입</th><th>PK</th><th>FK</th><th>NULL허용</th><th>기본값</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td><span class="pk">id</span></td><td>BIGINT</td><td class="pk">PK</td><td></td><td>NO</td><td>AUTO_INCREMENT</td><td>부서 ID</td></tr>
+        <tr><td>2</td><td>name</td><td>VARCHAR(100)</td><td></td><td></td><td>NO</td><td></td><td>부서명</td></tr>
+        <tr><td>3</td><td>division</td><td>VARCHAR(100)</td><td></td><td></td><td class="nullable">YES</td><td></td><td>본부/사업부</td></tr>
+        <tr><td>4</td><td>parent_id</td><td>BIGINT</td><td></td><td class="fk">FK&rarr;departments</td><td class="nullable">YES</td><td></td><td>상위부서 ID</td></tr>
+        <tr><td>5</td><td>created_at</td><td>DATETIME</td><td></td><td></td><td>NO</td><td>CURRENT_TIMESTAMP</td><td>생성일시</td></tr>
+        <tr><td>6</td><td>updated_at</td><td>DATETIME</td><td></td><td></td><td>NO</td><td>CURRENT_TIMESTAMP</td><td>수정일시</td></tr>
+    </tbody>
+</table>
+
+<!-- users -->
+<div class="tbl-title">
+    <span>users (사용자)</span>
+    <span class="badge">MariaDB</span>
+</div>
+<div class="tbl-meta">시스템 사용자 &nbsp;|&nbsp; Flyway V1 &nbsp;|&nbsp; UK: employee_no, email</div>
+<table>
+    <thead>
+        <tr><th>#</th><th>컬럼명</th><th>데이터타입</th><th>PK</th><th>FK</th><th>NULL허용</th><th>기본값</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td><span class="pk">id</span></td><td>BIGINT</td><td class="pk">PK</td><td></td><td>NO</td><td>AUTO_INCREMENT</td><td>사용자 ID</td></tr>
+        <tr><td>2</td><td>employee_no</td><td>VARCHAR(20)</td><td>UK</td><td></td><td>NO</td><td></td><td>사원번호</td></tr>
+        <tr><td>3</td><td>name</td><td>VARCHAR(50)</td><td></td><td></td><td>NO</td><td></td><td>이름</td></tr>
+        <tr><td>4</td><td>email</td><td>VARCHAR(100)</td><td>UK</td><td></td><td>NO</td><td></td><td>이메일</td></tr>
+        <tr><td>5</td><td>password</td><td>VARCHAR(255)</td><td></td><td></td><td>NO</td><td></td><td>비밀번호(BCrypt)</td></tr>
+        <tr><td>6</td><td>department_id</td><td>BIGINT</td><td></td><td class="fk">FK&rarr;departments</td><td>NO</td><td></td><td>부서 ID</td></tr>
+        <tr><td>7</td><td>role</td><td>VARCHAR(20)</td><td></td><td></td><td>NO</td><td>'USER'</td><td>역할(ADMIN/MANAGER/USER)</td></tr>
+        <tr><td>8</td><td>is_active</td><td>BOOLEAN</td><td></td><td></td><td>NO</td><td>true</td><td>활성여부</td></tr>
+        <tr><td>9</td><td>two_factor_enabled</td><td>BOOLEAN</td><td></td><td></td><td>NO</td><td>false</td><td>2FA 활성화</td></tr>
+        <tr><td>10</td><td>created_at</td><td>DATETIME</td><td></td><td></td><td>NO</td><td>CURRENT_TIMESTAMP</td><td>생성일시</td></tr>
+        <tr><td>11</td><td>updated_at</td><td>DATETIME</td><td></td><td></td><td>NO</td><td>CURRENT_TIMESTAMP</td><td>수정일시</td></tr>
+    </tbody>
+</table>
+
+
+<!-- ======================== 3.2 정보관리 ======================== -->
+<h3>3.2 정보관리 도메인</h3>
+
+<!-- business_owners -->
+<div class="tbl-title">
+    <span>business_owners (사업자/거래처) <span class="erp-tag">ERP 연동</span></span>
+    <span class="badge">MariaDB</span>
+</div>
+<div class="tbl-meta">거래처 정보 &nbsp;|&nbsp; Flyway V2 &nbsp;|&nbsp; ERP 연동 대상: <code>CI_PARTNER_MST</code> &nbsp;|&nbsp; UK: biz_no</div>
+<table>
+    <thead>
+        <tr><th>#</th><th>컬럼명</th><th>데이터타입</th><th>PK</th><th>FK</th><th>NULL허용</th><th>기본값</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td><span class="pk">id</span></td><td>BIGINT</td><td class="pk">PK</td><td></td><td>NO</td><td>AUTO_INCREMENT</td><td>사업자 ID</td></tr>
+        <tr><td>2</td><td>company_name</td><td>VARCHAR(200)</td><td></td><td></td><td>NO</td><td></td><td>회사명</td></tr>
+        <tr><td>3</td><td>biz_no</td><td>VARCHAR(20)</td><td>UK</td><td></td><td>NO</td><td></td><td>사업자등록번호</td></tr>
+        <tr><td>4</td><td>biz_type</td><td>VARCHAR(100)</td><td></td><td></td><td class="nullable">YES</td><td></td><td>업태</td></tr>
+        <tr><td>5</td><td>biz_item</td><td>VARCHAR(100)</td><td></td><td></td><td class="nullable">YES</td><td></td><td>업종</td></tr>
+        <tr><td>6</td><td>address</td><td>VARCHAR(500)</td><td></td><td></td><td class="nullable">YES</td><td></td><td>주소</td></tr>
+        <tr><td>7</td><td>douzone_code</td><td>VARCHAR(20)</td><td></td><td></td><td class="nullable">YES</td><td></td><td>더존코드(=ERP PARTNER_CD)</td></tr>
+        <tr><td>8</td><td>representative_name</td><td>VARCHAR(50)</td><td></td><td></td><td class="nullable">YES</td><td></td><td>대표자명</td></tr>
+        <tr><td>9</td><td>representative_email</td><td>VARCHAR(100)</td><td></td><td></td><td class="nullable">YES</td><td></td><td>대표이메일</td></tr>
+        <tr><td>10</td><td>representative_phone</td><td>VARCHAR(20)</td><td></td><td></td><td class="nullable">YES</td><td></td><td>대표전화</td></tr>
+        <tr><td>11</td><td>department_id</td><td>BIGINT</td><td></td><td class="fk">FK&rarr;departments</td><td class="nullable">YES</td><td></td><td>담당부서</td></tr>
+        <tr><td>12</td><td>created_at</td><td>DATETIME</td><td></td><td></td><td>NO</td><td>CURRENT_TIMESTAMP</td><td>생성일시</td></tr>
+        <tr><td>13</td><td>updated_at</td><td>DATETIME</td><td></td><td></td><td>NO</td><td>CURRENT_TIMESTAMP</td><td>수정일시</td></tr>
+    </tbody>
+</table>
+
+<!-- customers -->
+<div class="tbl-title">
+    <span>customers (고객/담당자)</span>
+    <span class="badge">MariaDB</span>
+</div>
+<div class="tbl-meta">사업자 하위 담당자 &nbsp;|&nbsp; Flyway V2</div>
+<table>
+    <thead>
+        <tr><th>#</th><th>컬럼명</th><th>데이터타입</th><th>PK</th><th>FK</th><th>NULL허용</th><th>기본값</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td><span class="pk">id</span></td><td>BIGINT</td><td class="pk">PK</td><td></td><td>NO</td><td>AUTO_INCREMENT</td><td>고객 ID</td></tr>
+        <tr><td>2</td><td>name</td><td>VARCHAR(50)</td><td></td><td></td><td>NO</td><td></td><td>담당자명</td></tr>
+        <tr><td>3</td><td>business_owner_id</td><td>BIGINT</td><td></td><td class="fk">FK&rarr;business_owners</td><td>NO</td><td></td><td>사업자 ID</td></tr>
+        <tr><td>4</td><td>branch</td><td>VARCHAR(100)</td><td></td><td></td><td class="nullable">YES</td><td></td><td>지점/부서</td></tr>
+        <tr><td>5</td><td>phone</td><td>VARCHAR(20)</td><td></td><td></td><td class="nullable">YES</td><td></td><td>연락처</td></tr>
+        <tr><td>6</td><td>email</td><td>VARCHAR(100)</td><td></td><td></td><td class="nullable">YES</td><td></td><td>이메일</td></tr>
+        <tr><td>7</td><td>created_at</td><td>DATETIME</td><td></td><td></td><td>NO</td><td>CURRENT_TIMESTAMP</td><td>생성일시</td></tr>
+        <tr><td>8</td><td>updated_at</td><td>DATETIME</td><td></td><td></td><td>NO</td><td>CURRENT_TIMESTAMP</td><td>수정일시</td></tr>
+    </tbody>
+</table>
+
+<!-- part_goals -->
+<div class="tbl-title">
+    <span>part_goals (파트목표)</span>
+    <span class="badge">MariaDB</span>
+</div>
+<div class="tbl-meta">부서별 월별 매출 목표 &nbsp;|&nbsp; Flyway V2</div>
+<table>
+    <thead>
+        <tr><th>#</th><th>컬럼명</th><th>데이터타입</th><th>PK</th><th>FK</th><th>NULL허용</th><th>기본값</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td><span class="pk">id</span></td><td>BIGINT</td><td class="pk">PK</td><td></td><td>NO</td><td>AUTO_INCREMENT</td><td>파트목표 ID</td></tr>
+        <tr><td>2</td><td>department_id</td><td>BIGINT</td><td></td><td class="fk">FK&rarr;departments</td><td>NO</td><td></td><td>부서 ID</td></tr>
+        <tr><td>3</td><td>year</td><td>INT</td><td></td><td></td><td>NO</td><td></td><td>연도</td></tr>
+        <tr><td>4</td><td>month</td><td>INT</td><td></td><td></td><td>NO</td><td></td><td>월</td></tr>
+        <tr><td>5</td><td>target_amount</td><td>DECIMAL(15,2)</td><td></td><td></td><td>NO</td><td>0</td><td>목표금액</td></tr>
+        <tr><td>6</td><td>created_at</td><td>DATETIME</td><td></td><td></td><td>NO</td><td>CURRENT_TIMESTAMP</td><td>생성일시</td></tr>
+        <tr><td>7</td><td>updated_at</td><td>DATETIME</td><td></td><td></td><td>NO</td><td>CURRENT_TIMESTAMP</td><td>수정일시</td></tr>
+    </tbody>
+</table>
+
+<!-- am_goals -->
+<div class="tbl-title">
+    <span>am_goals (AM목표)</span>
+    <span class="badge">MariaDB</span>
+</div>
+<div class="tbl-meta">담당자별 월별 매출 목표 &nbsp;|&nbsp; Flyway V2</div>
+<table>
+    <thead>
+        <tr><th>#</th><th>컬럼명</th><th>데이터타입</th><th>PK</th><th>FK</th><th>NULL허용</th><th>기본값</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td><span class="pk">id</span></td><td>BIGINT</td><td class="pk">PK</td><td></td><td>NO</td><td>AUTO_INCREMENT</td><td>AM목표 ID</td></tr>
+        <tr><td>2</td><td>user_id</td><td>BIGINT</td><td></td><td class="fk">FK&rarr;users</td><td>NO</td><td></td><td>담당자 ID</td></tr>
+        <tr><td>3</td><td>year</td><td>INT</td><td></td><td></td><td>NO</td><td></td><td>연도</td></tr>
+        <tr><td>4</td><td>month</td><td>INT</td><td></td><td></td><td>NO</td><td></td><td>월</td></tr>
+        <tr><td>5</td><td>target_amount</td><td>DECIMAL(15,2)</td><td></td><td></td><td>NO</td><td>0</td><td>목표금액</td></tr>
+        <tr><td>6</td><td>created_at</td><td>DATETIME</td><td></td><td></td><td>NO</td><td>CURRENT_TIMESTAMP</td><td>생성일시</td></tr>
+        <tr><td>7</td><td>updated_at</td><td>DATETIME</td><td></td><td></td><td>NO</td><td>CURRENT_TIMESTAMP</td><td>수정일시</td></tr>
+    </tbody>
+</table>
+
+
+<!-- ======================== 3.3 주문 도메인 ======================== -->
+<h3>3.3 주문 도메인</h3>
+
+<!-- orders -->
+<div class="tbl-title">
+    <span>orders (주문) <span class="erp-tag">ERP 연동</span></span>
+    <span class="badge">MariaDB</span>
+</div>
+<div class="tbl-meta">주문 마스터 &nbsp;|&nbsp; Flyway V3 &nbsp;|&nbsp; ERP 연동 대상: <code>SD_ORDER_MST_X20329</code> &nbsp;|&nbsp; UK: order_no</div>
+<table>
+    <thead>
+        <tr><th>#</th><th>컬럼명</th><th>데이터타입</th><th>PK</th><th>FK</th><th>NULL허용</th><th>기본값</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td><span class="pk">id</span></td><td>BIGINT</td><td class="pk">PK</td><td></td><td>NO</td><td>AUTO_INCREMENT</td><td>주문 ID</td></tr>
+        <tr><td>2</td><td>order_no</td><td>VARCHAR(30)</td><td>UK</td><td></td><td>NO</td><td></td><td>주문번호</td></tr>
+        <tr><td>3</td><td>title</td><td>VARCHAR(200)</td><td></td><td></td><td>NO</td><td></td><td>주문명</td></tr>
+        <tr><td>4</td><td>customer_id</td><td>BIGINT</td><td></td><td class="fk">FK&rarr;customers</td><td>NO</td><td></td><td>고객 ID</td></tr>
+        <tr><td>5</td><td>business_owner_id</td><td>BIGINT</td><td></td><td class="fk">FK&rarr;business_owners</td><td>NO</td><td></td><td>사업자 ID</td></tr>
+        <tr><td>6</td><td>division</td><td>VARCHAR(20)</td><td></td><td></td><td class="nullable">YES</td><td></td><td>사업부</td></tr>
+        <tr><td>7</td><td>sales_manager_id</td><td>BIGINT</td><td></td><td class="fk">FK&rarr;users</td><td>NO</td><td></td><td>영업담당자</td></tr>
+        <tr><td>8</td><td>receiver_id</td><td>BIGINT</td><td></td><td class="fk">FK&rarr;users</td><td class="nullable">YES</td><td></td><td>접수자</td></tr>
+        <tr><td>9</td><td>receiver_branch</td><td>VARCHAR(100)</td><td></td><td></td><td class="nullable">YES</td><td></td><td>접수지점</td></tr>
+        <tr><td>10</td><td>tax_type</td><td>VARCHAR(20)</td><td></td><td></td><td>NO</td><td>'TAX'</td><td>과세유형</td></tr>
+        <tr><td>11</td><td>status</td><td>VARCHAR(20)</td><td></td><td></td><td>NO</td><td>'DRAFT'</td><td>상태</td></tr>
+        <tr><td>12</td><td>requested_date</td><td>DATE</td><td></td><td></td><td class="nullable">YES</td><td></td><td>요청일</td></tr>
+        <tr><td>13</td><td>received_date</td><td>DATE</td><td></td><td></td><td class="nullable">YES</td><td></td><td>접수일</td></tr>
+        <tr><td>14</td><td>note</td><td>TEXT</td><td></td><td></td><td class="nullable">YES</td><td></td><td>비고</td></tr>
+        <tr><td>15</td><td>total_amount</td><td>DECIMAL(15,2)</td><td></td><td></td><td>NO</td><td>0</td><td>합계금액</td></tr>
+        <tr><td>16</td><td>erp_order_no</td><td>VARCHAR(30)</td><td></td><td></td><td class="nullable">YES</td><td></td><td>ERP 주문번호(ORDDOC_NO)</td></tr>
+        <tr><td>17</td><td>created_at</td><td>DATETIME</td><td></td><td></td><td>NO</td><td>CURRENT_TIMESTAMP</td><td>생성일시</td></tr>
+        <tr><td>18</td><td>updated_at</td><td>DATETIME</td><td></td><td></td><td>NO</td><td>CURRENT_TIMESTAMP</td><td>수정일시</td></tr>
+    </tbody>
+</table>
+
+<!-- order_works -->
+<div class="tbl-title">
+    <span>order_works (주문작업)</span>
+    <span class="badge">MariaDB</span>
+</div>
+<div class="tbl-meta">주문별 작업 &nbsp;|&nbsp; Flyway V3</div>
+<table>
+    <thead>
+        <tr><th>#</th><th>컬럼명</th><th>데이터타입</th><th>PK</th><th>FK</th><th>NULL허용</th><th>기본값</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td><span class="pk">id</span></td><td>BIGINT</td><td class="pk">PK</td><td></td><td>NO</td><td>AUTO_INCREMENT</td><td>작업 ID</td></tr>
+        <tr><td>2</td><td>order_id</td><td>BIGINT</td><td></td><td class="fk">FK&rarr;orders</td><td>NO</td><td></td><td>주문 ID</td></tr>
+        <tr><td>3</td><td>work_type</td><td>VARCHAR(20)</td><td></td><td></td><td>NO</td><td></td><td>작업유형</td></tr>
+        <tr><td>4</td><td>work_name</td><td>VARCHAR(200)</td><td></td><td></td><td>NO</td><td></td><td>작업명</td></tr>
+        <tr><td>5</td><td>quantity</td><td>INT</td><td></td><td></td><td>NO</td><td>0</td><td>수량</td></tr>
+        <tr><td>6</td><td>note</td><td>TEXT</td><td></td><td></td><td class="nullable">YES</td><td></td><td>비고</td></tr>
+        <tr><td>7</td><td>work_amount</td><td>DECIMAL(15,2)</td><td></td><td></td><td>NO</td><td>0</td><td>작업금액</td></tr>
+        <tr><td>8</td><td>delivery_fee</td><td>DECIMAL(15,2)</td><td></td><td></td><td>NO</td><td>0</td><td>배송비</td></tr>
+        <tr><td>9</td><td>design_fee</td><td>DECIMAL(15,2)</td><td></td><td></td><td>NO</td><td>0</td><td>디자인비</td></tr>
+        <tr><td>10</td><td>discount</td><td>DECIMAL(15,2)</td><td></td><td></td><td>NO</td><td>0</td><td>할인</td></tr>
+        <tr><td>11</td><td>payment_amount</td><td>DECIMAL(15,2)</td><td></td><td></td><td>NO</td><td>0</td><td>결제금액</td></tr>
+        <tr><td>12</td><td>sort_order</td><td>INT</td><td></td><td></td><td>NO</td><td>0</td><td>정렬순서</td></tr>
+    </tbody>
+</table>
+
+<!-- order_items -->
+<div class="tbl-title">
+    <span>order_items (주문품목)</span>
+    <span class="badge">MariaDB</span>
+</div>
+<div class="tbl-meta">작업별 품목 &nbsp;|&nbsp; Flyway V3</div>
+<table>
+    <thead>
+        <tr><th>#</th><th>컬럼명</th><th>데이터타입</th><th>PK</th><th>FK</th><th>NULL허용</th><th>기본값</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td><span class="pk">id</span></td><td>BIGINT</td><td class="pk">PK</td><td></td><td>NO</td><td>AUTO_INCREMENT</td><td>품목 ID</td></tr>
+        <tr><td>2</td><td>order_work_id</td><td>BIGINT</td><td></td><td class="fk">FK&rarr;order_works</td><td>NO</td><td></td><td>작업 ID</td></tr>
+        <tr><td>3</td><td>category</td><td>VARCHAR(50)</td><td></td><td></td><td class="nullable">YES</td><td></td><td>분류</td></tr>
+        <tr><td>4</td><td>composition</td><td>VARCHAR(100)</td><td></td><td></td><td class="nullable">YES</td><td></td><td>구성</td></tr>
+        <tr><td>5</td><td>item_name</td><td>VARCHAR(200)</td><td></td><td></td><td>NO</td><td></td><td>품목명</td></tr>
+        <tr><td>6</td><td>note</td><td>TEXT</td><td></td><td></td><td class="nullable">YES</td><td></td><td>비고</td></tr>
+        <tr><td>7</td><td>quantity</td><td>INT</td><td></td><td></td><td>NO</td><td>0</td><td>수량</td></tr>
+        <tr><td>8</td><td>unit_price</td><td>DECIMAL(15,2)</td><td></td><td></td><td>NO</td><td>0</td><td>단가</td></tr>
+        <tr><td>9</td><td>subtotal</td><td>DECIMAL(15,2)</td><td></td><td></td><td>NO</td><td>0</td><td>소계</td></tr>
+        <tr><td>10</td><td>sort_order</td><td>INT</td><td></td><td></td><td>NO</td><td>0</td><td>정렬순서</td></tr>
+    </tbody>
+</table>
+
+
+<!-- ======================== 3.4 매출 도메인 ======================== -->
+<h3>3.4 매출 도메인</h3>
+
+<!-- sales -->
+<div class="tbl-title">
+    <span>sales (매출)</span>
+    <span class="badge">MariaDB</span>
+</div>
+<div class="tbl-meta">매출 정보 &nbsp;|&nbsp; Flyway V4</div>
+<table>
+    <thead>
+        <tr><th>#</th><th>컬럼명</th><th>데이터타입</th><th>PK</th><th>FK</th><th>NULL허용</th><th>기본값</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td><span class="pk">id</span></td><td>BIGINT</td><td class="pk">PK</td><td></td><td>NO</td><td>AUTO_INCREMENT</td><td>매출 ID</td></tr>
+        <tr><td>2</td><td>order_id</td><td>BIGINT</td><td></td><td class="fk">FK&rarr;orders</td><td>NO</td><td></td><td>주문 ID</td></tr>
+        <tr><td>3</td><td>sales_date</td><td>DATE</td><td></td><td></td><td>NO</td><td></td><td>매출일자</td></tr>
+        <tr><td>4</td><td>amount</td><td>DECIMAL(15,2)</td><td></td><td></td><td>NO</td><td>0</td><td>매출금액</td></tr>
+        <tr><td>5</td><td>confirmed</td><td>BOOLEAN</td><td></td><td></td><td>NO</td><td>false</td><td>확정여부</td></tr>
+        <tr><td>6</td><td>confirmed_at</td><td>DATETIME</td><td></td><td></td><td class="nullable">YES</td><td></td><td>확정일시</td></tr>
+        <tr><td>7</td><td>confirmed_by</td><td>BIGINT</td><td></td><td class="fk">FK&rarr;users</td><td class="nullable">YES</td><td></td><td>확정자</td></tr>
+        <tr><td>8</td><td>department_id</td><td>BIGINT</td><td></td><td class="fk">FK&rarr;departments</td><td class="nullable">YES</td><td></td><td>부서 ID</td></tr>
+        <tr><td>9</td><td>created_at</td><td>DATETIME</td><td></td><td></td><td>NO</td><td>CURRENT_TIMESTAMP</td><td>생성일시</td></tr>
+    </tbody>
+</table>
+
+<!-- card_sales -->
+<div class="tbl-title">
+    <span>card_sales (카드매출)</span>
+    <span class="badge">MariaDB</span>
+</div>
+<div class="tbl-meta">카드매출 정보 &nbsp;|&nbsp; Flyway V4</div>
+<table>
+    <thead>
+        <tr><th>#</th><th>컬럼명</th><th>데이터타입</th><th>PK</th><th>FK</th><th>NULL허용</th><th>기본값</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td><span class="pk">id</span></td><td>BIGINT</td><td class="pk">PK</td><td></td><td>NO</td><td>AUTO_INCREMENT</td><td>카드매출 ID</td></tr>
+        <tr><td>2</td><td>card_company</td><td>VARCHAR(50)</td><td></td><td></td><td>NO</td><td></td><td>카드사</td></tr>
+        <tr><td>3</td><td>card_no</td><td>VARCHAR(30)</td><td></td><td></td><td class="nullable">YES</td><td></td><td>카드번호</td></tr>
+        <tr><td>4</td><td>approval_no</td><td>VARCHAR(30)</td><td></td><td></td><td>NO</td><td></td><td>승인번호</td></tr>
+        <tr><td>5</td><td>approval_date</td><td>DATE</td><td></td><td></td><td>NO</td><td></td><td>승인일자</td></tr>
+        <tr><td>6</td><td>amount</td><td>DECIMAL(15,2)</td><td></td><td></td><td>NO</td><td>0</td><td>금액</td></tr>
+        <tr><td>7</td><td>business_owner_id</td><td>BIGINT</td><td></td><td class="fk">FK&rarr;business_owners</td><td class="nullable">YES</td><td></td><td>사업자 ID</td></tr>
+        <tr><td>8</td><td>created_at</td><td>DATETIME</td><td></td><td></td><td>NO</td><td>CURRENT_TIMESTAMP</td><td>생성일시</td></tr>
+        <tr><td>9</td><td>updated_at</td><td>DATETIME</td><td></td><td></td><td>NO</td><td>CURRENT_TIMESTAMP</td><td>수정일시</td></tr>
+    </tbody>
+</table>
+
+<!-- pre_sales -->
+<div class="tbl-title">
+    <span>pre_sales (선매출)</span>
+    <span class="badge">MariaDB</span>
+</div>
+<div class="tbl-meta">선매출 정보 &nbsp;|&nbsp; Flyway V4</div>
+<table>
+    <thead>
+        <tr><th>#</th><th>컬럼명</th><th>데이터타입</th><th>PK</th><th>FK</th><th>NULL허용</th><th>기본값</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td><span class="pk">id</span></td><td>BIGINT</td><td class="pk">PK</td><td></td><td>NO</td><td>AUTO_INCREMENT</td><td>선매출 ID</td></tr>
+        <tr><td>2</td><td>pre_sales_no</td><td>VARCHAR(30)</td><td>UK</td><td></td><td>NO</td><td></td><td>선매출번호</td></tr>
+        <tr><td>3</td><td>order_id</td><td>BIGINT</td><td></td><td class="fk">FK&rarr;orders</td><td>NO</td><td></td><td>주문 ID</td></tr>
+        <tr><td>4</td><td>amount</td><td>DECIMAL(15,2)</td><td></td><td></td><td>NO</td><td>0</td><td>선매출 금액</td></tr>
+        <tr><td>5</td><td>remaining_amount</td><td>DECIMAL(15,2)</td><td></td><td></td><td>NO</td><td>0</td><td>잔여금액</td></tr>
+        <tr><td>6</td><td>status</td><td>VARCHAR(20)</td><td></td><td></td><td>NO</td><td>'ACTIVE'</td><td>상태</td></tr>
+        <tr><td>7</td><td>created_at</td><td>DATETIME</td><td></td><td></td><td>NO</td><td>CURRENT_TIMESTAMP</td><td>생성일시</td></tr>
+        <tr><td>8</td><td>updated_at</td><td>DATETIME</td><td></td><td></td><td>NO</td><td>CURRENT_TIMESTAMP</td><td>수정일시</td></tr>
+    </tbody>
+</table>
+
+<!-- untact_orders -->
+<div class="tbl-title">
+    <span>untact_orders (비대면주문)</span>
+    <span class="badge">MariaDB</span>
+</div>
+<div class="tbl-meta">비대면주문 정보 &nbsp;|&nbsp; Flyway V4</div>
+<table>
+    <thead>
+        <tr><th>#</th><th>컬럼명</th><th>데이터타입</th><th>PK</th><th>FK</th><th>NULL허용</th><th>기본값</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td><span class="pk">id</span></td><td>BIGINT</td><td class="pk">PK</td><td></td><td>NO</td><td>AUTO_INCREMENT</td><td>비대면주문 ID</td></tr>
+        <tr><td>2</td><td>untact_no</td><td>VARCHAR(30)</td><td>UK</td><td></td><td>NO</td><td></td><td>비대면주문번호</td></tr>
+        <tr><td>3</td><td>order_id</td><td>BIGINT</td><td></td><td class="fk">FK&rarr;orders</td><td class="nullable">YES</td><td></td><td>주문 ID</td></tr>
+        <tr><td>4</td><td>payment_status</td><td>VARCHAR(20)</td><td></td><td></td><td>NO</td><td>'PENDING'</td><td>결제상태</td></tr>
+        <tr><td>5</td><td>payment_amount</td><td>DECIMAL(15,2)</td><td></td><td></td><td>NO</td><td>0</td><td>결제금액</td></tr>
+        <tr><td>6</td><td>created_at</td><td>DATETIME</td><td></td><td></td><td>NO</td><td>CURRENT_TIMESTAMP</td><td>생성일시</td></tr>
+        <tr><td>7</td><td>updated_at</td><td>DATETIME</td><td></td><td></td><td>NO</td><td>CURRENT_TIMESTAMP</td><td>수정일시</td></tr>
+    </tbody>
+</table>
+
+<!-- untact_settlements -->
+<div class="tbl-title">
+    <span>untact_settlements (비대면정산)</span>
+    <span class="badge">MariaDB</span>
+</div>
+<div class="tbl-meta">비대면정산 정보 &nbsp;|&nbsp; Flyway V4</div>
+<table>
+    <thead>
+        <tr><th>#</th><th>컬럼명</th><th>데이터타입</th><th>PK</th><th>FK</th><th>NULL허용</th><th>기본값</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td><span class="pk">id</span></td><td>BIGINT</td><td class="pk">PK</td><td></td><td>NO</td><td>AUTO_INCREMENT</td><td>정산 ID</td></tr>
+        <tr><td>2</td><td>untact_order_id</td><td>BIGINT</td><td></td><td class="fk">FK&rarr;untact_orders</td><td>NO</td><td></td><td>비대면주문 ID</td></tr>
+        <tr><td>3</td><td>payment_amount</td><td>DECIMAL(15,2)</td><td></td><td></td><td>NO</td><td>0</td><td>결제금액</td></tr>
+        <tr><td>4</td><td>payout_amount</td><td>DECIMAL(15,2)</td><td></td><td></td><td>NO</td><td>0</td><td>지급금액</td></tr>
+        <tr><td>5</td><td>settlement_date</td><td>DATE</td><td></td><td></td><td>NO</td><td></td><td>정산일자</td></tr>
+        <tr><td>6</td><td>created_at</td><td>DATETIME</td><td></td><td></td><td>NO</td><td>CURRENT_TIMESTAMP</td><td>생성일시</td></tr>
+    </tbody>
+</table>
+
+
+<!-- ======================== 3.5 매입마감 도메인 ======================== -->
+<h3>3.5 매입마감 도메인</h3>
+
+<!-- outsourcing_pos -->
+<div class="tbl-title">
+    <span>outsourcing_pos (외주발주) <span class="erp-tag">ERP 연동</span></span>
+    <span class="badge">MariaDB</span>
+</div>
+<div class="tbl-meta">외주발주 관리 &nbsp;|&nbsp; Flyway V5 &nbsp;|&nbsp; ERP 연동 대상: <code>PU_PURORDER_MST</code> &nbsp;|&nbsp; UK: po_no</div>
+<table>
+    <thead>
+        <tr><th>#</th><th>컬럼명</th><th>데이터타입</th><th>PK</th><th>FK</th><th>NULL허용</th><th>기본값</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td><span class="pk">id</span></td><td>BIGINT</td><td class="pk">PK</td><td></td><td>NO</td><td>AUTO_INCREMENT</td><td>외주발주 ID</td></tr>
+        <tr><td>2</td><td>po_no</td><td>VARCHAR(30)</td><td>UK</td><td></td><td>NO</td><td></td><td>발주번호</td></tr>
+        <tr><td>3</td><td>order_id</td><td>BIGINT</td><td></td><td class="fk">FK&rarr;orders</td><td>NO</td><td></td><td>주문 ID</td></tr>
+        <tr><td>4</td><td>department_id</td><td>BIGINT</td><td></td><td class="fk">FK&rarr;departments</td><td>NO</td><td></td><td>부서</td></tr>
+        <tr><td>5</td><td>work_title</td><td>VARCHAR(200)</td><td></td><td></td><td>NO</td><td></td><td>작업명</td></tr>
+        <tr><td>6</td><td>business_owner_id</td><td>BIGINT</td><td></td><td class="fk">FK&rarr;business_owners</td><td>NO</td><td></td><td>외주업체</td></tr>
+        <tr><td>7</td><td>order_amount</td><td>DECIMAL(15,2)</td><td></td><td></td><td>NO</td><td>0</td><td>주문금액</td></tr>
+        <tr><td>8</td><td>outsourcing_amount</td><td>DECIMAL(15,2)</td><td></td><td></td><td>NO</td><td>0</td><td>외주금액</td></tr>
+        <tr><td>9</td><td>sales_manager_id</td><td>BIGINT</td><td></td><td class="fk">FK&rarr;users</td><td>NO</td><td></td><td>영업담당</td></tr>
+        <tr><td>10</td><td>outsourcing_manager_id</td><td>BIGINT</td><td></td><td class="fk">FK&rarr;users</td><td class="nullable">YES</td><td></td><td>외주담당</td></tr>
+        <tr><td>11</td><td>status</td><td>VARCHAR(20)</td><td></td><td></td><td>NO</td><td>'DRAFT'</td><td>상태</td></tr>
+        <tr><td>12</td><td>settlement_status</td><td>VARCHAR(20)</td><td></td><td></td><td>NO</td><td>'PENDING'</td><td>정산상태</td></tr>
+        <tr><td>13</td><td>delivery_date</td><td>DATE</td><td></td><td></td><td class="nullable">YES</td><td></td><td>납품일</td></tr>
+        <tr><td>14</td><td>received_date</td><td>DATE</td><td></td><td></td><td class="nullable">YES</td><td></td><td>접수일</td></tr>
+    </tbody>
+</table>
+
+<!-- outsourcing_settlements -->
+<div class="tbl-title">
+    <span>outsourcing_settlements (외주정산)</span>
+    <span class="badge">MariaDB</span>
+</div>
+<div class="tbl-meta">외주정산 정보 &nbsp;|&nbsp; Flyway V5</div>
+<table>
+    <thead>
+        <tr><th>#</th><th>컬럼명</th><th>데이터타입</th><th>PK</th><th>FK</th><th>NULL허용</th><th>기본값</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td><span class="pk">id</span></td><td>BIGINT</td><td class="pk">PK</td><td></td><td>NO</td><td>AUTO_INCREMENT</td><td>정산 ID</td></tr>
+        <tr><td>2</td><td>outsourcing_po_id</td><td>BIGINT</td><td></td><td class="fk">FK&rarr;outsourcing_pos</td><td>NO</td><td></td><td>외주발주 ID</td></tr>
+        <tr><td>3</td><td>quantity</td><td>INT</td><td></td><td></td><td>NO</td><td>0</td><td>수량</td></tr>
+        <tr><td>4</td><td>unit_price</td><td>DECIMAL(15,2)</td><td></td><td></td><td>NO</td><td>0</td><td>단가</td></tr>
+        <tr><td>5</td><td>total_amount</td><td>DECIMAL(15,2)</td><td></td><td></td><td>NO</td><td>0</td><td>합계금액</td></tr>
+        <tr><td>6</td><td>gitgo_sync_status</td><td>VARCHAR(20)</td><td></td><td></td><td>NO</td><td>'PENDING'</td><td>기기고 연동상태</td></tr>
+        <tr><td>7</td><td>created_at</td><td>DATETIME</td><td></td><td></td><td>NO</td><td>CURRENT_TIMESTAMP</td><td>생성일시</td></tr>
+        <tr><td>8</td><td>updated_at</td><td>DATETIME</td><td></td><td></td><td>NO</td><td>CURRENT_TIMESTAMP</td><td>수정일시</td></tr>
+    </tbody>
+</table>
+
+
+<!-- ======================== 3.6 세금계산서/연동 ======================== -->
+<h3>3.6 세금계산서 / 연동</h3>
+
+<!-- tax_invoices -->
+<div class="tbl-title">
+    <span>tax_invoices (세금계산서)</span>
+    <span class="badge">MariaDB</span>
+</div>
+<div class="tbl-meta">세금계산서 정보 &nbsp;|&nbsp; Flyway V6</div>
+<table>
+    <thead>
+        <tr><th>#</th><th>컬럼명</th><th>데이터타입</th><th>PK</th><th>FK</th><th>NULL허용</th><th>기본값</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td><span class="pk">id</span></td><td>BIGINT</td><td class="pk">PK</td><td></td><td>NO</td><td>AUTO_INCREMENT</td><td>세금계산서 ID</td></tr>
+        <tr><td>2</td><td>issue_no</td><td>VARCHAR(30)</td><td>UK</td><td></td><td>NO</td><td></td><td>발행번호</td></tr>
+        <tr><td>3</td><td>order_id</td><td>BIGINT</td><td></td><td class="fk">FK&rarr;orders</td><td>NO</td><td></td><td>주문 ID</td></tr>
+        <tr><td>4</td><td>business_owner_id</td><td>BIGINT</td><td></td><td class="fk">FK&rarr;business_owners</td><td>NO</td><td></td><td>사업자 ID</td></tr>
+        <tr><td>5</td><td>total_amount</td><td>DECIMAL(15,2)</td><td></td><td></td><td>NO</td><td>0</td><td>합계금액</td></tr>
+        <tr><td>6</td><td>supply_amount</td><td>DECIMAL(15,2)</td><td></td><td></td><td>NO</td><td>0</td><td>공급가액</td></tr>
+        <tr><td>7</td><td>tax_amount</td><td>DECIMAL(15,2)</td><td></td><td></td><td>NO</td><td>0</td><td>세액</td></tr>
+        <tr><td>8</td><td>issue_date</td><td>DATE</td><td></td><td></td><td>NO</td><td></td><td>발행일</td></tr>
+        <tr><td>9</td><td>douzone_sync_status</td><td>VARCHAR(20)</td><td></td><td></td><td>NO</td><td>'PENDING'</td><td>더존 연동상태</td></tr>
+        <tr><td>10</td><td>created_at</td><td>DATETIME</td><td></td><td></td><td>NO</td><td>CURRENT_TIMESTAMP</td><td>생성일시</td></tr>
+        <tr><td>11</td><td>updated_at</td><td>DATETIME</td><td></td><td></td><td>NO</td><td>CURRENT_TIMESTAMP</td><td>수정일시</td></tr>
+    </tbody>
+</table>
+
+<!-- integration_retry_queue -->
+<div class="tbl-title">
+    <span>integration_retry_queue (연동 재시도 큐)</span>
+    <span class="badge">MariaDB</span>
+</div>
+<div class="tbl-meta">연동 재시도 큐 &nbsp;|&nbsp; Flyway V6 &nbsp;|&nbsp; 실패 시 지수 백오프 재시도</div>
+<table>
+    <thead>
+        <tr><th>#</th><th>컬럼명</th><th>데이터타입</th><th>PK</th><th>FK</th><th>NULL허용</th><th>기본값</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td><span class="pk">id</span></td><td>BIGINT</td><td class="pk">PK</td><td></td><td>NO</td><td>AUTO_INCREMENT</td><td>큐 ID</td></tr>
+        <tr><td>2</td><td>target_system</td><td>VARCHAR(30)</td><td></td><td></td><td>NO</td><td></td><td>대상시스템(DOUZONE/ERP)</td></tr>
+        <tr><td>3</td><td>operation_type</td><td>VARCHAR(50)</td><td></td><td></td><td>NO</td><td></td><td>작업유형</td></tr>
+        <tr><td>4</td><td>payload</td><td>TEXT</td><td></td><td></td><td>NO</td><td></td><td>요청 데이터(JSON)</td></tr>
+        <tr><td>5</td><td>retry_count</td><td>INT</td><td></td><td></td><td>NO</td><td>0</td><td>재시도 횟수</td></tr>
+        <tr><td>6</td><td>max_retries</td><td>INT</td><td></td><td></td><td>NO</td><td>5</td><td>최대 재시도</td></tr>
+        <tr><td>7</td><td>status</td><td>VARCHAR(20)</td><td></td><td></td><td>NO</td><td>'PENDING'</td><td>상태(PENDING/SUCCESS/FAILED)</td></tr>
+        <tr><td>8</td><td>last_error</td><td>TEXT</td><td></td><td></td><td class="nullable">YES</td><td></td><td>마지막 에러 메시지</td></tr>
+        <tr><td>9</td><td>next_retry_at</td><td>DATETIME</td><td></td><td></td><td class="nullable">YES</td><td></td><td>다음 재시도 예정일시</td></tr>
+        <tr><td>10</td><td>created_at</td><td>DATETIME</td><td></td><td></td><td>NO</td><td>CURRENT_TIMESTAMP</td><td>생성일시</td></tr>
+        <tr><td>11</td><td>updated_at</td><td>DATETIME</td><td></td><td></td><td>NO</td><td>CURRENT_TIMESTAMP</td><td>수정일시</td></tr>
+    </tbody>
+</table>
+
+
+<!-- ============================================================ -->
+<!-- Section 4: SM Module 신규 추가 테이블 (MariaDB) -->
+<!-- ============================================================ -->
+<h2>4. SM Module 신규 추가 테이블 (MariaDB)</h2>
+<p>ERP 연동을 위해 신규로 추가되는 테이블입니다. 기존 SM Module 스키마에 Flyway 마이그레이션으로 추가됩니다.</p>
+
+<!-- erp_item_mappings -->
+<div class="tbl-title">
+    <span>erp_item_mappings (ERP 품목 매핑) <span class="new-tag">NEW</span></span>
+    <span class="badge">MariaDB</span>
+</div>
+<div class="tbl-meta">ERP <code>CI_ITEM</code> 매핑 테이블 &nbsp;|&nbsp; ERP 품목 마스터 동기화 캐시 &nbsp;|&nbsp; UK: item_cd</div>
+<table>
+    <thead>
+        <tr><th>#</th><th>컬럼명</th><th>데이터타입</th><th>PK</th><th>FK</th><th>NULL허용</th><th>기본값</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td><span class="pk">id</span></td><td>BIGINT</td><td class="pk">PK</td><td></td><td>NO</td><td>AUTO_INCREMENT</td><td>매핑 ID</td></tr>
+        <tr><td>2</td><td>item_cd</td><td>VARCHAR(200)</td><td>UK</td><td></td><td>NO</td><td></td><td>ERP 품목코드</td></tr>
+        <tr><td>3</td><td>item_nm</td><td>VARCHAR(400)</td><td></td><td></td><td>NO</td><td></td><td>품목명</td></tr>
+        <tr><td>4</td><td>item_spec</td><td>VARCHAR(800)</td><td></td><td></td><td class="nullable">YES</td><td></td><td>규격</td></tr>
+        <tr><td>5</td><td>std_unit_cd</td><td>VARCHAR(20)</td><td></td><td></td><td class="nullable">YES</td><td></td><td>표준단위</td></tr>
+        <tr><td>6</td><td>use_yn</td><td>CHAR(1)</td><td></td><td></td><td>NO</td><td>'Y'</td><td>사용여부</td></tr>
+        <tr><td>7</td><td>synced_at</td><td>DATETIME</td><td></td><td></td><td>NO</td><td></td><td>동기화일시</td></tr>
+    </tbody>
+</table>
+
+<!-- erp_sync_logs -->
+<div class="tbl-title">
+    <span>erp_sync_logs (ERP 동기화 이력) <span class="new-tag">NEW</span></span>
+    <span class="badge">MariaDB</span>
+</div>
+<div class="tbl-meta">동기화 실행 이력 관리 &nbsp;|&nbsp; 마스터/트랜잭션/쓰기 동기화 모두 기록</div>
+<table>
+    <thead>
+        <tr><th>#</th><th>컬럼명</th><th>데이터타입</th><th>PK</th><th>FK</th><th>NULL허용</th><th>기본값</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td><span class="pk">id</span></td><td>BIGINT</td><td class="pk">PK</td><td></td><td>NO</td><td>AUTO_INCREMENT</td><td>로그 ID</td></tr>
+        <tr><td>2</td><td>sync_type</td><td>VARCHAR(30)</td><td></td><td></td><td>NO</td><td></td><td>동기화유형(MASTER/TRANSACTION/WRITE)</td></tr>
+        <tr><td>3</td><td>target_table</td><td>VARCHAR(100)</td><td></td><td></td><td>NO</td><td></td><td>대상 테이블명</td></tr>
+        <tr><td>4</td><td>direction</td><td>VARCHAR(10)</td><td></td><td></td><td>NO</td><td></td><td>방향(ERP_TO_SM / SM_TO_ERP)</td></tr>
+        <tr><td>5</td><td>total_count</td><td>INT</td><td></td><td></td><td>NO</td><td>0</td><td>전체 건수</td></tr>
+        <tr><td>6</td><td>success_count</td><td>INT</td><td></td><td></td><td>NO</td><td>0</td><td>성공 건수</td></tr>
+        <tr><td>7</td><td>fail_count</td><td>INT</td><td></td><td></td><td>NO</td><td>0</td><td>실패 건수</td></tr>
+        <tr><td>8</td><td>started_at</td><td>DATETIME</td><td></td><td></td><td>NO</td><td></td><td>시작일시</td></tr>
+        <tr><td>9</td><td>finished_at</td><td>DATETIME</td><td></td><td></td><td class="nullable">YES</td><td></td><td>종료일시</td></tr>
+        <tr><td>10</td><td>duration_ms</td><td>BIGINT</td><td></td><td></td><td class="nullable">YES</td><td></td><td>소요시간(ms)</td></tr>
+        <tr><td>11</td><td>status</td><td>VARCHAR(20)</td><td></td><td></td><td>NO</td><td></td><td>상태(SUCCESS/FAIL/RUNNING)</td></tr>
+        <tr><td>12</td><td>error_message</td><td>TEXT</td><td></td><td></td><td class="nullable">YES</td><td></td><td>에러메시지</td></tr>
+    </tbody>
+</table>
+
+<!-- erp_code_mappings -->
+<div class="tbl-title">
+    <span>erp_code_mappings (ERP 코드 매핑) <span class="new-tag">NEW</span></span>
+    <span class="badge">MariaDB</span>
+</div>
+<div class="tbl-meta">ERP 코드값 매핑 (WRK_FG, ITEM_FG 등) &nbsp;|&nbsp; UK: code_group + erp_code</div>
+<table>
+    <thead>
+        <tr><th>#</th><th>컬럼명</th><th>데이터타입</th><th>PK</th><th>FK</th><th>NULL허용</th><th>기본값</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>1</td><td><span class="pk">id</span></td><td>BIGINT</td><td class="pk">PK</td><td></td><td>NO</td><td>AUTO_INCREMENT</td><td>매핑 ID</td></tr>
+        <tr><td>2</td><td>code_group</td><td>VARCHAR(50)</td><td></td><td></td><td>NO</td><td></td><td>코드그룹(WRK_FG/ITEM_FG/SO_TP 등)</td></tr>
+        <tr><td>3</td><td>erp_code</td><td>VARCHAR(20)</td><td></td><td></td><td>NO</td><td></td><td>ERP 코드값</td></tr>
+        <tr><td>4</td><td>sm_code</td><td>VARCHAR(50)</td><td></td><td></td><td class="nullable">YES</td><td></td><td>SM 매핑 코드값</td></tr>
+        <tr><td>5</td><td>code_name</td><td>VARCHAR(200)</td><td></td><td></td><td>NO</td><td></td><td>코드명</td></tr>
+        <tr><td>6</td><td>description</td><td>VARCHAR(500)</td><td></td><td></td><td class="nullable">YES</td><td></td><td>설명</td></tr>
+        <tr><td>7</td><td>is_active</td><td>BOOLEAN</td><td></td><td></td><td>NO</td><td>true</td><td>활성여부</td></tr>
+    </tbody>
+</table>
+<div class="note">
+    <strong>UK 제약조건:</strong> <code>erp_code_mappings</code> 테이블은 <code>code_group</code> + <code>erp_code</code> 복합 유니크 키를 갖습니다.
+</div>
+
+
+<!-- ============================================================ -->
+<!-- Section 5: Oracle ERP 핵심 테이블 -->
+<!-- ============================================================ -->
+<h2>5. Oracle ERP 핵심 테이블 (Oracle 19c)</h2>
+<p>
+    더존 ERP 시스템(Oracle 19c)의 핵심 참조 테이블입니다. SM Module에서 DB Link 또는 전용 API를 통해 읽기/쓰기 접근합니다.
+    아래 테이블 구조는 실제 ERP 스키마 분석 결과 기반이며, 주요 컬럼만 포함합니다.
+</p>
+<div class="note">
+    <strong>참고:</strong> Oracle ERP 테이블은 더존 ERP 소유이므로 SM Module에서 DDL 변경이 불가합니다. 아래 정의는 연동 개발을 위한 참조용 컬럼 정보입니다. 건수는 2026년 3월 기준 실 데이터 조회 결과입니다.
+</div>
+
+
+<!-- ======================== 5.1 판매/수주 ======================== -->
+<h3>5.1 판매/수주 (SD_)</h3>
+
+<!-- SD_ORDER_MST_X20329 -->
+<div class="tbl-title">
+    <span>SD_ORDER_MST_X20329 (주문 마스터) <span class="erp-tag">ERP</span></span>
+    <span class="badge">116,841건</span>
+</div>
+<div class="tbl-meta">Oracle 19c &nbsp;|&nbsp; 더존 ERP 주문 마스터 &nbsp;|&nbsp; SM Module orders 연동 대상</div>
+<table>
+    <thead>
+        <tr><th>컬럼명</th><th>데이터타입</th><th>Key</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><span class="pk">COMPANY_CD</span></td><td>VARCHAR2(28)</td><td class="pk">PK</td><td>회사코드 (1000)</td></tr>
+        <tr><td><span class="pk">ORDDOC_NO</span></td><td>VARCHAR2(120)</td><td class="pk">PK</td><td>주문번호 (GOR.../TOR...)</td></tr>
+        <tr><td>ORD_DT</td><td>VARCHAR2(32)</td><td></td><td>주문일자 (YYYYMMDD)</td></tr>
+        <tr><td>ORDDOC_NM</td><td>VARCHAR2(1200)</td><td></td><td>주문명</td></tr>
+        <tr><td>PARTNER_CD</td><td>VARCHAR2(80)</td><td class="fk">FK&rarr;CI_PARTNER_MST</td><td>거래처코드</td></tr>
+        <tr><td>DEPT_CD</td><td>VARCHAR2(80)</td><td class="fk">FK&rarr;VW_MA_DEPT_MST</td><td>부서코드</td></tr>
+        <tr><td>BIZRSPT_EMPNO_CD</td><td>VARCHAR2(80)</td><td class="fk">FK&rarr;HR_EMP_MST</td><td>영업담당사원</td></tr>
+        <tr><td>WRK_FG</td><td>VARCHAR2(12)</td><td></td><td>작업구분 (200:일반인쇄 등)</td></tr>
+        <tr><td>SO_TP</td><td>VARCHAR2(20)</td><td></td><td>수주유형</td></tr>
+        <tr><td>RMK_TXT</td><td>VARCHAR2(4000)</td><td></td><td>비고</td></tr>
+        <tr><td>UPDATE_DTS</td><td>DATE</td><td></td><td>수정일시</td></tr>
+    </tbody>
+</table>
+
+<!-- SD_ORDER_DTL_X20329 -->
+<div class="tbl-title">
+    <span>SD_ORDER_DTL_X20329 (주문 상세) <span class="erp-tag">ERP</span></span>
+    <span class="badge">202,795건</span>
+</div>
+<div class="tbl-meta">Oracle 19c &nbsp;|&nbsp; 주문 상세(품목별) 정보</div>
+<table>
+    <thead>
+        <tr><th>컬럼명</th><th>데이터타입</th><th>Key</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><span class="pk">COMPANY_CD</span></td><td>VARCHAR2(28)</td><td class="pk">PK</td><td>회사코드</td></tr>
+        <tr><td><span class="pk">ORDDOC_NO</span></td><td>VARCHAR2(120)</td><td class="pk">PK</td><td>주문번호</td></tr>
+        <tr><td><span class="pk">ORDDOC_SQ</span></td><td>NUMBER</td><td class="pk">PK</td><td>주문순번</td></tr>
+        <tr><td>ITEM_CD</td><td>VARCHAR2(200)</td><td class="fk">FK&rarr;CI_ITEM</td><td>품목코드</td></tr>
+        <tr><td>ITEM_NM</td><td>VARCHAR2(400)</td><td></td><td>품목명</td></tr>
+        <tr><td>ORD_QT</td><td>NUMBER</td><td></td><td>주문수량</td></tr>
+        <tr><td>SELL_AMT</td><td>NUMBER</td><td></td><td>판매금액</td></tr>
+        <tr><td>SUM_AMT</td><td>NUMBER</td><td></td><td>합계금액</td></tr>
+        <tr><td>LACO_AMT</td><td>NUMBER</td><td></td><td>가공비</td></tr>
+        <tr><td>MTRIL_AMT</td><td>NUMBER</td><td></td><td>재료비</td></tr>
+        <tr><td>TAX_AMT</td><td>NUMBER</td><td></td><td>세액</td></tr>
+        <tr><td>ORDDOC_ST</td><td>VARCHAR2(40)</td><td></td><td>주문상태 (0:미확정 / 1:확정)</td></tr>
+    </tbody>
+</table>
+
+<!-- SD_SO_MST -->
+<div class="tbl-title">
+    <span>SD_SO_MST (수주 마스터) <span class="erp-tag">ERP</span></span>
+    <span class="badge">52,557건</span>
+</div>
+<div class="tbl-meta">Oracle 19c &nbsp;|&nbsp; 수주(Sales Order) 마스터</div>
+<table>
+    <thead>
+        <tr><th>컬럼명</th><th>데이터타입</th><th>Key</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><span class="pk">COMPANY_CD</span></td><td>VARCHAR2(28)</td><td class="pk">PK</td><td>회사코드</td></tr>
+        <tr><td><span class="pk">SODOC_NO</span></td><td>VARCHAR2(120)</td><td class="pk">PK</td><td>수주번호</td></tr>
+        <tr><td>SO_DT</td><td>VARCHAR2(32)</td><td></td><td>수주일자</td></tr>
+        <tr><td>SALEPRTN_CD</td><td>VARCHAR2(80)</td><td class="fk">FK&rarr;CI_PARTNER_MST</td><td>매출 거래처</td></tr>
+        <tr><td>SO_AMT</td><td>NUMBER</td><td></td><td>수주금액</td></tr>
+        <tr><td>SO_ST</td><td>VARCHAR2(4)</td><td></td><td>수주상태 (C:확정/X:취소/A:마감/B:부분마감)</td></tr>
+        <tr><td>BIZRSPT_EMPNO_CD</td><td>VARCHAR2(80)</td><td class="fk">FK&rarr;HR_EMP_MST</td><td>영업담당사원</td></tr>
+    </tbody>
+</table>
+
+<!-- SD_DLV_MST -->
+<div class="tbl-title">
+    <span>SD_DLV_MST (출하 마스터) <span class="erp-tag">ERP</span></span>
+    <span class="badge">39,761건</span>
+</div>
+<div class="tbl-meta">Oracle 19c &nbsp;|&nbsp; 출하(Delivery) 마스터</div>
+<table>
+    <thead>
+        <tr><th>컬럼명</th><th>데이터타입</th><th>Key</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><span class="pk">COMPANY_CD</span></td><td>VARCHAR2(28)</td><td class="pk">PK</td><td>회사코드</td></tr>
+        <tr><td><span class="pk">DLVDOC_NO</span></td><td>VARCHAR2(120)</td><td class="pk">PK</td><td>출하번호</td></tr>
+        <tr><td>DO_DT</td><td>VARCHAR2(32)</td><td></td><td>출하일자</td></tr>
+        <tr><td>DLVPRTN_CD</td><td>VARCHAR2(80)</td><td class="fk">FK&rarr;CI_PARTNER_MST</td><td>출하 거래처</td></tr>
+        <tr><td>ISS_ST</td><td>VARCHAR2(4)</td><td></td><td>출하상태 (C:확정/A:마감)</td></tr>
+    </tbody>
+</table>
+
+<!-- SD_BILL_MST -->
+<div class="tbl-title">
+    <span>SD_BILL_MST (매출/청구 마스터) <span class="erp-tag">ERP</span></span>
+    <span class="badge">44,557건</span>
+</div>
+<div class="tbl-meta">Oracle 19c &nbsp;|&nbsp; 매출/청구(Billing) 마스터</div>
+<table>
+    <thead>
+        <tr><th>컬럼명</th><th>데이터타입</th><th>Key</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><span class="pk">COMPANY_CD</span></td><td>VARCHAR2(28)</td><td class="pk">PK</td><td>회사코드</td></tr>
+        <tr><td><span class="pk">BILLDOC_NO</span></td><td>VARCHAR2(120)</td><td class="pk">PK</td><td>청구번호</td></tr>
+        <tr><td>BILL_DT</td><td>VARCHAR2(32)</td><td></td><td>청구일자</td></tr>
+        <tr><td>SALEPRTN_CD</td><td>VARCHAR2(80)</td><td class="fk">FK&rarr;CI_PARTNER_MST</td><td>매출 거래처</td></tr>
+        <tr><td>TRAN_AMT</td><td>NUMBER</td><td></td><td>거래금액</td></tr>
+        <tr><td>SPLY_AMT</td><td>NUMBER</td><td></td><td>공급가액</td></tr>
+        <tr><td>TAX_AMT</td><td>NUMBER</td><td></td><td>세액</td></tr>
+        <tr><td>BILL_ST</td><td>VARCHAR2(4)</td><td></td><td>청구상태 (P:대기/L:전기/C:확정)</td></tr>
+    </tbody>
+</table>
+
+
+<!-- ======================== 5.2 마스터 데이터 ======================== -->
+<h3>5.2 마스터 데이터</h3>
+
+<!-- CI_PARTNER_MST -->
+<div class="tbl-title">
+    <span>CI_PARTNER_MST (거래처) <span class="erp-tag">ERP</span></span>
+    <span class="badge">46,361건</span>
+</div>
+<div class="tbl-meta">Oracle 19c &nbsp;|&nbsp; 거래처 마스터 &nbsp;|&nbsp; SM Module business_owners 연동 대상</div>
+<table>
+    <thead>
+        <tr><th>컬럼명</th><th>데이터타입</th><th>Key</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><span class="pk">COMPANY_CD</span></td><td>VARCHAR2(28)</td><td class="pk">PK</td><td>회사코드</td></tr>
+        <tr><td><span class="pk">PARTNER_CD</span></td><td>VARCHAR2(80)</td><td class="pk">PK</td><td>거래처코드</td></tr>
+        <tr><td>PARTNER_NM</td><td>VARCHAR2(400)</td><td></td><td>거래처명</td></tr>
+        <tr><td>BIZR_NO</td><td>VARCHAR2(52)</td><td></td><td>사업자등록번호</td></tr>
+        <tr><td>CEO_NM</td><td>VARCHAR2(120)</td><td></td><td>대표자명</td></tr>
+        <tr><td>BASE_ADDR</td><td>VARCHAR2(800)</td><td></td><td>주소</td></tr>
+        <tr><td>TEL_NO</td><td>VARCHAR2(80)</td><td></td><td>전화번호</td></tr>
+        <tr><td>PARTNER_FG_CD</td><td>VARCHAR2(20)</td><td></td><td>거래처구분 (매입/매출/매입매출)</td></tr>
+        <tr><td>USE_YN</td><td>CHAR(1)</td><td></td><td>사용여부</td></tr>
+    </tbody>
+</table>
+
+<!-- CI_ITEM -->
+<div class="tbl-title">
+    <span>CI_ITEM (품목) <span class="erp-tag">ERP</span></span>
+    <span class="badge">38,169건</span>
+</div>
+<div class="tbl-meta">Oracle 19c &nbsp;|&nbsp; 품목 마스터 &nbsp;|&nbsp; SM Module erp_item_mappings 동기화 대상</div>
+<table>
+    <thead>
+        <tr><th>컬럼명</th><th>데이터타입</th><th>Key</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><span class="pk">COMPANY_CD</span></td><td>VARCHAR2(28)</td><td class="pk">PK</td><td>회사코드</td></tr>
+        <tr><td><span class="pk">ITEM_CD</span></td><td>VARCHAR2(200)</td><td class="pk">PK</td><td>품목코드</td></tr>
+        <tr><td>ITEM_NM</td><td>VARCHAR2(400)</td><td></td><td>품목명</td></tr>
+        <tr><td>ITEM_SPEC_DC</td><td>VARCHAR2(800)</td><td></td><td>규격</td></tr>
+        <tr><td>STD_UNIT_CD</td><td>VARCHAR2(20)</td><td></td><td>표준단위</td></tr>
+        <tr><td>USE_YN</td><td>CHAR(1)</td><td></td><td>사용여부</td></tr>
+    </tbody>
+</table>
+
+<!-- HR_EMP_MST -->
+<div class="tbl-title">
+    <span>HR_EMP_MST (사원) <span class="erp-tag">ERP</span></span>
+    <span class="badge">2,402건</span>
+</div>
+<div class="tbl-meta">Oracle 19c &nbsp;|&nbsp; 사원 마스터 &nbsp;|&nbsp; SM Module users 연동 대상</div>
+<table>
+    <thead>
+        <tr><th>컬럼명</th><th>데이터타입</th><th>Key</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><span class="pk">COMPANY_CD</span></td><td>VARCHAR2(28)</td><td class="pk">PK</td><td>회사코드</td></tr>
+        <tr><td><span class="pk">EMP_NO</span></td><td>VARCHAR2(80)</td><td class="pk">PK</td><td>사원번호</td></tr>
+        <tr><td>KOR_NM</td><td>VARCHAR2(120)</td><td></td><td>한글이름</td></tr>
+        <tr><td>DEPT_CD</td><td>VARCHAR2(80)</td><td class="fk">FK&rarr;VW_MA_DEPT_MST</td><td>부서코드</td></tr>
+        <tr><td>HLOF_FG_CD</td><td>VARCHAR2(4)</td><td></td><td>재직구분 (1:재직 / 3:퇴직)</td></tr>
+        <tr><td>POSI_CD</td><td>VARCHAR2(40)</td><td></td><td>직급코드</td></tr>
+    </tbody>
+</table>
+
+<!-- VW_MA_DEPT_MST -->
+<div class="tbl-title">
+    <span>VW_MA_DEPT_MST (부서 뷰) <span class="erp-tag">ERP</span></span>
+    <span class="badge">96건</span>
+</div>
+<div class="tbl-meta">Oracle 19c &nbsp;|&nbsp; 부서 마스터 뷰 &nbsp;|&nbsp; SM Module departments 연동 대상</div>
+<table>
+    <thead>
+        <tr><th>컬럼명</th><th>데이터타입</th><th>Key</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><span class="pk">COMPANY_CD</span></td><td>VARCHAR2(28)</td><td class="pk">PK</td><td>회사코드</td></tr>
+        <tr><td><span class="pk">DEPT_CD</span></td><td>VARCHAR2(80)</td><td class="pk">PK</td><td>부서코드</td></tr>
+        <tr><td>DEPT_NM</td><td>VARCHAR2(200)</td><td></td><td>부서명</td></tr>
+        <tr><td>UP_DEPT_CD</td><td>VARCHAR2(80)</td><td></td><td>상위부서코드</td></tr>
+        <tr><td>UP_DEPT_NM</td><td>VARCHAR2(200)</td><td></td><td>상위부서명</td></tr>
+        <tr><td>DEPT_LV</td><td>NUMBER</td><td></td><td>부서레벨</td></tr>
+    </tbody>
+</table>
+
+
+<!-- ======================== 5.3 구매/외주 ======================== -->
+<h3>5.3 구매/외주 (PU_)</h3>
+
+<!-- PU_PURORDER_MST -->
+<div class="tbl-title">
+    <span>PU_PURORDER_MST (발주) <span class="erp-tag">ERP</span></span>
+    <span class="badge">20,323건</span>
+</div>
+<div class="tbl-meta">Oracle 19c &nbsp;|&nbsp; 구매발주 마스터 &nbsp;|&nbsp; SM Module outsourcing_pos 연동 대상</div>
+<table>
+    <thead>
+        <tr><th>컬럼명</th><th>데이터타입</th><th>Key</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><span class="pk">COMPANY_CD</span></td><td>VARCHAR2(28)</td><td class="pk">PK</td><td>회사코드</td></tr>
+        <tr><td><span class="pk">PURDOC_NO</span></td><td>VARCHAR2(120)</td><td class="pk">PK</td><td>발주번호</td></tr>
+        <tr><td>PARTNER_CD</td><td>VARCHAR2(80)</td><td class="fk">FK&rarr;CI_PARTNER_MST</td><td>거래처코드</td></tr>
+        <tr><td>PUR_PO_DT</td><td>VARCHAR2(32)</td><td></td><td>발주일자</td></tr>
+        <tr><td>EMP_NO</td><td>VARCHAR2(80)</td><td class="fk">FK&rarr;HR_EMP_MST</td><td>담당사원</td></tr>
+    </tbody>
+</table>
+
+<!-- PU_PURORDER_DTL -->
+<div class="tbl-title">
+    <span>PU_PURORDER_DTL (발주 상세) <span class="erp-tag">ERP</span></span>
+    <span class="badge">51,537건</span>
+</div>
+<div class="tbl-meta">Oracle 19c &nbsp;|&nbsp; 구매발주 상세(품목별)</div>
+<table>
+    <thead>
+        <tr><th>컬럼명</th><th>데이터타입</th><th>Key</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><span class="pk">COMPANY_CD</span></td><td>VARCHAR2(28)</td><td class="pk">PK</td><td>회사코드</td></tr>
+        <tr><td><span class="pk">PURDOC_NO</span></td><td>VARCHAR2(120)</td><td class="pk">PK</td><td>발주번호</td></tr>
+        <tr><td><span class="pk">PURDOC_SQ</span></td><td>NUMBER</td><td class="pk">PK</td><td>발주순번</td></tr>
+        <tr><td>ITEM_CD</td><td>VARCHAR2(200)</td><td class="fk">FK&rarr;CI_ITEM</td><td>품목코드</td></tr>
+        <tr><td>PUR_PO_QT</td><td>NUMBER</td><td></td><td>발주수량</td></tr>
+        <tr><td>PO_AMT</td><td>NUMBER</td><td></td><td>발주금액</td></tr>
+    </tbody>
+</table>
+
+
+<!-- ======================== 5.4 매출실적/기타 ======================== -->
+<h3>5.4 매출실적 / 기타</h3>
+
+<!-- SD_MMBLPL_MST_X20329 -->
+<div class="tbl-title">
+    <span>SD_MMBLPL_MST_X20329 (월별 매출계획) <span class="erp-tag">ERP</span></span>
+    <span class="badge">451건</span>
+</div>
+<div class="tbl-meta">Oracle 19c &nbsp;|&nbsp; 월별 매출 목표/실적 계획</div>
+<table>
+    <thead>
+        <tr><th>컬럼명</th><th>데이터타입</th><th>Key</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><span class="pk">COMPANY_CD</span></td><td>VARCHAR2(28)</td><td class="pk">PK</td><td>회사코드</td></tr>
+        <tr><td><span class="pk">PLAN_YY</span></td><td>VARCHAR2(8)</td><td class="pk">PK</td><td>계획연도</td></tr>
+        <tr><td>DEPT_CD</td><td>VARCHAR2(80)</td><td class="fk">FK&rarr;VW_MA_DEPT_MST</td><td>부서코드</td></tr>
+        <tr><td>EMP_NO</td><td>VARCHAR2(80)</td><td class="fk">FK&rarr;HR_EMP_MST</td><td>사원번호</td></tr>
+        <tr><td>FG_CD</td><td>VARCHAR2(4)</td><td></td><td>구분코드</td></tr>
+        <tr><td>MM1~12_LACO_GOAL_AMT</td><td>NUMBER</td><td></td><td>월별 가공비 목표금액 (1~12월)</td></tr>
+        <tr><td>MM1~12_MTRIL_GOAL_AMT</td><td>NUMBER</td><td></td><td>월별 재료비 목표금액 (1~12월)</td></tr>
+    </tbody>
+</table>
+
+<!-- SD_ARSUMM_MST -->
+<div class="tbl-title">
+    <span>SD_ARSUMM_MST (매출채권 요약) <span class="erp-tag">ERP</span></span>
+    <span class="badge">16,141건</span>
+</div>
+<div class="tbl-meta">Oracle 19c &nbsp;|&nbsp; 매출채권(AR) 요약 집계</div>
+<table>
+    <thead>
+        <tr><th>컬럼명</th><th>데이터타입</th><th>Key</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><span class="pk">COMPANY_CD</span></td><td>VARCHAR2(28)</td><td class="pk">PK</td><td>회사코드</td></tr>
+        <tr><td><span class="pk">SALEPRTN_CD</span></td><td>VARCHAR2(80)</td><td class="pk">PK</td><td>매출거래처코드</td></tr>
+        <tr><td><span class="pk">OCRN_YM</span></td><td>VARCHAR2(12)</td><td class="pk">PK</td><td>발생년월</td></tr>
+        <tr><td>BILL_AMT</td><td>NUMBER</td><td></td><td>청구금액</td></tr>
+        <tr><td>CMNY_AMT</td><td>NUMBER</td><td></td><td>입금금액</td></tr>
+    </tbody>
+</table>
+
+<!-- FI_CARD_TRADE -->
+<div class="tbl-title">
+    <span>FI_CARD_TRADE (카드거래) <span class="erp-tag">ERP</span></span>
+    <span class="badge">20,207건</span>
+</div>
+<div class="tbl-meta">Oracle 19c &nbsp;|&nbsp; 카드 거래 내역</div>
+<table>
+    <thead>
+        <tr><th>컬럼명</th><th>데이터타입</th><th>Key</th><th>설명</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><span class="pk">COMPANY_CD</span></td><td>VARCHAR2(28)</td><td class="pk">PK</td><td>회사코드</td></tr>
+        <tr><td><span class="pk">TRAN_SQ</span></td><td>NUMBER</td><td class="pk">PK</td><td>거래순번</td></tr>
+        <tr><td>TRAN_DT</td><td>VARCHAR2(32)</td><td></td><td>거래일자</td></tr>
+        <tr><td>TRAN_AMT</td><td>NUMBER</td><td></td><td>거래금액</td></tr>
+        <tr><td>TRAN_NM</td><td>VARCHAR2(400)</td><td></td><td>거래처명</td></tr>
+        <tr><td>APRVL_NO</td><td>VARCHAR2(80)</td><td></td><td>승인번호</td></tr>
+    </tbody>
+</table>
+
+
+<!-- ============================================================ -->
+<!-- Section 6: ER 다이어그램 (텍스트 기반) -->
+<!-- ============================================================ -->
+<h2>6. ER 다이어그램</h2>
+<p>SM Module 내부 테이블 간 관계 및 Oracle ERP 테이블과의 교차 참조(Cross-Reference) 관계를 시각적으로 표현합니다.</p>
+
+<h3>6.1 SM Module 내부 관계</h3>
+
+<div style="overflow-x: auto;">
+<div style="min-width: 900px; padding: 30px 10px;">
+
+<!-- Top Row: departments & users -->
+<div class="er-row" style="justify-content: center; gap: 80px;">
+    <div class="er-box">
+        <div class="er-box-header">departments</div>
+        <div class="er-box-body">
+            <div><span class="pk-col">PK</span> id</div>
+            <div>name</div>
+            <div>division</div>
+            <div><span class="fk-col">FK</span> parent_id &rarr; self</div>
+            <div>created_at</div>
+        </div>
+    </div>
+
+    <div style="display: flex; align-items: center; font-size: 28px; color: #1a237e; font-weight: 700;">&larr;&mdash;&mdash;</div>
+
+    <div class="er-box">
+        <div class="er-box-header">users</div>
+        <div class="er-box-body">
+            <div><span class="pk-col">PK</span> id</div>
+            <div>employee_no (UK)</div>
+            <div>name, email</div>
+            <div><span class="fk-col">FK</span> department_id</div>
+            <div>role, is_active</div>
+        </div>
+    </div>
+</div>
+
+<div style="text-align: center; color: #999; font-size: 12px; margin: 8px 0;">departments.id &larr; users.department_id</div>
+
+<!-- Second Row: business_owners & customers -->
+<div class="er-row" style="justify-content: center; gap: 80px; margin-top: 20px;">
+    <div class="er-box">
+        <div class="er-box-header">business_owners</div>
+        <div class="er-box-body">
+            <div><span class="pk-col">PK</span> id</div>
+            <div>company_name</div>
+            <div>biz_no (UK)</div>
+            <div>douzone_code</div>
+            <div><span class="fk-col">FK</span> department_id</div>
+        </div>
+    </div>
+
+    <div style="display: flex; align-items: center; font-size: 28px; color: #1a237e; font-weight: 700;">&larr;&mdash;&mdash;</div>
+
+    <div class="er-box">
+        <div class="er-box-header">customers</div>
+        <div class="er-box-body">
+            <div><span class="pk-col">PK</span> id</div>
+            <div>name</div>
+            <div><span class="fk-col">FK</span> business_owner_id</div>
+            <div>branch, phone</div>
+            <div>email</div>
+        </div>
+    </div>
+</div>
+
+<div style="text-align: center; color: #999; font-size: 12px; margin: 8px 0;">business_owners.id &larr; customers.business_owner_id</div>
+
+<!-- Orders Hub -->
+<div style="text-align: center; margin: 30px 0 10px;">
+    <div style="display: inline-block; border: 3px solid #c62828; border-radius: 10px; background: #ffebee; padding: 4px;">
+        <div class="er-box" style="border: none; box-shadow: none; min-width: 260px;">
+            <div class="er-box-header" style="background: #c62828;">orders (주문 허브)</div>
+            <div class="er-box-body">
+                <div><span class="pk-col">PK</span> id</div>
+                <div>order_no (UK)</div>
+                <div><span class="fk-col">FK</span> customer_id &rarr; customers</div>
+                <div><span class="fk-col">FK</span> business_owner_id &rarr; business_owners</div>
+                <div><span class="fk-col">FK</span> sales_manager_id &rarr; users</div>
+                <div><span class="fk-col">FK</span> receiver_id &rarr; users</div>
+                <div>erp_order_no</div>
+                <div>total_amount, status</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Orders Children Row -->
+<div class="er-row" style="justify-content: center; gap: 30px; margin-top: 10px;">
+    <div class="er-box" style="min-width: 160px; max-width: 180px;">
+        <div class="er-box-header" style="font-size: 12px;">order_works</div>
+        <div class="er-box-body">
+            <div><span class="pk-col">PK</span> id</div>
+            <div><span class="fk-col">FK</span> order_id</div>
+            <div>work_type, work_name</div>
+            <div>payment_amount</div>
+        </div>
+    </div>
+
+    <div class="er-box" style="min-width: 160px; max-width: 180px;">
+        <div class="er-box-header" style="font-size: 12px;">order_items</div>
+        <div class="er-box-body">
+            <div><span class="pk-col">PK</span> id</div>
+            <div><span class="fk-col">FK</span> order_work_id</div>
+            <div>item_name, quantity</div>
+            <div>unit_price, subtotal</div>
+        </div>
+    </div>
+
+    <div class="er-box" style="min-width: 160px; max-width: 180px;">
+        <div class="er-box-header" style="font-size: 12px;">sales</div>
+        <div class="er-box-body">
+            <div><span class="pk-col">PK</span> id</div>
+            <div><span class="fk-col">FK</span> order_id</div>
+            <div>sales_date, amount</div>
+            <div>confirmed</div>
+        </div>
+    </div>
+
+    <div class="er-box" style="min-width: 160px; max-width: 180px;">
+        <div class="er-box-header" style="font-size: 12px;">outsourcing_pos</div>
+        <div class="er-box-body">
+            <div><span class="pk-col">PK</span> id</div>
+            <div><span class="fk-col">FK</span> order_id</div>
+            <div><span class="fk-col">FK</span> business_owner_id</div>
+            <div>outsourcing_amount</div>
+        </div>
+    </div>
+</div>
+
+<div style="text-align: center; color: #999; font-size: 12px; margin: 8px 0;">
+    orders &rarr; order_works &rarr; order_items &nbsp;&nbsp;|&nbsp;&nbsp; orders &rarr; sales &nbsp;&nbsp;|&nbsp;&nbsp; orders &rarr; outsourcing_pos
+</div>
+
+</div>
+</div>
+
+<!-- 6.2 ERP Cross-Reference -->
+<h3>6.2 SM Module &harr; Oracle ERP 교차 참조</h3>
+<p style="margin-bottom: 16px; font-size: 13px; color: #555;">SM Module(MariaDB)과 Oracle ERP 간 데이터 매핑 관계를 나타냅니다.</p>
+
+<div class="er-cross-ref">
+    <div class="sm-side">business_owners<br><code style="font-size: 11px;">.douzone_code</code></div>
+    <div class="link-arrow">&harr;</div>
+    <div class="erp-side">CI_PARTNER_MST<br><code style="font-size: 11px;">.PARTNER_CD</code></div>
+    <div style="font-size: 11px; color: #666; padding-left: 12px;">거래처 코드 매핑 (더존코드 = ERP PARTNER_CD)</div>
+</div>
+
+<div class="er-cross-ref">
+    <div class="sm-side">users<br><code style="font-size: 11px;">.employee_no</code></div>
+    <div class="link-arrow">&harr;</div>
+    <div class="erp-side">HR_EMP_MST<br><code style="font-size: 11px;">.EMP_NO</code></div>
+    <div style="font-size: 11px; color: #666; padding-left: 12px;">사원번호 매핑 (SM 사원번호 = ERP EMP_NO)</div>
+</div>
+
+<div class="er-cross-ref">
+    <div class="sm-side">orders<br><code style="font-size: 11px;">.erp_order_no</code></div>
+    <div class="link-arrow">&harr;</div>
+    <div class="erp-side">SD_ORDER_MST_X20329<br><code style="font-size: 11px;">.ORDDOC_NO</code></div>
+    <div style="font-size: 11px; color: #666; padding-left: 12px;">주문번호 매핑 (SM erp_order_no = ERP ORDDOC_NO)</div>
+</div>
+
+<div class="er-cross-ref">
+    <div class="sm-side">departments<br><code style="font-size: 11px;">.name</code></div>
+    <div class="link-arrow">&harr;</div>
+    <div class="erp-side">VW_MA_DEPT_MST<br><code style="font-size: 11px;">.DEPT_CD / DEPT_NM</code></div>
+    <div style="font-size: 11px; color: #666; padding-left: 12px;">부서 매핑 (부서명 기반 교차참조)</div>
+</div>
+
+<div class="er-cross-ref">
+    <div class="sm-side" style="background: #e8f5e9; color: #2e7d32;">erp_item_mappings <span class="new-tag" style="margin-left: 4px;">NEW</span><br><code style="font-size: 11px;">.item_cd</code></div>
+    <div class="link-arrow">&harr;</div>
+    <div class="erp-side">CI_ITEM<br><code style="font-size: 11px;">.ITEM_CD</code></div>
+    <div style="font-size: 11px; color: #666; padding-left: 12px;">품목코드 매핑 (ERP 품목 마스터 캐시)</div>
+</div>
+
+<div class="er-cross-ref">
+    <div class="sm-side">outsourcing_pos<br><code style="font-size: 11px;">.po_no</code></div>
+    <div class="link-arrow">&harr;</div>
+    <div class="erp-side">PU_PURORDER_MST<br><code style="font-size: 11px;">.PURDOC_NO</code></div>
+    <div style="font-size: 11px; color: #666; padding-left: 12px;">외주발주 매핑 (SM 발주번호 = ERP 발주번호)</div>
+</div>
+
+<div class="note" style="margin-top: 24px;">
+    <strong>연동 방향 요약:</strong><br>
+    - <strong>ERP &rarr; SM (읽기)</strong>: CI_PARTNER_MST, CI_ITEM, HR_EMP_MST, VW_MA_DEPT_MST, SD_MMBLPL_MST, SD_ARSUMM_MST, FI_CARD_TRADE<br>
+    - <strong>SM &rarr; ERP (쓰기)</strong>: SD_ORDER_MST/DTL (주문생성), PU_PURORDER_MST/DTL (발주생성)<br>
+    - <strong>양방향</strong>: SD_SO_MST, SD_DLV_MST, SD_BILL_MST (상태 동기화)
+</div>
+
+
+</div><!-- /container -->
+
+<div class="footer">
+    &copy; 2026 HM소프트 &nbsp;|&nbsp; SM-ERP-TBL-001 &nbsp;|&nbsp; 테이블 정의서
+</div>
+
+</body>
+</html>
