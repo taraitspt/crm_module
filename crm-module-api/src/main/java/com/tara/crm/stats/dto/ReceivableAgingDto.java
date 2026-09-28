@@ -19,31 +19,11 @@ public class ReceivableAgingDto {
     /** 기준일(YYYY-MM-DD). 잔액은 이 날짜 시점, 연령버킷은 이 날짜에서 거꾸로 30일 단위. */
     private String baseDate;
     private List<Row> rows;
-    /** 올해 매출 집계 기간 — 기준월 포함 최근 3개월. 채권율·회수기한 분모. */
-    private SalesWindow sales;
     /** 전년 비교 기준일 — 기준일의 정확히 1년 전. */
     private String prevBaseDate;
     /** 전년 기준일 시점 사업부별 잔액 (TPS/GRP/PM). */
     private Map<String, BigDecimal> prevTotals;
-    /** 전년 매출 집계 기간 — 전년 기준월 포함 최근 3개월. */
-    private SalesWindow prevSales;
-
-    /**
-     * 매출 집계 창. 채권율 = 잔액 ÷ (amounts ÷ months) × 100, 회수기한 = 잔액 ÷ (amounts ÷ days).
-     * 금액은 부가세 포함(SPLY_AMT + TAX_AMT) — 채권잔액과 기준을 맞춘다.
-     */
-    @Getter @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    public static class SalesWindow {
-        private String from;
-        private String to;
-        private int months;
-        private int days;
-        /** 사업부별 기간 매출 합계 (TPS/GRP/PM) */
-        private Map<String, BigDecimal> amounts;
-    }
+    // 채권율·회수기한용 매출(분모)은 산식이 확정될 때까지 두지 않는다 — ReceivableAgingController 주석 참고.
 
     @Getter @Setter
     @NoArgsConstructor

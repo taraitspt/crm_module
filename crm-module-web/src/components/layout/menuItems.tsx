@@ -6,6 +6,7 @@ import {
   ScheduleOutlined,
   FilePdfOutlined,
   BuildOutlined,
+  UnorderedListOutlined,
 } from '@ant-design/icons';
 import type { Role } from '@/types/auth';
 
@@ -25,6 +26,8 @@ export interface AppMenuItem {
 export const MENU_ITEMS: AppMenuItem[] = [
   // 첫 화면 = 매출현황(계획 대비). 2026-09-18 기존 홈 대시보드는 폐기.
   { key: '/', icon: <HomeOutlined />, label: '매출현황' },
+  // ERP 매출 상세 — 기간·사업부문 조회 + 엑셀. 권한 키는 MenuCatalog, 데이터 범위는 SALES_STATS.
+  { key: '/stats/sales-list', icon: <UnorderedListOutlined />, label: '매출리스트' },
   {
     key: 'info',
     icon: <InfoCircleOutlined />,
@@ -143,6 +146,7 @@ export function filterMenuByRole(items: AppMenuItem[], role?: Role, deptCd?: num
 export function getActiveTopKey(pathname: string): string {
   // 매출현황은 홈('/')이 정식 경로. 구 경로로 들어와도 홈이 활성화되게 먼저 판정한다.
   if (pathname.startsWith('/stats/sales-status')) return '/';
+  if (pathname.startsWith('/stats/sales-list')) return '/stats/sales-list';
   if (pathname.startsWith('/activity')) return 'activity';
   if (pathname.startsWith('/deals')) return 'activity';
   if (pathname.startsWith('/tools/pdf')) return '/tools/pdf';

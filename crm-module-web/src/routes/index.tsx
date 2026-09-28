@@ -23,6 +23,7 @@ const MyPage = lazy(() => import('@/pages/auth/MyPage'));
 // const GoalPage = lazy(() => import('@/pages/info/GoalPage')); // 2026-09-18 월매출계획으로 대체
 const SalesPlanPage = lazy(() => import('@/pages/info/SalesPlanPage'));
 const SalesStatusPage = lazy(() => import('@/pages/stats/SalesStatusPage'));
+const SalesListPage = lazy(() => import('@/pages/stats/SalesListPage'));
 
 // 영업관리 (CRM 영업활동)
 const ActivityCalendarPage = lazy(() => import('@/pages/activity/ActivityCalendarPage'));
@@ -145,6 +146,11 @@ const router = createBrowserRouter([
   {
     path: '/stats/sales-status',
     element: <Protected><SalesStatusPage /></Protected>,
+  },
+  // 매출리스트 — ERP 매출 상세 + 엑셀
+  {
+    path: '/stats/sales-list',
+    element: <Protected><SalesListPage /></Protected>,
   },
   // 영업관리
   {

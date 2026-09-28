@@ -23,6 +23,7 @@ public final class MenuCatalog {
 
     public static final List<Entry> ENTRIES = List.of(
             new Entry("/", "홈", "매출현황", false),
+            new Entry("/stats/sales-list", "매출", "매출리스트", false),
             new Entry("/info/sales-plan", "정보관리", "월매출계획", false),
             new Entry("/activity/attention", "영업관리", "관리 필요 거래처", false),
             new Entry("/deals", "영업관리", "영업기회", false),

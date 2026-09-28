@@ -10,7 +10,7 @@ import {
 import dayjs, { type Dayjs } from 'dayjs';
 import { PageHeader, PageLayout } from '@/components/layout';
 import { getReceivableAging } from '@/api/stats.api';
-import type { ReceivableAgingRow, ReceivableDivision, ReceivableSalesWindow } from '@/types/stats';
+import type { ReceivableAgingRow, ReceivableDivision } from '@/types/stats';
 
 const { Text } = Typography;
 
@@ -19,8 +19,10 @@ const { Text } = Typography;
  *  - 조회는 월 단위, 기준일 = 그 달 말일. 잔액은 기준일 시점(그 뒤 반제분을 되돌려 계산), 연령버킷은 말일에서 거꾸로 30일 단위.
  *  - 사업부 = 계정: 국내외상매출금 10801 → TPS · 그래픽스외상매출금 10805 → GRP · PM사업외상매출금 10804 → PM. 전사 = 셋의 합.
  *  - 상단(제목·조회조건·핵심지표)은 고정, 아래는 대시보드 / 부서·거래처별 표 전환.
- *  - 산식 기준: 채권율 = 채권잔액 ÷ 최근 3개월 평균 월매출 × 100, 회수기한 = 채권잔액 ÷ 최근 3개월 일평균 매출.
- *  - 실무에서 회수기한은 채권율 × 약 30일 로 근사해 해석한다.
+ *  - 채권율·회수기한은 TPS·GRP·PM·전사 모두 산식(분모·부가세·선매출차감·신판재고이관 처리)을 사용자가 정할 때까지
+ *    "—"(산식 미정)로 둔다(2026-09-28 사용자 지시).
+ *    어설픈 금액을 넣지 않기로 한 결정. 확정되면 서버 분모 조회와 함께 붙인다 — ReceivableAgingController 주석 참고.
+ *    잔액·연령버킷·전년 잔액은 원장 사실이라 그대로 보여준다(부가세 포함 금액).
  */
 
 const DIVISIONS = [
@@ -225,22 +227,6 @@ const ReceivableAgingPage = () => {
   const prevYy = month.subtract(1, 'year').format('YY');
   const monthLabel = `${month.format('M')}월말 잔액`;
   const prevBaseDate = data?.prevBaseDate ?? month.subtract(1, 'year').endOf('month').format('YYYY-MM-DD');
-  const receivableFormula = '채권율 = 채권잔액 ÷ 최근 3개월 월평균 매출(부가세 포함) × 100';
-  const collectionDaysFormula = '회수기한 = 채권잔액 ÷ 최근 3개월 일평균 매출';
-
-  // 채권율·회수기한 — 선택 범위(전사/사업부)의 최근 3개월 매출(부가세 포함)을 분모로.
-  const ratio = (balance: number | undefined, w: ReceivableSalesWindow | undefined) => {
-    if (balance == null || !w) return { rate: null, days: null, sales: 0 };
-    const sales = scope === 'ALL'
-      ? DIVISIONS.reduce((s, d) => s + Number(w.amounts?.[d.key] ?? 0), 0)
-      : Number(w.amounts?.[scope] ?? 0);
-    if (sales <= 0) return { rate: null, days: null, sales };
-    return { rate: (balance / (sales / w.months)) * 100, days: balance / (sales / w.days), sales };
-  };
-  const cur = ratio(scopeTotal.amHjan, data?.sales);
-  const prv = ratio(scopePrev, data?.prevSales);
-  const salesSub = (w: ReceivableSalesWindow | undefined, sales: number) =>
-    (w ? `${w.from.slice(2, 7).replace('-', '.')}~${w.to.slice(2, 7).replace('-', '.')} 월평균 ${eok(sales / w.months)}` : '');
 
   // 사업부별 채권잔액 — 올해/전년 같은 날 막대 2개씩, 전사가 맨 앞.
   const balanceData = [
@@ -310,19 +296,19 @@ const ReceivableAgingPage = () => {
         />
         <Card size="small" style={{ marginTop: 8 }} styles={{ body: { padding: '12px 16px' } }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
-            <Text strong style={{ fontSize: 13 }}>계산식 기준</Text>
+            <Text strong style={{ fontSize: 13 }}>핵심지표</Text>
             <Text type="secondary" style={{ fontSize: 12 }}>
-              {receivableFormula} · {collectionDaysFormula}
+              잔액은 더존 채권원장 기준(부가세 포함). 채권율·회수기한은 산식 미정.
             </Text>
           </div>
           <Spin spinning={isFetching}>
             <Row gutter={[16, 8]}>
               <Kpi label={`${yy}년 채권잔액`} value={eok(scopeTotal.amHjan)} sub={monthLabel} strong />
               <Kpi label={`${prevYy}년 채권잔액`} value={scopePrev == null ? '—' : eok(scopePrev)} sub={`${prevBaseDate} 시점 잔액`} />
-              <Kpi label={`${yy}년 채권율`} value={cur.rate == null ? '매출없음' : `${cur.rate.toFixed(0)}%`} sub={salesSub(data?.sales, cur.sales)} strong />
-              <Kpi label={`${prevYy}년 채권율`} value={prv.rate == null ? '매출없음' : `${prv.rate.toFixed(0)}%`} sub={salesSub(data?.prevSales, prv.sales)} />
-              <Kpi label={`${yy}년 회수기한`} value={cur.days == null ? '매출없음' : `${cur.days.toFixed(0)}일`} sub={data?.sales ? `최근 3개월 ${data.sales.days}일 기준` : ''} strong />
-              <Kpi label={`${prevYy}년 회수기한`} value={prv.days == null ? '매출없음' : `${prv.days.toFixed(0)}일`} sub={data?.prevSales ? `최근 3개월 ${data.prevSales.days}일 기준` : ''} />
+              <Kpi label={`${yy}년 채권율`} value="—" sub="산식 미정" strong />
+              <Kpi label={`${prevYy}년 채권율`} value="—" sub="산식 미정" />
+              <Kpi label={`${yy}년 회수기한`} value="—" sub="산식 미정" strong />
+              <Kpi label={`${prevYy}년 회수기한`} value="—" sub="산식 미정" />
             </Row>
           </Spin>
         </Card>

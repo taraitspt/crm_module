@@ -184,28 +184,21 @@ public class OracleReceivableAgingRepository {
         return out;
     }
 
-    /** 매출 회계단위(PC_CD) → 사업부. 매출현황의 공장코드(1000/2000/3000)와 1:1 로 같은 금액이다. */
-    private static final Map<String, String> SALES_PC_DIVISION = Map.of("1000", "TPS", "9000", "GRP", "8000", "PM");
-
-    /**
-     * 기간 매출 합계(부가세 포함) — 사업부별. 채권율·회수기한 분모.
-     * SD_BILL_MST 의 SPLY_AMT(공급가) + TAX_AMT(부가세). 채권잔액이 부가세 포함이라 분모도 맞춘다.
-     * 공급가 합계는 매출현황(SD_BILL_DTL.TRAN_AMT 공장별)과 원 단위까지 같다(2026-06~08 검증).
+    /*
+     * 채권율·회수기한 분모(기간 매출 또는 외상매출금 발생액)는 산식이 확정될 때까지 두지 않는다(2026-09-28).
+     * 확정되면 여기에 기간 조회를 붙인다. 그때 참고할 사실:
+     *  - 채권잔액은 구조상 부가세 포함(외상매출금 차변 = 공급가 + 부가세예수금). 8월 GRP 전표로 원 단위 확인.
+     *  - 2026-08 부터 GRP·PM 매출은 SD_BILL(매출모듈)에 없고 회계전표(FI_DOCU)에만 있다 — GRP 41400 그래픽스제품매출(8월 전엔 40200 도),
+     *    PM 40301+41302. 46810/46820 생산완료정산은 원가 대체라 매출이 아니다. 역분개(FI_REDOCU)·미승인 전표 제외.
+     *  - 선매출은 발행 때 외상매출금(부가세 포함)이 생기고, 차감 때는 선수금(25904/25907) 차변 ↔ 매출 대변만 오간다(외상·부가세 없음).
+     *    분모를 매출액으로 잡으면 채권(발행월)과 매출(차감월)의 시점이 어긋나고, 외상매출금 발생액(같은 원장)으로 잡으면 저절로 맞는다.
+     *  - TPS 매출모듈 합계(SD_BILL_MST PC 1000 SPLY+TAX)는 연결 전표(SD_BILL_MST.DOCU_NO) 차변으로 원 단위까지 풀린다(2026-06~08 확인):
+     *    국내외상매출금 10801 + 미수금(신판상품재고이관) 12006 + 해외예수금 25407 + 선수금(선매출) 25904 + 품질사고보상매출금 10806.
+     *    12006·25407·25904 는 외상매출금이 안 생기는 매출이라, 매출모듈 합계를 분모로 쓰면 채권율이 낮게 나온다(8월은 12006 만 42.7억).
+     *  - 국내외상매출금 발생액 전체(FI_BAN_MST 10801)에는 수출 거래처(OZBEKISTON NASHRIYOT) 전표가 거의 같은 금액 두 줄씩 잡혀
+     *    둘 다 전액 반제된 건이 있어 매출 전표에서 생긴 10801 보다 크다(2026-07: 385억 vs 227억). 대체·재발행으로 보이며 회계 확인 필요.
+     *  - 산식은 사용자가 정한다 — 임의로 분모를 골라 화면에 채우지 않는다(2026-09-28 사용자 지시, 전부 "산식 미정").
      */
-    public Map<String, BigDecimal> findDivisionSales(LocalDate from, LocalDate to) {
-        Map<String, BigDecimal> out = new LinkedHashMap<>();
-        DIVISION_ACCOUNTS.keySet().forEach(k -> out.put(k, BigDecimal.ZERO));
-        jdbcTemplate.query("""
-                SELECT PC_CD, SUM(NVL(SPLY_AMT, 0) + NVL(TAX_AMT, 0)) AS AMT
-                  FROM SD_BILL_MST
-                 WHERE COMPANY_CD = ? AND BILL_DT BETWEEN ? AND ?
-                 GROUP BY PC_CD
-                """, rs -> {
-            String div = SALES_PC_DIVISION.get(trim(rs.getString("PC_CD")));
-            if (div != null) out.merge(div, nz(rs.getBigDecimal("AMT")), BigDecimal::add);
-        }, COMPANY_CD, from.format(BASIC), to.format(BASIC));
-        return out;
-    }
 
     private static List<Object> asOfArgs(String base) {
         List<Object> args = new ArrayList<>();

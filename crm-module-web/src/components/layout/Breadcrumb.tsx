@@ -27,6 +27,7 @@ const pathLabels: Record<string, string> = {
   '/info/goal': '목표 입력',
   '/info/sales-plan': '월매출계획',
   '/stats/sales-status': '매출현황 (계획 대비)',
+  '/stats/sales-list': '매출리스트',
   '/stats': '통계',
   '/stats/team-forecast': '본부/팀 예상매출',
   '/stats/team-goal-actual': '매출목표 및 실적',

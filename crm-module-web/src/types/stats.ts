@@ -498,21 +498,10 @@ export interface ReceivableAgingRow {
   inDay120: number;        // 120일이내
   outDay121: number;       // 121일이상
 }
-/** 매출 집계 창 — 채권율 = 잔액 ÷ (amounts ÷ months) × 100, 회수기한 = 잔액 ÷ (amounts ÷ days). 부가세 포함. */
-export interface ReceivableSalesWindow {
-  from: string;
-  to: string;
-  months: number;
-  days: number;
-  amounts: Record<ReceivableDivision, number>;
-}
+// 채권율·회수기한용 매출(분모) 창은 산식 확정 전이라 두지 않는다(2026-09-28) — 서버 ReceivableAgingController 주석 참고.
 export interface ReceivableAgingDto {
   baseDate: string;
   rows: ReceivableAgingRow[];
-  /** 기준월 포함 최근 3개월 사업부별 매출 */
-  sales?: ReceivableSalesWindow;
-  /** 전년 기준월 포함 최근 3개월 사업부별 매출 */
-  prevSales?: ReceivableSalesWindow;
   /** 전년 비교 기준일 — 기준일의 정확히 1년 전 */
   prevBaseDate: string;
   /** 전년 기준일 시점 사업부별 잔액 */
