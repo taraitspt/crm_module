@@ -50,7 +50,7 @@ npm run test:e2e  # e2e/00-full-server-test.spec.ts 스모크
 
 ### Dual datasource
 
-`common/config/PrimaryDataSourceConfig` = MySQL/MariaDB `@Primary` (`spring.datasource.*`). `common/config/OracleDataSourceConfig` = ERP Oracle, `oracle.enabled=true` 일 때만 생성되며 fail-soft(`setInitializationFailTimeout(-1)`)라 ERP가 안 붙어도 앱은 뜬다. Flyway 는 primary 에만 적용된다. 마이그레이션은 MySQL/MariaDB SQL 로 쓰고, 다중 `ADD COLUMN` 은 `ALTER TABLE` 을 나눈다(`.claude/skills/flyway-migration`).
+`common/config/PrimaryDataSourceConfig` = MySQL/MariaDB `@Primary` (`spring.datasource.*`). `common/config/OracleDataSourceConfig` = ERP Oracle, `oracle.enabled=true` 일 때만 생성되며 fail-soft(`setInitializationFailTimeout(-1)`)라 ERP가 안 붙어도 앱은 뜬다. `oracleJdbcTemplate` 은 fetch size 1000 — ERP 가 사외 원격이라 드라이버 기본 10행이면 수천 행 조회가 왕복 횟수만으로 10초를 넘긴다(생산계획 한 달 10.5s → 3.4s). Flyway 는 primary 에만 적용된다. 마이그레이션은 MySQL/MariaDB SQL 로 쓰고, 다중 `ADD COLUMN` 은 `ALTER TABLE` 을 나눈다(`.claude/skills/flyway-migration`).
 
 ### Profiles
 
@@ -77,8 +77,12 @@ npm run test:e2e  # e2e/00-full-server-test.spec.ts 스모크
 
 - 라우트는 `src/routes/index.tsx` 하나, 메뉴는 `src/components/layout/menuItems.tsx` 하나(사이드바·상단 공유). 화면 추가 시 둘 다 등록한다.
 - 현재 메뉴: 대시보드 `/` · 정보관리(`/info/sales-plan` 월매출계획) · 데이터 분석(`/stats/sales-status` 매출현황(계획 대비), team-forecast, am-goal-yoy, item-perf, customer-yearly-sales(+detail), customer-sales-growth, design-sales) · 수익성 분석(`/stats/order-margin`, `/stats/vendor-margin`) · 관리자[ADMIN,FINANCE](`/admin/active-users`, `/admin/erp-sync`, `/admin/closing`, `/admin/common-codes`).
+- 매출리스트 `/stats/sales-list`: GROW 월매출리스트 쿼리 이식(`OracleSalesListRepository`, 2026-10-01). 한 줄 = 매출번호 × 수주순번 × 주문(TOR). 매출(SD_BILL) → 수주(SD_SO_DTL.PURDOC_NO) → 주문 → 주문 정산(SD_ORDSTL_INFO_X20329, TOP_ORGN_CD '99'=용지, 그 외 공임)으로 정산공임/용지를 붙이고, 부서는 영업담당자의 매출일 기준 발령부서(HR_HUAN). 원본대로 저작권 매출(TPSCOPYRIGHT001)·매출취소를 빼므로 **합계가 매출현황(SD_BILL 전체)과 다르다**. 정산 금액은 주문 전체 값이라 분할매출이면 줄마다 반복 — 합산해서 쓰지 말 것. 데이터 범위(SALES_STATS)는 `salesEmpNo`(영업담당 사번)·`ccCd` 로 판정.
+- 생산현황(TPS, ERP 조회 전용): `/production/plan` 생산계획현황 — 인쇄·제판·후가공·접지·제본 다섯 탭, `GET /api/production/plan/{tab}`(print|plate|process|fold|bind, 계획일 최대 31일). 행 DTO 는 다섯 탭 컬럼의 합집합 `ProductionPlanDto.Row` 하나이고 탭별 컬럼은 `ProductionPlanPage.tsx` 의 `COLS` 가 정한다. `/production/dashboard` 는 같은 API 를 화면에서 집계한 대시보드. SQL 은 ERP 생산계획현황 화면 쿼리에서 SELECT 에 안 쓰이는 조인만 뺀 것(`OracleProductionPlanRepository` 주석에 대조 결과).
 - 주석처리(코드는 남김, 메뉴·라우트·lazy import 만 주석): 사업자관리·고객관리·영업담당자관리·목표입력, 파트별 부대비용 실적, GRP생산내역, POD 작업사양, GRP수익비용대응. 되살릴 땐 `menuItems.tsx` 와 `routes/index.tsx` 양쪽 주석을 함께 푼다.
 - 월매출계획 화면(`pages/info/SalesPlanPage.tsx`): 담당자 선택 → 거래처 추가(ERP `/lookup/partners` 검색) → 1~12월 공임/용지 입력 → 저장. 저장은 "요청에 포함된 담당자의 해당 연도 계획을 통째로 교체"라 행 삭제도 저장으로 반영된다. 매출현황(`pages/stats/SalesStatusPage.tsx`)은 거래처 행마다 계획/실적 2줄 + 달성률. 실적은 거래처 단위 ERP 합산이며 공임/용지 실적 분리는 미구현(별도 테이블 확인 후 붙일 것).
+- **모바일 앱(PWA, `/m`)** — `vite-plugin-pwa`(manifest `start_url: /m`, 앱 껍데기만 프리캐시, `/api` 는 캐시 안 함), 아이콘은 `public/pwa-*.png`(로고의 올빼미 마크). `pages/mobile/MobileLayout`(상단바 + 하단 탭 4개 + 설치 안내) 아래 활동(`/m/activity` 월 달력·당일 목록·등록 FAB)·거래처(`/m/partner?cd=`)·관리필요(`/m/attention`)·매출(`/m/sales`). **PC 메뉴 전체를 옮기지 않는다** — 표 화면은 폰 폭에 안 맞아 이 네 개만 담기로 함(2026-10-01). 탭 노출은 PC 메뉴 키(`menuKey`) 권한을 따르고, 데이터는 기존 API·타입을 그대로 쓴다(`ActivityFormModal` 재사용, `defaultSalesEmpId` 로 로그인 사용자 기본). 홈 화면 앱(standalone)으로 `/` 를 열면 `/m` 으로 보낸다. 폰에서 사외 접속하려면 CRM 서버가 HTTPS 로 떠 있어야 한다.
+  **네이티브 포장(Capacitor)**: `capacitor.config.ts` 의 `server.url` 로 서버의 `/m` 을 WebView 에 불러오는 껍데기 앱. 안드로이드 APK 는 `npm run app:android`(SDK `C:\Android\Sdk`, JDK 17) → `public/downloads/tara-crm.apk`, 설치 안내 페이지는 `/app`(비로그인). iOS 는 `ios/` Xcode 프로젝트까지만 — 빌드는 Mac·Apple 계정 필요. 절차는 `crm-module-web/MOBILE_APP.md`. `android/`·`ios/` 는 커밋, APK 는 커밋하지 않는다. `tsc -b` 가 루트에 `vite.config.js` 를 떨구던 문제는 `tsconfig.node.json` outDir 로 막았다(그 파일이 남아 있으면 Vite 가 `.ts` 대신 그걸 읽는다).
 - `src/api/client.ts` 가 단일 Axios 인스턴스(`baseURL: '/api'`, JWT 자동 첨부, 401 → 로그아웃). 새 API 모듈은 여기서 import 한다.
 - 상태: Zustand(`store/`) + TanStack Query. 테이블: TanStack Table + antd `DataTable`, 컬럼필터는 `components/table/columnFilterKit`. react-hook-form/zod 는 제거됨 — 폼은 antd Form 을 쓴다.
 

@@ -16,6 +16,7 @@ const pathLabels: Record<string, string> = {
   '/deals': '영업기회',
   '/production': '생산현황',
   '/production/plan': '생산계획현황',
+  '/production/dashboard': '생산계획 대시보드',
   '/tools/pdf': 'PDF 변환',
   '/admin/users': '사용자 관리',
   '/admin/menu-permissions': '권한 관리',

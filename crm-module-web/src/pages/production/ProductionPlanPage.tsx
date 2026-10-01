@@ -6,10 +6,11 @@ import dayjs, { type Dayjs } from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
 import { PageHeader, PageLayout } from '@/components/layout';
 import { ExcelDownloadBtn } from '@/components/table';
-import { getProductionPlatePlan } from '@/api/production.api';
-import type { ProductionPlateRow } from '@/types/production';
+import { getProductionPlan } from '@/api/production.api';
+import { PRODUCTION_TABS, type ProductionPlanRow, type ProductionPlanTab } from '@/types/production';
 import StatsDateRangePicker from '@/pages/stats/components/StatsDateRangePicker';
 import { HeaderCell, matchesFilter, compareVals, isColFilterActive, type ColFilter, type ColType } from '@/components/table/columnFilterKit';
+import { T } from '@/theme/designTokens';
 
 /** 서버와 같은 한도 — ProductionPlanController.MAX_RANGE_DAYS. */
 const MAX_RANGE_DAYS = 31;
@@ -17,54 +18,90 @@ const MAX_RANGE_DAYS = 31;
 const num = (v?: number | null) => (v == null ? '' : Number(v).toLocaleString('ko-KR'));
 
 // 컬럼 정의 — colId(=dataIndex) → 라벨·필터 타입·폭·정렬. 표·헤더필터·컬럼선택·엑셀이 모두 이걸 쓴다.
-type ColDef = { id: keyof ProductionPlateRow; label: string; type?: ColType; width: number; align?: 'right' | 'center'; fixed?: 'left' };
-const PLATE_COLS: ColDef[] = [
-  { id: 'planNo', label: '계획번호', width: 150, fixed: 'left' },
-  { id: 'planSq', label: '계획순번', type: 'amount', width: 80, align: 'center' },
-  { id: 'planLowSq', label: '하위순번', type: 'amount', width: 80, align: 'center' },
-  { id: 'planDate', label: '계획일', width: 100 },
-  { id: 'orderNo', label: '주문번호', width: 150 },
-  { id: 'orderName', label: '주문명', width: 260 },
-  { id: 'orderSq', label: '주문순번', type: 'amount', width: 80, align: 'center' },
-  { id: 'partnerName', label: '영업거래처', type: 'enum', width: 170 },
-  { id: 'itemCd', label: '주문품목', width: 110 },
-  { id: 'itemName', label: '주문품목명', width: 180 },
-  { id: 'detailItemName', label: '세부품목명', width: 260 },
-  { id: 'orderQty', label: '주문수량', type: 'amount', width: 90, align: 'right' },
-  { id: 'configName', label: '구성명', type: 'enum', width: 90 },
-  { id: 'processName', label: '공정명', type: 'enum', width: 90 },
-  { id: 'workName', label: '작업명', type: 'enum', width: 110 },
-  { id: 'pressSq', label: '대수', type: 'amount', width: 65, align: 'right' },
-  { id: 'equipmentName', label: '설비명', type: 'enum', width: 110 },
-  { id: 'materialCd', label: '용지코드', width: 115 },
-  { id: 'materialName', label: '용지명', width: 180 },
-  { id: 'cutSize', label: '재단규격', width: 90 },
-  { id: 'pages', label: '면수', type: 'amount', width: 65, align: 'right' },
-  { id: 'imposition', label: '터잡기', width: 75 },
-  { id: 'cutCount', label: '절수', type: 'amount', width: 65, align: 'right' },
-  { id: 'generalFront', label: '일반 앞', type: 'amount', width: 70, align: 'right' },
-  { id: 'generalBack', label: '일반 뒤', type: 'amount', width: 70, align: 'right' },
-  { id: 'spotFront', label: '별색 앞', type: 'amount', width: 70, align: 'right' },
-  { id: 'spotBack', label: '별색 뒤', type: 'amount', width: 70, align: 'right' },
-  { id: 'plateCount', label: '판수', type: 'amount', width: 70, align: 'right' },
-  { id: 'groupParentYn', label: '합대모품목', type: 'enum', width: 90, align: 'center' },
-  { id: 'groupChildYn', label: '합대자품목', type: 'enum', width: 90, align: 'center' },
-  { id: 'groupSq', label: '합대기준순번', type: 'amount', width: 100, align: 'center' },
-  { id: 'workUnitPrice', label: '사내단가', type: 'amount', width: 90, align: 'right' },
-  { id: 'workAmount', label: '사내금액', type: 'amount', width: 105, align: 'right' },
-  { id: 'stdUnitPrice', label: '표준단가', type: 'amount', width: 90, align: 'right' },
-  { id: 'stdAmount', label: '표준금액', type: 'amount', width: 105, align: 'right' },
-  { id: 'pressCloseYn', label: '대수마감', type: 'enum', width: 80, align: 'center' },
-  { id: 'resultStatusName', label: '실적상태', type: 'enum', width: 100, align: 'center' },
-  { id: 'resultDate', label: '실적일자', width: 100 },
-];
-const NUMERIC = new Set(PLATE_COLS.filter((c) => c.type === 'amount').map((c) => c.id));
-const colType = (id: string): ColType => PLATE_COLS.find((c) => c.id === id)?.type ?? 'text';
-const getVal = (row: ProductionPlateRow, id: string) => String((row as unknown as Record<string, unknown>)[id] ?? '');
-const HIDDEN_COLS_KEY = 'production-plan-plate-hidden-cols';
+type ColDef = { id: keyof ProductionPlanRow; label: string; type?: ColType; width: number; align?: 'right' | 'center'; fixed?: 'left' };
+const amt = (id: keyof ProductionPlanRow, label: string, width = 70): ColDef => ({ id, label, type: 'amount', width, align: 'right' });
+const en = (id: keyof ProductionPlanRow, label: string, width: number, align?: 'center'): ColDef => ({ id, label, type: 'enum', width, align });
+const tx = (id: keyof ProductionPlanRow, label: string, width: number): ColDef => ({ id, label, width });
 
-/** 제판 탭 — ERP 생산계획현황 제판 탭과 같은 데이터. */
-const PlateTab: React.FC<{ dateRange: [Dayjs, Dayjs] }> = ({ dateRange }) => {
+/** 모든 탭 공통 머리 컬럼 — 계획·주문·품목. */
+const HEAD: ColDef[] = [
+  { id: 'planNo', label: '계획번호', width: 150, fixed: 'left' },
+  { ...amt('planSq', '계획순번', 80), align: 'center' },
+  { ...amt('planLowSq', '하위순번', 80), align: 'center' },
+  tx('planDate', '계획일', 100),
+  tx('orderNo', '주문번호', 150),
+  tx('orderName', '주문명', 260),
+  { ...amt('orderSq', '주문순번', 80), align: 'center' },
+  en('partnerName', '영업거래처', 170),
+  tx('itemCd', '주문품목', 110),
+  tx('itemName', '주문품목명', 180),
+  tx('detailItemName', '세부품목명', 260),
+];
+/** 재단규격·면수·터잡기·절수 — 제본 탭 제외. */
+const SHEET: ColDef[] = [tx('cutSize', '재단규격', 90), amt('pages', '면수', 65), tx('imposition', '터잡기', 75), amt('cutCount', '절수', 65)];
+/** 사내/표준 단가·금액. */
+const MONEY: ColDef[] = [amt('workUnitPrice', '사내단가', 90), amt('workAmount', '사내금액', 105), amt('stdUnitPrice', '표준단가', 90), amt('stdAmount', '표준금액', 105)];
+/** 대수마감·실적상태·실적일자 — 모든 탭 꼬리. */
+const TAIL: ColDef[] = [en('pressCloseYn', '대수마감', 80, 'center'), en('resultStatusName', '실적상태', 100, 'center'), tx('resultDate', '실적일자', 100)];
+/** 인쇄판 색 수·판수. */
+const PLATES: ColDef[] = [amt('generalFront', '일반 앞'), amt('generalBack', '일반 뒤'), amt('spotFront', '별색 앞'), amt('spotBack', '별색 뒤'), amt('plateCount', '판수')];
+const GROUP: ColDef[] = [en('groupParentYn', '합대모품목', 90, 'center'), en('groupChildYn', '합대자품목', 90, 'center'), { ...amt('groupSq', '합대기준순번', 100), align: 'center' }];
+
+/** 탭별 컬럼 — ERP 생산계획현황 각 탭의 열 순서를 따른다. */
+const COLS: Record<ProductionPlanTab, ColDef[]> = {
+  print: [
+    ...HEAD, amt('orderQty', '주문수량', 90),
+    en('configName', '구성명', 90), en('processName', '공정', 90), en('seriesName', '계열', 70), en('workName', '작업', 110),
+    amt('pressSq', '대수', 65), amt('startPage', '시작페이지', 90), amt('endPage', '끝페이지', 90), en('equipmentName', '설비명', 130),
+    tx('materialCd', '용지코드', 115), tx('materialName', '용지명', 180), en('plateInfoName', '제판정보', 90),
+    ...SHEET, ...PLATES,
+    amt('netReam', '정미연수', 80), amt('spareReam', '여분연수', 80), amt('fullReam', '정미여분연수합', 110), amt('adjReam', '조정연수', 80),
+    amt('cutTimes', '재단횟수', 80),
+    amt('netSheets', '정미매수', 85), amt('spareSheets', '여분매수', 85), amt('fullSheets', '정미여분매수합', 115), amt('adjSheets', '조정매수', 85),
+    amt('adjSheetsSum', '정미조정매수합', 115), amt('tongCount', '통수', 70),
+    ...GROUP, amt('groupNet', '합대정미', 80), amt('groupSpare', '합대여분', 80), amt('groupAdj', '합대조정', 80),
+    ...MONEY, ...TAIL,
+  ],
+  plate: [
+    ...HEAD, amt('orderQty', '주문수량', 90),
+    en('configName', '구성명', 90), en('processName', '공정명', 90), en('workName', '작업명', 110),
+    amt('pressSq', '대수', 65), en('equipmentName', '설비명', 110),
+    tx('materialCd', '용지코드', 115), tx('materialName', '용지명', 180),
+    ...SHEET, ...PLATES, ...GROUP, ...MONEY, ...TAIL,
+  ],
+  process: [
+    ...HEAD, amt('orderQty', '주문수량', 90),
+    en('configName', '구성명', 90), en('processName', '공정명', 100), en('seriesName', '계열명', 70), en('workName', '작업명', 110),
+    amt('pressSq', '대수', 65), en('equipmentName', '설비명', 140),
+    ...SHEET, amt('procQty', '작업수량', 90),
+    ...MONEY, ...TAIL,
+  ],
+  fold: [
+    ...HEAD, amt('orderQty', '작업수량', 90), en('orderUnitCd', '작업단위', 80, 'center'),
+    en('configName', '구성명', 90), en('processName', '공정명', 90), en('seriesName', '계열명', 70), en('workName', '작업명', 110),
+    amt('pressSq', '대수', 65), en('equipmentName', '설비명', 120),
+    ...SHEET, ...MONEY, ...TAIL,
+  ],
+  bind: [
+    ...HEAD,
+    en('configName', '구성명', 90), en('processName', '공정명', 90), en('seriesName', '계열명', 70), en('workName', '작업명', 110),
+    amt('fullPressCount', '전체대수', 80), amt('fullPageCount', '전체페이지수', 100), amt('totalPages', '전체면수', 80),
+    en('equipmentName', '설비명', 120), amt('orderQty', '작업수량', 90), en('orderUnitCd', '작업단위', 80, 'center'),
+    ...MONEY, en('pressCloseYn', '대수마감', 80, 'center'), en('resultStatusName', '실적상태', 100, 'center'),
+    en('lastYn', '제품여부', 80, 'center'), tx('resultDate', '실적일자', 100),
+  ],
+};
+
+const getVal = (row: ProductionPlanRow, id: string) => String((row as unknown as Record<string, unknown>)[id] ?? '');
+
+/** 탭 하나 — 같은 표 UI 에 탭별 컬럼·수량 합계만 다르다. */
+const PlanTab: React.FC<{ tab: ProductionPlanTab; dateRange: [Dayjs, Dayjs] }> = ({ tab, dateRange }) => {
+  const cols = COLS[tab];
+  const meta = PRODUCTION_TABS.find((t) => t.key === tab)!;
+  const NUMERIC = useMemo(() => new Set(cols.filter((c) => c.type === 'amount').map((c) => c.id)), [cols]);
+  const colType = (id: string): ColType => cols.find((c) => c.id === id)?.type ?? 'text';
+  const hiddenKey = `production-plan-${tab}-hidden-cols`;
+
   const [keyword, setKeyword] = useState('');
   const [status, setStatus] = useState<string>();
   const [process, setProcess] = useState<string>();
@@ -72,22 +109,22 @@ const PlateTab: React.FC<{ dateRange: [Dayjs, Dayjs] }> = ({ dateRange }) => {
   const [colFilters, setColFilters] = useState<Record<string, ColFilter>>({});
   const [sortCfg, setSortCfg] = useState<{ colId: string; dir: 'asc' | 'desc' } | null>(null);
   const [hiddenCols, setHiddenCols] = useState<Record<string, boolean>>(() => {
-    try { return JSON.parse(localStorage.getItem(HIDDEN_COLS_KEY) || '{}'); } catch { return {}; }
+    try { return JSON.parse(localStorage.getItem(hiddenKey) || '{}'); } catch { return {}; }
   });
   useEffect(() => {
-    try { localStorage.setItem(HIDDEN_COLS_KEY, JSON.stringify(hiddenCols)); } catch { /* ignore */ }
-  }, [hiddenCols]);
+    try { localStorage.setItem(hiddenKey, JSON.stringify(hiddenCols)); } catch { /* ignore */ }
+  }, [hiddenCols, hiddenKey]);
 
   const startDate = dateRange[0].format('YYYY-MM-DD');
   const endDate = dateRange[1].format('YYYY-MM-DD');
   const { data, isFetching } = useQuery({
-    queryKey: ['production-plan-plate', startDate, endDate],
-    queryFn: () => getProductionPlatePlan({ startDate, endDate }),
+    queryKey: ['production-plan', tab, startDate, endDate],
+    queryFn: () => getProductionPlan(tab, { startDate, endDate }),
     staleTime: 60_000,
   });
   const allRows = useMemo(() => data?.data?.data ?? [], [data]);
 
-  const optionsOf = (field: keyof ProductionPlateRow) =>
+  const optionsOf = (field: keyof ProductionPlanRow) =>
     Array.from(new Set(allRows.map((r) => String(r[field] ?? '')).filter(Boolean)))
       .sort((a, b) => a.localeCompare(b, 'ko')).map((v) => ({ label: v, value: v }));
 
@@ -114,10 +151,10 @@ const PlateTab: React.FC<{ dateRange: [Dayjs, Dayjs] }> = ({ dateRange }) => {
     return out;
   }, [allRows, keyword, status, process, equipment, colFilters, sortCfg]);
 
-  const columns = useMemo<ColumnsType<ProductionPlateRow>>(() => {
+  const columns = useMemo<ColumnsType<ProductionPlanRow>>(() => {
     const hdr = (id: string, label: string) => (
       <HeaderCell colId={id} label={label} type={colType(id)}
-        enumOptions={colType(id) === 'enum' ? optionsOf(id as keyof ProductionPlateRow) : undefined}
+        enumOptions={colType(id) === 'enum' ? optionsOf(id as keyof ProductionPlanRow) : undefined}
         filter={colFilters[id]} sortDir={sortCfg?.colId === id ? sortCfg.dir : undefined}
         onToggleSort={() => setSortCfg((p) => (p?.colId === id ? (p.dir === 'asc' ? { colId: id, dir: 'desc' } : null) : { colId: id, dir: 'asc' }))}
         onApply={(colId, f) => setColFilters((p) => ({ ...p, [colId]: f }))}
@@ -125,7 +162,7 @@ const PlateTab: React.FC<{ dateRange: [Dayjs, Dayjs] }> = ({ dateRange }) => {
     );
     return [
       { title: 'No', width: 58, fixed: 'left', align: 'center', render: (_, __, i) => i + 1 },
-      ...PLATE_COLS.filter((c) => !hiddenCols[c.id]).map((c) => ({
+      ...cols.filter((c) => !hiddenCols[c.id]).map((c) => ({
         title: hdr(c.id, c.label),
         dataIndex: c.id,
         width: c.width,
@@ -137,15 +174,17 @@ const PlateTab: React.FC<{ dateRange: [Dayjs, Dayjs] }> = ({ dateRange }) => {
           : NUMERIC.has(c.id) ? (v: number) => num(v) : undefined,
       })),
     ];
-  }, [allRows, colFilters, sortCfg, hiddenCols]);
+  }, [allRows, colFilters, sortCfg, hiddenCols, cols]);
+
+  const scrollX = useMemo(() => 58 + cols.filter((c) => !hiddenCols[c.id]).reduce((s, c) => s + c.width, 0), [cols, hiddenCols]);
 
   const totals = useMemo(() => ({
-    plates: rows.reduce((s, r) => s + Number(r.plateCount ?? 0), 0),
+    qty: rows.reduce((s, r) => s + Number(r[meta.qtyField] ?? 0), 0),
     amount: rows.reduce((s, r) => s + Number(r.workAmount ?? 0), 0),
     noResult: rows.filter((r) => r.resultStatusName === '실적없음').length,
-  }), [rows]);
+  }), [rows, meta.qtyField]);
 
-  const excelColumns = PLATE_COLS.map((c) => ({ header: c.label, key: c.id }));
+  const excelColumns = cols.map((c) => ({ header: c.label, key: c.id }));
   const excelRows = rows.map((r) => ({ ...r }) as Record<string, unknown>);
 
   return (
@@ -160,10 +199,10 @@ const PlateTab: React.FC<{ dateRange: [Dayjs, Dayjs] }> = ({ dateRange }) => {
         <Input.Search allowClear placeholder="계획번호·주문번호·주문명·거래처" onSearch={setKeyword}
           onChange={(e) => { if (!e.target.value) setKeyword(''); }} style={{ width: 280 }} />
         <ExcelDownloadBtn data={excelRows} columns={excelColumns}
-          fileName={`생산계획현황_제판_${dateRange[0].format('YYYYMMDD')}_${dateRange[1].format('YYYYMMDD')}`} />
+          fileName={`생산계획현황_${meta.label}_${dateRange[0].format('YYYYMMDD')}_${dateRange[1].format('YYYYMMDD')}`} />
         <Popover trigger="click" placement="bottomRight" content={
           <div style={{ maxHeight: 360, overflowY: 'auto', minWidth: 170, display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {PLATE_COLS.map((c) => (
+            {cols.map((c) => (
               <Checkbox key={c.id} checked={!hiddenCols[c.id]}
                 onChange={(e) => setHiddenCols((p) => ({ ...p, [c.id]: !e.target.checked }))}>{c.label}</Checkbox>
             ))}
@@ -172,15 +211,16 @@ const PlateTab: React.FC<{ dateRange: [Dayjs, Dayjs] }> = ({ dateRange }) => {
           <Button icon={<SettingOutlined />}>컬럼</Button>
         </Popover>
       </Space>
-      <Table<ProductionPlateRow> virtual bordered size="small" loading={isFetching} columns={columns} dataSource={rows}
+      <Table<ProductionPlanRow> virtual bordered size="small" loading={isFetching} columns={columns} dataSource={rows}
         rowKey={(r, i) => `${r.planNo}-${r.planSq}-${r.planLowSq}-${i}`} pagination={false}
-        scroll={{ x: 4300, y: 'calc(100vh - 360px)' }} />
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 24, padding: '7px 14px', marginTop: 6,
-                    background: '#f0f5ff', border: '1px solid #d6e4ff', borderRadius: 6, fontWeight: 700, color: '#001f3f' }}>
-        <span>총 {num(rows.length)}건</span>
-        <span>실적없음 {num(totals.noResult)}건</span>
-        <span>판수 합계 {num(totals.plates)}</span>
-        <span>사내금액 합계 {num(totals.amount)} 원</span>
+        scroll={{ x: scrollX, y: 'calc(100vh - 360px)' }} />
+      {/* 합계 줄 — 표 아래 보조 정보라 작고 옅게. 숫자만 한 단계 진하게 */}
+      <div className="tabular-nums" style={{ display: 'flex', justifyContent: 'flex-end', gap: 18, padding: '4px 8px', marginTop: 4,
+                    fontSize: 12, color: T.t3 }}>
+        <span>총 <b style={{ color: T.t2, fontWeight: 600 }}>{num(rows.length)}</b>건</span>
+        <span>실적없음 <b style={{ color: T.t2, fontWeight: 600 }}>{num(totals.noResult)}</b>건</span>
+        <span>{meta.qtyLabel} <b style={{ color: T.t2, fontWeight: 600 }}>{num(totals.qty)}</b></span>
+        <span>사내금액 <b style={{ color: T.t2, fontWeight: 600 }}>{num(totals.amount)}</b> 원</span>
       </div>
     </>
   );
@@ -209,11 +249,9 @@ const ProductionPlanPage: React.FC = () => {
       </Card>
       <Card size="small">
         <Tabs
-          defaultActiveKey="plate"
+          defaultActiveKey="print"
           destroyInactiveTabPane
-          items={[
-            { key: 'plate', label: '제판', children: <PlateTab dateRange={dateRange} /> },
-          ]}
+          items={PRODUCTION_TABS.map((t) => ({ key: t.key, label: t.label, children: <PlanTab tab={t.key} dateRange={dateRange} /> }))}
         />
       </Card>
     </PageLayout>

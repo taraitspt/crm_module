@@ -62,6 +62,7 @@ export const MENU_ITEMS: AppMenuItem[] = [
     label: '생산현황',
     children: [
       { key: '/production/plan', label: '생산계획현황' },
+      { key: '/production/dashboard', label: '생산계획 대시보드' },
     ],
   },
   // 2026-09-18 '데이터 분석' 탭 전체 미사용 — 매출현황은 홈('/')으로 올라갔고,

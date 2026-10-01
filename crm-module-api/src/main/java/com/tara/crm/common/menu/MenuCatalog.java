@@ -32,6 +32,7 @@ public final class MenuCatalog {
             new Entry("/activity/list", "영업관리", "영업활동 이력", false),
             new Entry("/activity/partner", "영업관리", "거래처 카드", false),
             new Entry("/production/plan", "생산현황", "생산계획현황", false),
+            new Entry("/production/dashboard", "생산현황", "생산계획 대시보드", false),
             new Entry("/tools/pdf", "도구", "PDF 변환", false),
             new Entry("/admin/active-users", "관리자", "실시간 접속 현황", true),
             new Entry("/admin/erp-sync", "관리자", "ERP 동기화", true),

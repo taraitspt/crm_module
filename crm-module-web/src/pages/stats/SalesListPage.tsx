@@ -11,11 +11,12 @@ import type { SalesListRow } from '@/types/salesList';
 import { PLANTS } from '@/types/attention';
 import StatsDateRangePicker from './components/StatsDateRangePicker';
 import { HeaderCell, matchesFilter, compareVals, isColFilterActive, type ColFilter, type ColType } from '@/components/table/columnFilterKit';
+import { T } from '@/theme/designTokens';
 
 /**
- * 매출리스트 — ERP 매출 상세(매출번호·순번 단위)를 기간·사업부문으로 조회, 엑셀 다운로드.
- * 원천·사업부문 조건이 매출현황과 같아 기간 합계(공급가)가 매출현황 실적과 같다.
- * 2026-08 부터 GRP·PM 은 ERP 매출모듈을 쓰지 않아 8월 이후 GRP·PM 은 비어 있다.
+ * 매출리스트 — GROW 월매출리스트(매출번호 × 수주순번 × 주문)를 기간·사업부문으로 조회, 엑셀 다운로드.
+ * 매출액은 ERP 장부금액, 정산공임/용지는 주문 정산 금액이라 주문이 없는 매출은 0 으로 온다.
+ * 저작권 매출(TPSCOPYRIGHT001)·매출취소는 원본 쿼리대로 제외 — 매출현황 합계와는 그만큼 다르다.
  */
 
 /** 서버와 같은 한도 — SalesListService.MAX_RANGE_DAYS */
@@ -25,26 +26,39 @@ const PLANT_LABEL: Record<string, string> = { '1000': 'TPS', '2000': 'GRP', '300
 const num = (v?: number | null) => (v == null ? '' : Number(v).toLocaleString('ko-KR'));
 
 type ColDef = { id: keyof SalesListRow; label: string; type?: ColType; width: number; align?: 'right' | 'center'; fixed?: 'left' };
+const amt = (id: keyof SalesListRow, label: string, width = 110): ColDef => ({ id, label, type: 'amount', width, align: 'right' });
+const en = (id: keyof SalesListRow, label: string, width: number, align?: 'center'): ColDef => ({ id, label, type: 'enum', width, align });
+const tx = (id: keyof SalesListRow, label: string, width: number): ColDef => ({ id, label, width });
+
+/** GROW 월매출리스트 열 순서. */
 const COLS: ColDef[] = [
-  { id: 'billDate', label: '매출일', width: 100, fixed: 'left' },
+  { id: 'billDate', label: '매출일자', width: 100, fixed: 'left' },
   { id: 'billNo', label: '매출번호', width: 140, fixed: 'left' },
-  { id: 'billSq', label: '순번', type: 'amount', width: 60, align: 'center' },
-  { id: 'billTypeName', label: '매출유형', type: 'enum', width: 90, align: 'center' },
-  { id: 'plantCd', label: '사업부문', type: 'enum', width: 80, align: 'center' },
-  { id: 'partnerName', label: '거래처', width: 200 },
-  { id: 'bizNo', label: '사업자번호', width: 115 },
-  { id: 'salesDeptName', label: '영업부서', type: 'enum', width: 130 },
-  { id: 'salesEmpName', label: '영업담당', type: 'enum', width: 90 },
-  { id: 'itemCd', label: '품목코드', width: 110 },
-  { id: 'itemName', label: '품목명', width: 220 },
-  { id: 'qty', label: '수량', type: 'amount', width: 90, align: 'right' },
-  { id: 'unitPrice', label: '단가', type: 'amount', width: 100, align: 'right' },
-  { id: 'supplyAmt', label: '공급가액', type: 'amount', width: 120, align: 'right' },
-  { id: 'taxAmt', label: '부가세', type: 'amount', width: 100, align: 'right' },
-  { id: 'totalAmt', label: '합계', type: 'amount', width: 120, align: 'right' },
-  { id: 'soNo', label: '수주번호', width: 140 },
-  { id: 'docuNo', label: '전표번호', width: 150 },
-  { id: 'remark', label: '비고', width: 180 },
+  en('plantCd', '사업부문', 80, 'center'),
+  en('deptName', '부서', 120),
+  en('salesEmpName', '영업담당자', 90),
+  tx('partnerCd', '거래처코드', 100),
+  tx('partnerName', '거래처명', 200),
+  tx('itemCd', '품목코드', 110),
+  en('itemName', '품목명', 120),
+  tx('detailItemName', '세부품목명', 260),
+  amt('qty', '매출수량', 90),
+  amt('salesAmt', '매출액', 120),
+  amt('laborAmt', '정산공임', 110),
+  amt('paperAmt', '정산용지', 110),
+  amt('settleAmt', '정산합계', 120),
+  en('soTypeName', '수주유형', 120),
+  tx('soNo', '수주번호', 150),
+  { ...amt('soSq', '수주순번', 80), align: 'center' },
+  en('orderType', '주문구분', 90),
+  tx('orderNo', '주문번호', 150),
+  { ...amt('orderSq', '주문순번', 80), align: 'center' },
+  en('workPlaceName', '작업처', 90),
+  en('inOut', '내/외부', 75, 'center'),
+  en('bindInfo', '제본정보', 100),
+  en('makeEmpName', '제작담당자', 90),
+  en('salesGroupName', '영업그룹', 120),
+  en('ccName', '비용센터', 120),
 ];
 const NUMERIC = new Set(COLS.filter((c) => c.type === 'amount').map((c) => c.id));
 const colType = (id: string): ColType => COLS.find((c) => c.id === id)?.type ?? 'text';
@@ -52,12 +66,12 @@ const displayVal = (row: SalesListRow, id: string): string => {
   if (id === 'plantCd') return PLANT_LABEL[row.plantCd ?? ''] ?? row.plantCd ?? '';
   return String((row as unknown as Record<string, unknown>)[id] ?? '');
 };
-const HIDDEN_COLS_KEY = 'sales-list-hidden-cols';
+const HIDDEN_COLS_KEY = 'sales-list-hidden-cols-v2';
 
 const SalesListPage: React.FC = () => {
   const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>([dayjs().startOf('month'), dayjs()]);
   const [plantCd, setPlantCd] = useState('1000');
-  const [billType, setBillType] = useState<string>();
+  const [orderType, setOrderType] = useState<string>();
   const [dept, setDept] = useState<string>();
   const [emp, setEmp] = useState<string>();
   const [keyword, setKeyword] = useState('');
@@ -88,10 +102,10 @@ const SalesListPage: React.FC = () => {
   const rows = useMemo(() => {
     const kw = keyword.trim().toLowerCase();
     let out = allRows.filter((r) =>
-      (!billType || r.billTypeName === billType)
-      && (!dept || r.salesDeptName === dept)
+      (!orderType || r.orderType === orderType)
+      && (!dept || r.deptName === dept)
       && (!emp || r.salesEmpName === emp)
-      && (!kw || [r.partnerName, r.partnerCd, r.bizNo, r.itemName, r.itemCd, r.billNo, r.soNo, r.docuNo, r.remark]
+      && (!kw || [r.partnerName, r.partnerCd, r.itemName, r.detailItemName, r.billNo, r.soNo, r.orderNo]
         .some((v) => v?.toLowerCase().includes(kw))));
     const active = Object.entries(colFilters).filter(([, f]) => isColFilterActive(f));
     if (active.length) {
@@ -105,7 +119,7 @@ const SalesListPage: React.FC = () => {
       });
     }
     return out;
-  }, [allRows, billType, dept, emp, keyword, colFilters, sortCfg]);
+  }, [allRows, orderType, dept, emp, keyword, colFilters, sortCfg]);
 
   const columns = useMemo<ColumnsType<SalesListRow>>(() => {
     const hdr = (id: string, label: string) => (
@@ -125,8 +139,8 @@ const SalesListPage: React.FC = () => {
         align: c.align,
         fixed: c.fixed,
         ellipsis: true,
-        render: c.id === 'billTypeName'
-          ? (v: string, r: SalesListRow) => (v ? <Tag color={r.totalAmt < 0 ? 'red' : 'default'} style={{ marginInlineEnd: 0 }}>{v}</Tag> : r.billType)
+        render: c.id === 'inOut'
+          ? (v: string) => (v ? <Tag color={v === '내부' ? 'blue' : 'default'} style={{ marginInlineEnd: 0 }}>{v}</Tag> : '')
           : c.id === 'plantCd'
             ? (_: string, r: SalesListRow) => displayVal(r, 'plantCd')
             : NUMERIC.has(c.id)
@@ -136,10 +150,12 @@ const SalesListPage: React.FC = () => {
     ];
   }, [allRows, colFilters, sortCfg, hiddenCols]);
 
+  const scrollX = useMemo(() => 58 + COLS.filter((c) => !hiddenCols[c.id]).reduce((s, c) => s + c.width, 0), [hiddenCols]);
+
   const totals = useMemo(() => ({
-    supply: rows.reduce((s, r) => s + Number(r.supplyAmt ?? 0), 0),
-    tax: rows.reduce((s, r) => s + Number(r.taxAmt ?? 0), 0),
-    total: rows.reduce((s, r) => s + Number(r.totalAmt ?? 0), 0),
+    sales: rows.reduce((s, r) => s + Number(r.salesAmt ?? 0), 0),
+    labor: rows.reduce((s, r) => s + Number(r.laborAmt ?? 0), 0),
+    paper: rows.reduce((s, r) => s + Number(r.paperAmt ?? 0), 0),
   }), [rows]);
 
   const excelColumns = COLS.map((c) => ({
@@ -169,15 +185,15 @@ const SalesListPage: React.FC = () => {
           <span style={{ fontWeight: 600 }}>매출일</span>
           <StatsDateRangePicker value={dateRange} onChange={onRangeChange} />
           <Select value={plantCd} onChange={setPlantCd} style={{ width: 160 }} options={PLANTS} />
-          <Select allowClear placeholder="매출유형 전체" value={billType} onChange={setBillType}
-            options={optionsOf('billTypeName')} style={{ width: 130 }} />
-          <Select allowClear showSearch placeholder="영업부서 전체" value={dept} onChange={(v) => { setDept(v); setEmp(undefined); }}
-            options={optionsOf('salesDeptName')} style={{ width: 160 }} />
-          <Select allowClear showSearch placeholder="영업담당 전체" value={emp} onChange={setEmp}
-            options={Array.from(new Set(allRows.filter((r) => !dept || r.salesDeptName === dept).map((r) => r.salesEmpName).filter(Boolean) as string[]))
+          <Select allowClear placeholder="주문구분 전체" value={orderType} onChange={setOrderType}
+            options={optionsOf('orderType')} style={{ width: 130 }} />
+          <Select allowClear showSearch placeholder="부서 전체" value={dept} onChange={(v) => { setDept(v); setEmp(undefined); }}
+            options={optionsOf('deptName')} style={{ width: 160 }} />
+          <Select allowClear showSearch placeholder="영업담당자 전체" value={emp} onChange={setEmp}
+            options={Array.from(new Set(allRows.filter((r) => !dept || r.deptName === dept).map((r) => r.salesEmpName).filter(Boolean) as string[]))
               .sort((a, b) => a.localeCompare(b, 'ko')).map((v) => ({ label: v, value: v }))}
             style={{ width: 140 }} />
-          <Input.Search allowClear placeholder="거래처·사업자번호·품목·매출/수주/전표번호" onSearch={setKeyword}
+          <Input.Search allowClear placeholder="거래처·품목·매출/수주/주문번호" onSearch={setKeyword}
             onChange={(e) => { if (!e.target.value) setKeyword(''); }} style={{ width: 300 }} />
           <ExcelDownloadBtn data={excelRows} columns={excelColumns}
             fileName={`매출리스트_${dateRange[0].format('YYYYMMDD')}_${dateRange[1].format('YYYYMMDD')}`} sheetName="매출리스트" />
@@ -199,14 +215,15 @@ const SalesListPage: React.FC = () => {
           message={`데이터 범위 밖이라 ${num(hiddenByScope)}건은 표시하지 않았습니다.`} />
       )}
       <Table<SalesListRow> virtual bordered size="small" loading={isFetching} columns={columns} dataSource={rows}
-        rowKey={(r) => `${r.billNo}-${r.billSq}`} pagination={false}
-        scroll={{ x: 2600, y: 'calc(100vh - 330px)' }} />
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 24, padding: '7px 14px', marginTop: 6,
-                    background: '#f0f5ff', border: '1px solid #d6e4ff', borderRadius: 6, fontWeight: 700, color: '#001f3f' }}>
-        <span>총 {num(rows.length)}건</span>
-        <span>공급가액 {num(totals.supply)} 원</span>
-        <span>부가세 {num(totals.tax)} 원</span>
-        <span>합계 {num(totals.total)} 원</span>
+        rowKey={(r, i) => `${r.billNo}-${r.soSq}-${r.orderNo}-${r.orderSq}-${i}`} pagination={false}
+        scroll={{ x: scrollX, y: 'calc(100vh - 330px)' }} />
+      {/* 합계 줄 — 표 아래 보조 정보라 작고 옅게. 정산 합계는 분할매출이면 중복이 섞이므로 참고용 */}
+      <div className="tabular-nums" style={{ display: 'flex', justifyContent: 'flex-end', gap: 18, padding: '4px 8px', marginTop: 4,
+                    fontSize: 12, color: T.t3 }}>
+        <span>총 <b style={{ color: T.t2, fontWeight: 600 }}>{num(rows.length)}</b>건</span>
+        <span>매출액 <b style={{ color: T.t2, fontWeight: 600 }}>{num(totals.sales)}</b> 원</span>
+        <span>정산공임 <b style={{ color: T.t2, fontWeight: 600 }}>{num(totals.labor)}</b></span>
+        <span>정산용지 <b style={{ color: T.t2, fontWeight: 600 }}>{num(totals.paper)}</b></span>
       </div>
     </PageLayout>
   );

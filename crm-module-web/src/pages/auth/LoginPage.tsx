@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Form, Input, Button, Checkbox, Typography, message, Row, Col } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { login as loginApi, getMe, verifyMfa as verifyMfaApi } from '@/api/auth.api';
 import type { TokenResponse } from '@/types/auth';
@@ -20,6 +20,7 @@ const REMEMBER_KEY = 'sm-remember-login-id';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [form] = Form.useForm<LoginFormValues>();
   const [loading, setLoading] = useState(false);
   const { setTokens, setUser, setPasswordResetRequired } = useAuthStore();
@@ -39,7 +40,9 @@ const LoginPage: React.FC = () => {
       navigate('/force-password-change');
     } else {
       setPasswordResetRequired(false);
-      navigate('/');
+      // 보호 라우트가 보낸 원래 목적지(/m 모바일 앱 등)가 있으면 거기로, 없으면 홈.
+      const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
+      navigate(from && from !== '/login' ? from : '/', { replace: true });
     }
   };
 

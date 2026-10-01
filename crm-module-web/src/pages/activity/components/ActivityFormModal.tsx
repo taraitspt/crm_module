@@ -20,6 +20,8 @@ interface Props {
   defaultPartner?: { partnerCd: string; partnerNm?: string | null };
   /** 신규 등록 시 기본 영업기회 (파이프라인에서 '활동' 버튼으로 등록) */
   defaultDealId?: number | null;
+  /** 신규 등록 시 기본 담당자 (모바일 앱은 로그인 사용자) */
+  defaultSalesEmpId?: string;
   onClose: () => void;
   onSaved: () => void;
 }
@@ -39,7 +41,7 @@ interface FormValues {
 
 /** 영업활동 등록·수정 공용 모달. 세 화면이 모두 이걸 띄운다. */
 export default function ActivityFormModal({
-  open, editing, defaultDate, defaultPartner, defaultDealId, onClose, onSaved,
+  open, editing, defaultDate, defaultPartner, defaultDealId, defaultSalesEmpId, onClose, onSaved,
 }: Props) {
   const [form] = Form.useForm<FormValues>();
   const [saving, setSaving] = useState(false);
@@ -107,12 +109,13 @@ export default function ActivityFormModal({
       form.setFieldsValue({
         activityDt: defaultDate ? dayjs(defaultDate) : dayjs(),
         activityType: 'VISIT',
+        salesEmpId: defaultSalesEmpId,
         partnerCd: defaultPartner?.partnerCd,
         dealId: defaultDealId ?? null,
       });
     }
     setPartnerKeyword('');
-  }, [open, editing, defaultDate, defaultPartner, defaultDealId, form]);
+  }, [open, editing, defaultDate, defaultPartner, defaultDealId, defaultSalesEmpId, form]);
 
   const handleOk = async () => {
     let v: FormValues;
@@ -159,18 +162,19 @@ export default function ActivityFormModal({
       confirmLoading={saving}
       okText="저장"
       cancelText="취소"
-      width={620}
+      // 폰(모바일 앱)에서도 같은 모달을 쓴다 — 화면보다 넓어지지 않게
+      width="min(620px, calc(100vw - 16px))"
       destroyOnHidden
     >
       <Form form={form} layout="vertical" size="small" style={{ marginTop: 8 }}>
-        <div style={{ display: 'flex', gap: 12 }}>
-          <Form.Item name="activityDt" label="일자" rules={[{ required: true, message: '일자를 선택하세요' }]} style={{ flex: '0 0 150px' }}>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <Form.Item name="activityDt" label="일자" rules={[{ required: true, message: '일자를 선택하세요' }]} style={{ flex: '1 0 140px' }}>
             <DatePicker style={{ width: '100%' }} allowClear={false} />
           </Form.Item>
-          <Form.Item name="activityType" label="활동유형" rules={[{ required: true }]} style={{ flex: '0 0 140px' }}>
+          <Form.Item name="activityType" label="활동유형" rules={[{ required: true }]} style={{ flex: '1 0 120px' }}>
             <Select options={ACTIVITY_TYPES.map((t) => ({ value: t.value, label: t.label }))} />
           </Form.Item>
-          <Form.Item name="salesEmpId" label="담당자" rules={[{ required: true, message: '담당자를 선택하세요' }]} style={{ flex: 1 }}>
+          <Form.Item name="salesEmpId" label="담당자" rules={[{ required: true, message: '담당자를 선택하세요' }]} style={{ flex: '1 0 160px' }}>
             <Select showSearch options={userOptions} placeholder="담당자 선택"
               filterOption={(i, o) => ((o?.label as string) ?? '').toLowerCase().includes(i.toLowerCase())} />
           </Form.Item>
@@ -202,14 +206,14 @@ export default function ActivityFormModal({
           <Input.TextArea rows={4} placeholder="상담 내용, 특이사항" />
         </Form.Item>
 
-        <div style={{ display: 'flex', gap: 12 }}>
-          <Form.Item name="nextActionDt" label="다음 액션 예정일" style={{ flex: '0 0 170px' }}>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <Form.Item name="nextActionDt" label="다음 액션 예정일" style={{ flex: '1 0 150px' }}>
             <DatePicker style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="nextAction" label="다음에 할 일" style={{ flex: 1 }}>
+          <Form.Item name="nextAction" label="다음에 할 일" style={{ flex: '2 0 180px' }}>
             <Input placeholder="예) 견적서 재발송" maxLength={500} />
           </Form.Item>
-          <Form.Item name="amount" label="관련 금액" style={{ flex: '0 0 160px' }}>
+          <Form.Item name="amount" label="관련 금액" style={{ flex: '1 0 140px' }}>
             <InputNumber style={{ width: '100%' }} min={0} controls={false}
               formatter={(v) => (v ? `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '')}
               parser={(v) => (Number(v?.replace(/,/g, '') ?? 0) as 0)} />

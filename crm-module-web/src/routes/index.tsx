@@ -1,5 +1,5 @@
 import React, { lazy, Suspense } from 'react';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
 import BrandedLoader from '@/components/common/BrandedLoader';
 import type { Role } from '@/types/auth';
@@ -35,6 +35,15 @@ const PartnerAttentionPage = lazy(() => import('@/pages/activity/PartnerAttentio
 
 // 생산현황 (TPS)
 const ProductionPlanPage = lazy(() => import('@/pages/production/ProductionPlanPage'));
+const ProductionDashboardPage = lazy(() => import('@/pages/production/ProductionDashboardPage'));
+
+// 모바일 앱(PWA, /m) — 폰에서 쓰는 네 화면만. PC 메뉴 전체를 옮기지 않는다.
+const MobileLayout = lazy(() => import('@/pages/mobile/MobileLayout'));
+const MobileActivityPage = lazy(() => import('@/pages/mobile/MobileActivityPage'));
+const MobilePartnerPage = lazy(() => import('@/pages/mobile/MobilePartnerPage'));
+const MobileAttentionPage = lazy(() => import('@/pages/mobile/MobileAttentionPage'));
+const MobileSalesPage = lazy(() => import('@/pages/mobile/MobileSalesPage'));
+const AppDownloadPage = lazy(() => import('@/pages/mobile/AppDownloadPage'));
 
 // 도구
 const PdfConverterPage = lazy(() => import('@/pages/tools/PdfConverterPage'));
@@ -84,6 +93,13 @@ const Protected = ({ children, allowedRoles, allowedDeptCds, skipPasswordGate }:
 
 const NotFoundPage = lazy(() => import('@/pages/common/NotFoundPage'));
 
+/** 홈 화면에 설치한 앱(standalone)으로 열었으면 PC 홈 대신 모바일 앱으로 보낸다. */
+const StandaloneRedirect = ({ children }: { children: React.ReactNode }) => {
+  const standalone = typeof window !== 'undefined'
+    && (window.matchMedia('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true);
+  return standalone ? <Navigate to="/m" replace /> : <>{children}</>;
+};
+
 const router = createBrowserRouter([
   // 인증 불필요
   {
@@ -102,10 +118,31 @@ const router = createBrowserRouter([
       </Suspense>
     ),
   },
-  // 인증 필수 — 첫 화면은 매출현황(계획 대비).
+  // 앱 설치 안내 — 링크 하나로 배포하므로 로그인 없이 연다.
+  {
+    path: '/app',
+    element: (
+      <Suspense fallback={<Loading />}>
+        <AppDownloadPage />
+      </Suspense>
+    ),
+  },
+  // 인증 필수 — 첫 화면은 매출현황(계획 대비). 설치형 앱으로 열면 /m 으로.
   {
     path: '/',
-    element: <Protected><SalesStatusPage /></Protected>,
+    element: <Protected><StandaloneRedirect><SalesStatusPage /></StandaloneRedirect></Protected>,
+  },
+  // 모바일 앱(PWA) — 하단 탭 네 개. 레이아웃 안의 Outlet 이 자체 Suspense 를 가진다.
+  {
+    path: '/m',
+    element: <Protected><MobileLayout /></Protected>,
+    children: [
+      { index: true, element: <Navigate to="/m/activity" replace /> },
+      { path: 'activity', element: <MobileActivityPage /> },
+      { path: 'partner', element: <MobilePartnerPage /> },
+      { path: 'attention', element: <MobileAttentionPage /> },
+      { path: 'sales', element: <MobileSalesPage /> },
+    ],
   },
   // 마이페이지
   {
@@ -181,6 +218,10 @@ const router = createBrowserRouter([
   {
     path: '/production/plan',
     element: <Protected><ProductionPlanPage /></Protected>,
+  },
+  {
+    path: '/production/dashboard',
+    element: <Protected><ProductionDashboardPage /></Protected>,
   },
   // 도구 — 파일 PDF 변환 (전 직원)
   {

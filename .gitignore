@@ -152,3 +152,12 @@ orders_test.xlsx
 
 # 로컬 개발용 Spring 설정 오버라이드 (접속정보 포함 — 커밋 금지)
 crm-module-api/config/
+
+# === 모바일 앱(Capacitor) ===
+# APK 는 빌드 산출물 — npm run app:android 가 public/downloads 에 복사한다
+crm-module-web/public/downloads/
+crm-module-web/android/app/build/
+crm-module-web/android/.gradle/
+crm-module-web/android/local.properties
+crm-module-web/ios/App/Pods/
+
