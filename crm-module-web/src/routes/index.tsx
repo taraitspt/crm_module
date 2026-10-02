@@ -36,6 +36,11 @@ const PartnerAttentionPage = lazy(() => import('@/pages/activity/PartnerAttentio
 // 생산현황 (TPS)
 const ProductionPlanPage = lazy(() => import('@/pages/production/ProductionPlanPage'));
 const ProductionDashboardPage = lazy(() => import('@/pages/production/ProductionDashboardPage'));
+const EquipmentPerfPage = lazy(() => import('@/pages/production/EquipmentPerfPage'));
+const EquipmentBoardPage = lazy(() => import('@/pages/production/EquipmentBoardPage'));
+const OrderProgressPage = lazy(() => import('@/pages/production/OrderProgressPage'));
+const PlanRegisterPage = lazy(() => import('@/pages/production/PlanRegisterPage'));
+const WorkOrderPage = lazy(() => import('@/pages/production/WorkOrderPage'));
 
 // 모바일 앱(PWA, /m) — 폰에서 쓰는 네 화면만. PC 메뉴 전체를 옮기지 않는다.
 const MobileLayout = lazy(() => import('@/pages/mobile/MobileLayout'));
@@ -43,6 +48,10 @@ const MobileActivityPage = lazy(() => import('@/pages/mobile/MobileActivityPage'
 const MobilePartnerPage = lazy(() => import('@/pages/mobile/MobilePartnerPage'));
 const MobileAttentionPage = lazy(() => import('@/pages/mobile/MobileAttentionPage'));
 const MobileSalesPage = lazy(() => import('@/pages/mobile/MobileSalesPage'));
+const MobileOrdersPage = lazy(() => import('@/pages/mobile/MobileOrdersPage'));
+const MobileProductionPage = lazy(() => import('@/pages/mobile/MobileProductionPage'));
+const MobileEquipmentPage = lazy(() => import('@/pages/mobile/MobileEquipmentPage'));
+const MobilePlanPage = lazy(() => import('@/pages/mobile/MobilePlanPage'));
 const AppDownloadPage = lazy(() => import('@/pages/mobile/AppDownloadPage'));
 
 // 도구
@@ -140,6 +149,10 @@ const router = createBrowserRouter([
       { index: true, element: <Navigate to="/m/activity" replace /> },
       { path: 'activity', element: <MobileActivityPage /> },
       { path: 'partner', element: <MobilePartnerPage /> },
+      { path: 'orders', element: <MobileOrdersPage /> },
+      { path: 'production', element: <MobileProductionPage /> },
+      { path: 'production/equipment', element: <MobileEquipmentPage /> },
+      { path: 'production/plan', element: <MobilePlanPage /> },
       { path: 'attention', element: <MobileAttentionPage /> },
       { path: 'sales', element: <MobileSalesPage /> },
     ],
@@ -222,6 +235,31 @@ const router = createBrowserRouter([
   {
     path: '/production/dashboard',
     element: <Protected><ProductionDashboardPage /></Protected>,
+  },
+  {
+    path: '/production/equipment-perf',
+    element: <Protected><EquipmentPerfPage /></Protected>,
+  },
+  {
+    path: '/production/equipment-board',
+    element: <Protected><EquipmentBoardPage /></Protected>,
+  },
+  {
+    path: '/production/order-progress',
+    element: <Protected><OrderProgressPage /></Protected>,
+  },
+  {
+    path: '/production/plan-register',
+    element: <Protected><PlanRegisterPage /></Protected>,
+  },
+  {
+    // 작업지시서 — 생산계획조회에서 새 탭으로 여는 인쇄용 단독 화면(메뉴 키 /production/plan-register 를 따른다)
+    path: '/production/work-order/:orderNo',
+    element: <Protected><WorkOrderPage /></Protected>,
+  },
+  {
+    path: '/production/work-order/:orderNo/:sq',
+    element: <Protected><WorkOrderPage /></Protected>,
   },
   // 도구 — 파일 PDF 변환 (전 직원)
   {

@@ -28,7 +28,7 @@ interface FormValues {
   content?: string;
 }
 
-/** 영업기회 등록·수정 모달. 단계를 바꾸면 확률이 그 단계 기본값으로 따라간다. */
+/** 추진 건 등록·수정 모달. 단계를 바꾸면 확률이 그 단계 기본값으로 따라간다. */
 export default function DealFormModal({ open, editing, defaultPartner, onClose, onSaved }: Props) {
   const [form] = Form.useForm<FormValues>();
   const [saving, setSaving] = useState(false);
@@ -119,7 +119,7 @@ export default function DealFormModal({ open, editing, defaultPartner, onClose, 
 
   return (
     <Modal
-      title={editing ? '영업기회 수정' : '영업기회 등록'}
+      title={editing ? '추진 건 수정' : '추진 건 등록'}
       open={open}
       onCancel={onClose}
       onOk={handleOk}
@@ -161,7 +161,7 @@ export default function DealFormModal({ open, editing, defaultPartner, onClose, 
               formatter={(v) => (v ? `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '')}
               parser={(v) => (Number(v?.replace(/,/g, '') ?? 0) as 0)} />
           </Form.Item>
-          <Form.Item name="expectedCloseDt" label="예상 마감일" style={{ flex: '0 0 160px' }}>
+          <Form.Item name="expectedCloseDt" label="예상 수주일" style={{ flex: '0 0 160px' }}>
             <DatePicker style={{ width: '100%' }} />
           </Form.Item>
         </div>

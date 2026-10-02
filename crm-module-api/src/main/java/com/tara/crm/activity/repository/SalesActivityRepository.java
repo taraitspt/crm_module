@@ -32,6 +32,9 @@ public interface SalesActivityRepository extends JpaRepository<SalesActivity, Lo
                                @Param("activityType") String activityType,
                                @Param("keyword") String keyword);
 
+    /** 활동 알림 스케줄러 — 그날 활동 전체(회사 구분 없이), 담당자 순. */
+    List<SalesActivity> findByActivityDtOrderBySalesEmpIdAscActivityIdAsc(LocalDate activityDt);
+
     /** 거래처 히스토리 — 기간 제한 없이 최신순. */
     @Query("""
             SELECT a FROM SalesActivity a
@@ -55,7 +58,7 @@ public interface SalesActivityRepository extends JpaRepository<SalesActivity, Lo
                                      @Param("to") LocalDate to,
                                      @Param("salesEmpId") String salesEmpId);
 
-    /** 특정 영업기회에 달린 활동 — 딜 카드의 진행 경과. */
+    /** 특정 수주 추진에 달린 활동 — 딜 카드의 진행 경과. */
     @Query("""
             SELECT a FROM SalesActivity a
              WHERE a.companyCd = :companyCd AND a.dealId = :dealId

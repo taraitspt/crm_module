@@ -30,7 +30,7 @@ public class ActivityDto {
         private LocalDate nextActionDt;
         private String nextAction;
         private Long amount;
-        /** 연결된 영업기회 — 없으면 null */
+        /** 연결된 수주 추진 — 없으면 null */
         private Long dealId;
         private String dealTitle;
         private String dealStage;
@@ -66,7 +66,7 @@ public class ActivityDto {
         private java.util.Map<String, Integer> byType = new java.util.LinkedHashMap<>();
         /** 그날 예정된 다음 액션 건수 */
         private int followUps;
-        /** 그날 마감 예정인 영업기회 건수 */
+        /** 그날 마감 예정인 수주 추진 건수 */
         private int dealCloses;
     }
 

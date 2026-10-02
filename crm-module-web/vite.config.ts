@@ -70,8 +70,11 @@ export default defineConfig(({ mode }) => {
           ],
         },
         workbox: {
+          // 활동 알림 웹 푸시 — push/notificationclick 처리는 public/push-sw.js 에
+          importScripts: ['push-sw.js'],
           navigateFallback: '/index.html',
-          navigateFallbackDenylist: [/^\/api\//, /^\/swagger/, /^\/actuator/],
+          // /downloads(APK)는 서비스워커가 index.html 로 바꿔치기하면 다운로드 버튼이 안 움직인다 — 네트워크로 그대로 보낸다
+          navigateFallbackDenylist: [/^\/api\//, /^\/swagger/, /^\/actuator/, /^\/downloads\//],
           // 폰트(Pretendard 동적 서브셋 수백 파일)는 프리캐시에서 빼고 쓸 때 캐시한다.
           globPatterns: ['**/*.{js,css,html,png,svg,ico}'],
           // antd + recharts 청크가 2MB 를 넘어 기본 한도(2MB)로는 프리캐시에서 빠진다.

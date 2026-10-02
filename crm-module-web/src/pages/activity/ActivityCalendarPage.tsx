@@ -128,7 +128,7 @@ export default function ActivityCalendarPage() {
     [monthFollowUps, selected],
   );
 
-  // ◆ 배지와 짝이 되는 목록 — 그날 마감 예정인 영업기회.
+  // ◆ 배지와 짝이 되는 목록 — 그날 마감 예정인 수주 추진.
   const { data: pipeline } = useQuery({
     queryKey: ['deal-pipeline', salesEmpId, ''],
     queryFn: () => dealApi.pipeline({ salesEmpId: salesEmpId || undefined }),
@@ -261,7 +261,7 @@ export default function ActivityCalendarPage() {
             </Tooltip>
           )}
           {d && d.dealCloses > 0 && (
-            <Tooltip title={`영업기회 마감 ${d.dealCloses}건`}>
+            <Tooltip title={`수주 예정 ${d.dealCloses}건`}>
               <span style={{ fontSize: 10, color: DEAL_C.fg, fontWeight: 700 }}>◆{d.dealCloses}</span>
             </Tooltip>
           )}
@@ -364,7 +364,7 @@ export default function ActivityCalendarPage() {
                 </span>
               ))}
               <span style={{ fontSize: 12, color: T.wa }}>★ 팔로업 예정</span>
-              <span style={{ fontSize: 12, color: DEAL_C.fg }}>◆ 영업기회 마감</span>
+              <span style={{ fontSize: 12, color: DEAL_C.fg }}>◆ 수주 예정</span>
             </Space>
           </Col>
           <Col>
@@ -380,7 +380,7 @@ export default function ActivityCalendarPage() {
       <div style={{ display: 'flex', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
         <StatTile label={mode === 'year' ? `${year}년 활동` : `${month}월 활동`} value={summary.total} color={T.t1} />
         <StatTile label="팔로업 예정" value={summary.followUps} color={T.wa} />
-        <StatTile label="영업기회 마감" value={summary.dealCloses} color={DEAL_C.fg} />
+        <StatTile label="수주 예정" value={summary.dealCloses} color={DEAL_C.fg} />
         <div style={{
           flex: 2, minWidth: 220, padding: '10px 14px',
           border: `1px solid ${T.border2}`, borderRadius: 10, background: T.surface,
@@ -487,7 +487,7 @@ export default function ActivityCalendarPage() {
         )}
 
         {dayDeals.length > 0 && (
-          <Section label="마감 예정 영업기회" count={dayDeals.length} color={DEAL_C.fg} mark="◆">
+          <Section label="수주 예정 추진 건" count={dayDeals.length} color={DEAL_C.fg} mark="◆">
             {dayDeals.map((d) => (
               <RailCard key={`d-${d.dealId}`} color={DEAL_C.fg} tint={DEAL_C.bg}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

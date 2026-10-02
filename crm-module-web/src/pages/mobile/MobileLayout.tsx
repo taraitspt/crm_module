@@ -1,9 +1,9 @@
-import React, { Suspense, useMemo, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { App, Avatar, Button, Dropdown, Spin } from 'antd';
 import {
-  AlertOutlined, BarChartOutlined, CalendarOutlined, CloseOutlined, DesktopOutlined,
-  DownloadOutlined, LogoutOutlined, ProfileOutlined, ShopOutlined, UserOutlined,
+  AlertOutlined, BarChartOutlined, BellOutlined, CalendarOutlined, CloseOutlined,
+  DownloadOutlined, FileDoneOutlined, LogoutOutlined, ShopOutlined, ToolOutlined, UserOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
 import { logout as logoutApi } from '@/api/auth.api';
@@ -13,20 +13,28 @@ import FollowUpBell from '@/components/layout/FollowUpBell';
 import Logo from '@/components/common/Logo';
 import { T } from '@/theme/designTokens';
 import { useInstallPrompt } from './mobileKit';
+import { REMINDER_HOUR, clearActivityReminders, isNativeApp, onReminderTap, reminderEnabled, setReminderEnabled, syncActivityReminders } from './activityReminders';
+import { ensurePushRegistered, getPushState, subscribePush, unsubscribePush, type PushState } from './webPush';
+import { App as CapApp } from '@capacitor/app';
+
+const PUSH_DISMISS_KEY = 'm-push-dismissed';
 
 const TOP_H = 54;
 const TAB_H = 60;
 const INSTALL_DISMISS_KEY = 'm-install-dismissed';
 
 /**
- * 모바일 앱(/m) 탭 — 폰에서 쓸 네 화면만. PC 메뉴 전체를 옮기지 않는다(표 화면은 폰 폭에 안 맞음).
- * menuKey 는 PC 메뉴 키 — 관리자 > 권한 관리에서 그 메뉴를 끈 역할에겐 탭도 안 보인다.
+ * 모바일 앱(/m) 탭 — 폰에서 쓸 화면만. PC 메뉴 전체를 옮기지 않는다(표 화면은 폰 폭에 안 맞음).
+ * menuKeys 는 PC 메뉴 키 — 관리자 > 권한 관리에서 그 메뉴를 끈 역할에겐 탭도 안 보인다(여럿이면 하나라도 보이면 탭 노출).
+ * "생산" 탭은 설비 가동 현황 · 작업지시서(생산계획조회 축소판) · 주문진행현황 입구(2026-10-02).
  */
 export const MOBILE_TABS = [
-  { key: 'activity', path: '/m/activity', label: '활동', icon: <CalendarOutlined />, menuKey: '/activity/calendar' },
-  { key: 'partner', path: '/m/partner', label: '거래처', icon: <ShopOutlined />, menuKey: '/activity/partner' },
-  { key: 'attention', path: '/m/attention', label: '관리필요', icon: <AlertOutlined />, menuKey: '/activity/attention' },
-  { key: 'sales', path: '/m/sales', label: '매출', icon: <BarChartOutlined />, menuKey: '/' },
+  { key: 'activity', path: '/m/activity', label: '활동', icon: <CalendarOutlined />, menuKeys: ['/activity/calendar'] },
+  { key: 'partner', path: '/m/partner', label: '거래처', icon: <ShopOutlined />, menuKeys: ['/activity/partner'] },
+  { key: 'orders', path: '/m/orders', label: '주문', icon: <FileDoneOutlined />, menuKeys: ['/production/order-progress'] },
+  { key: 'production', path: '/m/production', label: '생산', icon: <ToolOutlined />, menuKeys: ['/production/equipment-board', '/production/plan-register'] },
+  { key: 'attention', path: '/m/attention', label: '관리필요', icon: <AlertOutlined />, menuKeys: ['/activity/attention'] },
+  { key: 'sales', path: '/m/sales', label: '매출', icon: <BarChartOutlined />, menuKeys: ['/'] },
 ];
 
 function flattenKeys(items: AppMenuItem[], out = new Set<string>()): Set<string> {
@@ -41,18 +49,102 @@ const MobileLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout: logoutStore } = useAuthStore();
-  const { modal } = App.useApp();
+  const { modal, message } = App.useApp();
   const { items } = useMenuAccess();
   const { isStandalone, isIOS, canInstall, install } = useInstallPrompt();
   const [installDismissed, setInstallDismissed] = useState<boolean>(() => {
     try { return localStorage.getItem(INSTALL_DISMISS_KEY) === '1'; } catch { return false; }
   });
+  const [reminderOn, setReminderOn] = useState(reminderEnabled);
+  // 웹 푸시(아이폰 홈 화면 앱·브라우저) 상태 — 네이티브 앱에서는 쓰지 않는다
+  const [pushState, setPushState] = useState<PushState>('unsupported');
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushDismissed, setPushDismissed] = useState<boolean>(() => {
+    try { return localStorage.getItem(PUSH_DISMISS_KEY) === '1'; } catch { return false; }
+  });
+  useEffect(() => {
+    if (isNativeApp()) return;
+    let alive = true;
+    getPushState().then((s) => { if (alive) setPushState(s); if (s === 'subscribed') void ensurePushRegistered(); });
+    return () => { alive = false; };
+  }, [user?.id]);
+  const togglePush = async () => {
+    if (pushBusy) return;
+    setPushBusy(true);
+    try {
+      if (pushState === 'subscribed') {
+        await unsubscribePush(); setPushState('unsubscribed'); message.info('활동 알림을 껐습니다.');
+      } else {
+        const s = await subscribePush(); setPushState(s);
+        if (s === 'subscribed') message.success(`활동일 아침 ${REMINDER_HOUR}시에 알림이 옵니다.`);
+        else if (s === 'denied') message.warning('알림이 차단돼 있습니다. 폰 설정 > 알림에서 이 앱을 허용해 주세요.');
+        else if (s === 'server-off') message.warning('서버에 알림 설정이 아직 없습니다.');
+      }
+    } catch (e) {
+      message.error((e as Error).message || '알림 설정에 실패했습니다.');
+    } finally { setPushBusy(false); }
+  };
+  const dismissPush = () => { setPushDismissed(true); try { localStorage.setItem(PUSH_DISMISS_KEY, '1'); } catch { /* ignore */ } };
+  // 아이폰은 Safari 탭이 아니라 홈 화면에 추가한 앱에서만 푸시가 된다(iOS 16.4+)
+  const pushNeedsHomeScreen = !isNativeApp() && isIOS && !isStandalone;
+
+  // 활동 알림(앱 자체, 네이티브 앱만) — 앱을 열 때·다시 앞으로 올 때 내 활동을 폰에 예약하고, 알림을 누르면 활동 화면으로.
+  useEffect(() => {
+    if (!isNativeApp()) return;
+    const sync = () => { if (document.visibilityState === 'visible') void syncActivityReminders(user?.id); };
+    sync();
+    document.addEventListener('visibilitychange', sync);
+    const off = onReminderTap(() => navigate('/m/activity'));
+    return () => { document.removeEventListener('visibilitychange', sync); off(); };
+  }, [user?.id, navigate]);
+  // 안드로이드 뒤로가기 — WebView 는 탭 이동을 돌아갈 기록으로 안 쳐서 어느 탭에서든 바로 꺼졌다(사용자 보고 2026-10-02).
+  // 기록에 기대지 않고 규칙으로: 탭 아래 화면이면 이전 화면(없으면 그 탭)으로, 활동 이외 탭이면 활동 탭으로, 활동 탭에서만 종료 확인.
+  // 리스너를 달면 Capacitor 기본 동작(뒤로/종료)이 꺼지므로 모든 경우를 여기서 처리한다.
+  const pathRef = React.useRef(location.pathname);
+  pathRef.current = location.pathname;
+  useEffect(() => {
+    if (!isNativeApp()) return;
+    let confirming = false;
+    const sub = CapApp.addListener('backButton', ({ canGoBack }) => {
+      const path = pathRef.current;
+      const tab = MOBILE_TABS.find((t) => path === t.path || path.startsWith(t.path + '/'));
+      const home = MOBILE_TABS[0].path;
+      if (tab && path !== tab.path) {            // 탭 아래 화면(예: /m/production/equipment, /m/partner/…)
+        if (canGoBack) window.history.back(); else navigate(tab.path, { replace: true });
+        return;
+      }
+      if (path !== home) { navigate(home, { replace: true }); return; }   // 다른 탭 → 활동 탭
+      if (confirming) return;
+      confirming = true;
+      modal.confirm({
+        title: '앱을 종료할까요?',
+        content: '뒤로 갈 화면이 없습니다. 종료하면 홈 화면으로 나갑니다.',
+        okText: '종료', cancelText: '취소', okButtonProps: { danger: true },
+        onOk: () => { void CapApp.exitApp(); },
+        afterClose: () => { confirming = false; },
+      });
+    });
+    return () => { sub.then((h) => h.remove()).catch(() => {}); };
+  }, [modal]);
+  const toggleReminder = async () => {
+    const next = !reminderOn;
+    setReminderEnabled(next); setReminderOn(next);
+    if (next) {
+      const r = await syncActivityReminders(user?.id);
+      if (r == null) message.warning('알림 권한이 없어 예약하지 못했습니다. 폰 설정에서 알림을 허용해 주세요.');
+      else message.success(`활동일 아침 ${REMINDER_HOUR}시 알림을 켰습니다 (${r.scheduled}건 예약)`);
+    } else {
+      await clearActivityReminders();
+      message.info('활동 알림을 껐습니다.');
+    }
+  };
 
   const allowed = useMemo(() => flattenKeys(items), [items]);
-  const tabs = useMemo(() => MOBILE_TABS.filter((t) => allowed.has(t.menuKey)), [allowed]);
+  const tabs = useMemo(() => MOBILE_TABS.filter((t) => t.menuKeys.some((k) => allowed.has(k))), [allowed]);
   const active = tabs.find((t) => location.pathname.startsWith(t.path)) ?? MOBILE_TABS.find((t) => location.pathname.startsWith(t.path));
 
   const logoutNow = async () => {
+    await clearActivityReminders();
     try { await logoutApi(); } catch { /* ignore */ } finally {
       logoutStore();
       navigate('/login');
@@ -60,13 +152,22 @@ const MobileLayout: React.FC = () => {
   };
   const userMenu = {
     items: [
+      // 모바일은 모바일 메뉴만 쓴다 — PC 화면(홈·내 정보)으로 가는 항목은 두지 않는다(사용자 결정 2026-10-02)
       { key: 'who', label: <span style={{ fontWeight: 700 }}>{user?.name ?? '사용자'}<span style={{ color: T.t3, fontWeight: 400, marginLeft: 6, fontSize: 12 }}>{user?.departmentName ?? ''}</span></span>, disabled: true },
       { type: 'divider' as const },
-      { key: 'me', icon: <ProfileOutlined />, label: '내 정보', onClick: () => navigate('/me') },
-      { key: 'pc', icon: <DesktopOutlined />, label: 'PC 화면으로', onClick: () => navigate('/') },
       ...(!isStandalone
         ? [{ key: 'install', icon: <DownloadOutlined />, label: '홈 화면에 추가', onClick: () => (canInstall ? install() : showIosHelp()) }]
         : []),
+      // 활동 알림 — 네이티브 앱(APK)은 폰 로컬 알림, 홈 화면 웹앱·브라우저는 웹 푸시. 아이폰 Safari 탭이면 홈 화면 추가부터.
+      ...(isNativeApp()
+        ? [{ key: 'reminder', icon: <BellOutlined />, label: `활동 알림 (아침 ${REMINDER_HOUR}시) · ${reminderOn ? '켬' : '끔'}`, onClick: () => { void toggleReminder(); } }]
+        : pushNeedsHomeScreen
+          ? [{ key: 'reminder', icon: <BellOutlined />, label: `활동 알림 (아침 ${REMINDER_HOUR}시) · 홈 화면에 추가 후 사용`, onClick: () => showIosHelp() }]
+          : pushState !== 'unsupported' && pushState !== 'server-off'
+            ? [{ key: 'reminder', icon: <BellOutlined />, disabled: pushBusy,
+                label: `활동 알림 (아침 ${REMINDER_HOUR}시) · ${pushState === 'subscribed' ? '켬' : pushState === 'denied' ? '차단됨' : '끔'}`,
+                onClick: () => { void togglePush(); } }]
+            : []),
       { type: 'divider' as const },
       { key: 'logout', icon: <LogoutOutlined />, label: '로그아웃', danger: true,
         onClick: () => modal.confirm({ title: '로그아웃 하시겠습니까?', okText: '로그아웃', cancelText: '취소', onOk: logoutNow }) },
@@ -121,6 +222,14 @@ const MobileLayout: React.FC = () => {
             <span style={{ flex: 1 }}>홈 화면에 추가하면 앱처럼 바로 열 수 있어요.</span>
             <Button size="small" type="primary" onClick={() => (canInstall ? install() : showIosHelp())}>추가</Button>
             <Button size="small" type="text" icon={<CloseOutlined />} onClick={dismissInstall} />
+          </div>
+        )}
+        {!isNativeApp() && isStandalone && pushState === 'unsubscribed' && !pushDismissed && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: T.waBg, border: `1px solid ${T.waBd}`, borderRadius: 10, padding: '8px 10px', marginBottom: 10, fontSize: 12, color: T.t2 }}>
+            <BellOutlined style={{ color: T.wa }} />
+            <span style={{ flex: 1 }}>활동일 아침 {REMINDER_HOUR}시에 활동 알림을 받으세요.</span>
+            <Button size="small" type="primary" loading={pushBusy} onClick={() => { void togglePush(); }}>알림 켜기</Button>
+            <Button size="small" type="text" icon={<CloseOutlined />} onClick={dismissPush} />
           </div>
         )}
         {tabs.length === 0 ? (

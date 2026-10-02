@@ -88,7 +88,7 @@ public class ActivityService {
                     k -> ActivityDto.CalendarDay.builder().date(k).build());
             d.setFollowUps(d.getFollowUps() + 1);
         }
-        // 영업기회 마감 예정일도 같은 달력에 — 딜과 활동을 따로 보지 않게 한다.
+        // 수주 추진 마감 예정일도 같은 달력에 — 딜과 활동을 따로 보지 않게 한다.
         for (com.tara.crm.deal.entity.SalesDeal deal
                 : dealRepository.findClosingBetween(companyCd(), from, to, blankToNull(salesEmpId))) {
             ActivityDto.CalendarDay d = byDate.computeIfAbsent(deal.getExpectedCloseDt(),
@@ -144,7 +144,7 @@ public class ActivityService {
                 .build();
     }
 
-    /** 특정 영업기회에 달린 활동 — 딜 카드에서 진행 경과를 펼쳐 볼 때. */
+    /** 특정 수주 추진에 달린 활동 — 딜 카드에서 진행 경과를 펼쳐 볼 때. */
     public List<ActivityDto.Item> byDeal(Long dealId) {
         if (dealId == null) return List.of();
         return toItems(scoped(repository.findByDeal(companyCd(), dealId), null));

@@ -1,4 +1,4 @@
-/** 영업기회(딜) 타입 — 백엔드 DealDto 와 1:1 */
+/** 수주 추진(딜) 타입 — 백엔드 DealDto 와 1:1 */
 
 export type DealStage = 'LEAD' | 'QUALIFIED' | 'QUOTE' | 'NEGOTIATION' | 'WON' | 'LOST';
 

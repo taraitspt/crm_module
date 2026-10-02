@@ -22,7 +22,7 @@ const fmtNum = (v?: number | null) => (v ? `${Math.round(v)}`.replace(/\B(?=(\d{
 const fmtShort = (v: number) => (Math.abs(v) >= 1e8 ? `${(v / 1e8).toFixed(1)}억` : `${Math.round(v / 1e4)}만`);
 
 /**
- * 영업기회 파이프라인.
+ * 수주 추진 현황.
  * 칸반은 단계별 카드, 목록은 표. 카드의 단계 셀렉트로 옮기면 확률이 단계 기본값으로 갱신된다.
  * (드래그 대신 셀렉트를 쓴 건 별도 라이브러리 없이 확실히 동작시키기 위해서다)
  */
@@ -147,7 +147,7 @@ export default function DealPipelinePage() {
       render: (_, r) => (
         <Space size={0}>
           <Button type="text" size="small" icon={<EditOutlined />} onClick={() => { setEditing(r); setFormOpen(true); }} />
-          <Popconfirm title="이 영업기회를 삭제할까요?" onConfirm={() => remove(r.dealId)}>
+          <Popconfirm title="이 추진 건을 삭제할까요?" onConfirm={() => remove(r.dealId)}>
             <Button type="text" size="small" danger icon={<DeleteOutlined />} />
           </Popconfirm>
         </Space>
@@ -199,7 +199,7 @@ export default function DealPipelinePage() {
 
   return (
     <PageLayout>
-      <PageHeader title="영업기회 파이프라인" />
+      <PageHeader title="수주 추진 현황" />
 
       <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
         <Col xs={12} md={6}>
@@ -214,7 +214,7 @@ export default function DealPipelinePage() {
         <Col xs={12} md={6}>
           <Card variant="borderless" styles={{ body: { padding: '14px 18px' } }} style={{ borderRadius: 12, border: `1px solid ${T.border2}` }}>
             <Tooltip title="예상금액 × 수주확률의 합 — 실제로 기대할 수 있는 금액">
-              <Text style={{ fontSize: 12, color: T.t3 }}>가중 파이프라인</Text>
+              <Text style={{ fontSize: 12, color: T.t3 }}>확률 반영 금액</Text>
             </Tooltip>
             <div className="tabular-nums" style={{ fontSize: 22, fontWeight: 700, color: '#0096A2' }}>
               {fmtNum(data?.weightedAmt)}
@@ -259,7 +259,7 @@ export default function DealPipelinePage() {
           </Col>
           <Col style={{ marginLeft: 'auto' }}>
             <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditing(null); setFormOpen(true); }}>
-              영업기회 등록
+              추진 건 등록
             </Button>
           </Col>
         </Row>
@@ -308,7 +308,7 @@ export default function DealPipelinePage() {
               <div style={{ whiteSpace: 'pre-wrap', fontSize: 12, color: T.t2, padding: '4px 8px' }}>{r.content}</div>
             ),
           }}
-          locale={{ emptyText: '등록된 영업기회가 없습니다.' }}
+          locale={{ emptyText: '등록된 추진 건이 없습니다.' }}
         />
       )}
 

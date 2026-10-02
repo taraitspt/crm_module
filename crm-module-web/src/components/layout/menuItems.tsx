@@ -48,7 +48,7 @@ export const MENU_ITEMS: AppMenuItem[] = [
     label: '영업관리',
     children: [
       { key: '/activity/attention', label: '관리 필요 거래처' },
-      { key: '/deals', label: '영업기회' },
+      { key: '/deals', label: '수주 추진' },
       { key: '/activity/calendar', label: '영업활동 캘린더' },
       { key: '/activity/board', label: '일자별 영업현황' },
       { key: '/activity/list', label: '영업활동 이력' },
@@ -63,6 +63,10 @@ export const MENU_ITEMS: AppMenuItem[] = [
     children: [
       { key: '/production/plan', label: '생산계획현황' },
       { key: '/production/dashboard', label: '생산계획 대시보드' },
+      { key: '/production/equipment-perf', label: '설비별 작업실적' },
+      { key: '/production/equipment-board', label: '설비 가동 현황' },
+      { key: '/production/order-progress', label: '주문진행현황' },
+      { key: '/production/plan-register', label: '생산계획조회' },
     ],
   },
   // 2026-09-18 '데이터 분석' 탭 전체 미사용 — 매출현황은 홈('/')으로 올라갔고,

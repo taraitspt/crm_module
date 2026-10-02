@@ -15,7 +15,7 @@ const serverUrl = process.env.CAP_SERVER_URL || 'https://durable-chemicals-merch
 const config: CapacitorConfig = {
   appId: 'com.taratps.crm',
   appName: 'TARA 영업관리',
-  webDir: 'dist',
+  webDir: 'capacitor-shell',   // 빈 껍데기 — dist 를 넣으면 빌드 결과(이전 APK 포함)가 APK 에 들어가 수십 MB 가 된다,
   server: {
     url: `${serverUrl.replace(/\/$/, '')}/m`,
     cleartext: false,

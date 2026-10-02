@@ -10,7 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-@Tag(name = "SalesDeal", description = "영업기회(딜) 파이프라인")
+@Tag(name = "SalesDeal", description = "수주 추진(딜) 파이프라인")
 @RestController
 @RequestMapping("/api/deals")
 @RequiredArgsConstructor

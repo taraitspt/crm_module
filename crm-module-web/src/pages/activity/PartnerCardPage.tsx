@@ -31,7 +31,7 @@ const fmtAxis = (v: number) => (v === 0 ? '0' : `${Math.round(v / 1e8)}억`);
 
 /**
  * 거래처 카드(360도 뷰).
- * 기본정보(ERP) · 올해 계획/실적 · 고객 담당자 연락처 · 영업기회 · 활동 이력을 한 화면에 모은다.
+ * 기본정보(ERP) · 올해 계획/실적 · 고객 담당자 연락처 · 수주 추진 · 활동 이력을 한 화면에 모은다.
  * 영업이 고객을 만나기 전에 여는 화면이라는 전제로 구성했다.
  */
 export default function PartnerCardPage() {
@@ -132,7 +132,7 @@ export default function PartnerCardPage() {
       </Card>
 
       {!partnerCd && (
-        <Empty description="거래처를 선택하면 기본정보·실적·담당자·영업기회·활동을 한 화면에서 볼 수 있습니다."
+        <Empty description="거래처를 선택하면 기본정보·실적·담당자·수주 추진·활동을 한 화면에서 볼 수 있습니다."
           style={{ padding: '64px 0' }} />
       )}
 
@@ -242,9 +242,9 @@ export default function PartnerCardPage() {
               },
               {
                 key: 'deals',
-                label: `영업기회 (${data.deals.length})`,
+                label: `수주 추진 (${data.deals.length})`,
                 children: data.deals.length === 0
-                  ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="등록된 영업기회가 없습니다. 영업관리 → 영업기회에서 등록하세요." />
+                  ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="등록된 추진 건이 없습니다. 영업관리 → 수주 추진에서 등록하세요." />
                   : (
                     <Row gutter={[12, 12]}>
                       {data.deals.map((d) => {

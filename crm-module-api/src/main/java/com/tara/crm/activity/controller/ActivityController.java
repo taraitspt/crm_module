@@ -56,7 +56,7 @@ public class ActivityController {
         return ApiResponse.ok(activityService.board(from, to, groupBy, salesEmpId, partnerCd));
     }
 
-    @Operation(summary = "영업기회에 달린 활동 목록")
+    @Operation(summary = "수주 추진에 달린 활동 목록")
     @GetMapping("/by-deal/{dealId}")
     public ApiResponse<List<ActivityDto.Item>> byDeal(@PathVariable Long dealId) {
         return ApiResponse.ok(activityService.byDeal(dealId));

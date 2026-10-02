@@ -9,7 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** 영업기회(딜) DTO */
+/** 수주 추진(딜) DTO */
 public class DealDto {
 
     /**

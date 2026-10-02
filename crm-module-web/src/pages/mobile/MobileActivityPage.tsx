@@ -7,6 +7,7 @@ import { useAuthStore } from '@/store/authStore';
 import { activityApi } from '@/api/activity.api';
 import { typeMeta, type ActivityItem } from '@/types/activity';
 import ActivityFormModal from '@/pages/activity/components/ActivityFormModal';
+import { syncActivityReminders } from './activityReminders';
 import { T } from '@/theme/designTokens';
 import { MCard, MEmpty, fmtCompact } from './mobileKit';
 
@@ -68,6 +69,8 @@ const MobileActivityPage: React.FC = () => {
 
   const refresh = () => {
     ['activity-calendar', 'activity-list', 'activity-followups', 'today-follow-ups'].forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
+    // 활동을 저장·삭제했으면 폰 알림 예약도 바로 맞춘다(네이티브 앱일 때만 동작)
+    void syncActivityReminders(user?.id);
   };
   const remove = async (id: number) => {
     try {

@@ -21,7 +21,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-/** 영업기회(딜) — CRUD + 단계 이동 + 파이프라인 집계. */
+/** 수주 추진(딜) — CRUD + 단계 이동 + 파이프라인 집계. */
 @Slf4j
 @Service
 @RequiredArgsConstructor

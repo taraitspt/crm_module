@@ -94,7 +94,7 @@ export interface AdminUser {
 /** 리소스 표시명 — 사용자 목록처럼 매트릭스를 안 받아오는 곳에서 쓴다. */
 export const RESOURCE_LABEL: Record<string, string> = {
   ACTIVITY: '영업활동',
-  DEAL: '영업기회',
+  DEAL: '수주 추진',
   SALES_PLAN: '월매출계획',
   SALES_STATS: '매출현황',
 };

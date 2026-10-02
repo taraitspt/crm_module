@@ -34,7 +34,7 @@ C:\Android\Sdk\cmdline-tools\latest\bin\sdkmanager.bat --sdk_root=C:\Android\Sdk
 cd crm-module-web
 $env:JAVA_HOME = (Get-ChildItem 'C:\Program Files\Eclipse Adoptium' -Directory -Filter 'jdk-21*' | Select-Object -First 1).FullName
 $env:CAP_SERVER_URL = 'https://crm.example.com'   # 실제 서버 주소. 생략하면 config 기본값
-npm run app:android
+npm run app:android   # scripts/build-apk.cjs — cap sync → gradlew assembleDebug → downloads 복사 (셸 종류 무관)
 ```
 `android/app/build/outputs/apk/debug/app-debug.apk` 가 만들어지고 `public/downloads/tara-crm.apk`(그리고 dist 가 있으면 `dist/downloads/`)로 복사된다. 그다음 `npm run build` 로 배포본을 만들면 `/downloads/tara-crm.apk` 로 내려받을 수 있다.
 
@@ -62,8 +62,31 @@ npm run app:android
 | 설정(`capacitor.config.ts`)·웹 변경을 네이티브 프로젝트에 반영 | `npm run app:sync` |
 | APK 빌드 + 다운로드 폴더 복사 | `npm run app:android` |
 | 아이콘·스플래시 재생성 | `npm run app:assets` |
-| 로컬에서 폰 테스트(임시 HTTPS) | 터미널 ① `run-local.ps1`(백엔드) ② `npm run build && npx vite preview --port 4173` ③ `npx cloudflared tunnel --url http://localhost:4173` → 폰에서 `https://…trycloudflare.com/app` |
+| 로컬에서 폰 테스트(임시 HTTPS) | 저장소 루트에서 `powershell -ExecutionPolicy Bypass -File .\start-phone-test.ps1` — 백엔드·배포본 preview(4173)·cloudflared 창 3개를 열고 폰에서 열 주소(`…/app`)를 출력·클립보드 복사. `-Dev` 면 개발 서버(5174, 설치 불가), `-NoTunnel` 이면 PC 만 |
 
 ## 커밋 대상
 
 `android/`, `ios/` 는 Capacitor 가 만든 네이티브 프로젝트라 커밋한다(각자 .gitignore 가 빌드 산출물을 뺀다). APK 와 `public/downloads/` 는 산출물이라 커밋하지 않는다.
+
+
+## 활동 알림 (앱 자체 알림, 2026-10-02)
+
+- 폰 앱(APK)에서 **활동일 아침 8시**에 그날 활동 제목을 알림으로 띄운다. 서버 푸시·Firebase 없이 `@capacitor/local-notifications` **로컬 알림**으로 한다.
+- 동작: 앱을 열 때·다시 앞으로 올 때·활동을 저장/삭제할 때 내 활동(오늘~30일)을 받아 폰 안에 예약하고, 서버에 없어진 예약은 지운다(`src/pages/mobile/activityReminders.ts`). 알림 id = activityId. PC 에서 등록한 활동도 폰 앱을 한 번 열면 예약된다.
+- 켜고 끄기: 모바일 상단 사용자 메뉴 "활동 알림 (아침 8시)". 로그아웃하면 예약을 지운다.
+- 한계: 네이티브 앱 안에서만 된다. 아이폰 "홈 화면에 추가"(PWA)는 로컬 알림이 없어 서버 웹 푸시가 따로 필요하다(미구현). 안드로이드 13+ 는 첫 실행 때 알림 권한을 묻는다.
+- 플러그인을 넣은 뒤라 **APK 를 다시 만들어 배포해야** 알림이 동작한다(`npm run app:android`).
+
+### 아이폰(홈 화면 웹앱)·브라우저 — 웹 푸시
+- 아이폰은 Apple 개발자 계정 없이는 네이티브 앱을 못 깔므로 **Safari "홈 화면에 추가" 웹앱(iOS 16.4+)에 웹 푸시(VAPID)** 로 보낸다. 무료. 안드로이드 Chrome PWA·데스크톱 브라우저도 같은 길.
+- 서버: `push_subscription`(V150) · `/api/push/*`(공개키·구독·해지·테스트·관리자 즉시발송) · `ActivityReminderScheduler` 가 매일 08:00(Asia/Seoul) 그날 활동을 담당자 구독으로 보낸다(5건 넘으면 "외 n건"). 앱을 안 열어도 온다.
+- 키: `.env.local` 의 `WEBPUSH_PUBLIC_KEY` / `WEBPUSH_PRIVATE_KEY` / `WEBPUSH_SUBJECT`(생성 `npx web-push generate-vapid-keys`). **한 번 만든 키를 운영에도 그대로** — 바꾸면 모든 폰이 알림을 다시 허용해야 한다. 비우면 웹 푸시만 꺼진다.
+- 폰: 홈 화면 앱으로 열면 "활동 알림 받기" 배너 또는 사용자 메뉴 "활동 알림"에서 켠다(권한 요청은 사용자 탭에서만 가능). 서비스워커 푸시 처리는 `public/push-sw.js`(vite `workbox.importScripts`).
+- 구독은 도메인에 묶인다 — 터널 주소가 바뀌거나 운영 도메인으로 옮기면 전원 재허용. 안드로이드 APK 는 WebView 라 웹 푸시를 못 받고 로컬 알림을 쓴다(둘이 겹쳐 두 번 오지 않게 APK 에선 웹 푸시 메뉴를 숨긴다).
+
+
+## 안드로이드 뒤로가기 (2026-10-02)
+WebView 는 탭 이동을 "돌아갈 기록"으로 안 쳐서 어느 탭에서든 뒤로가기에 앱이 바로 꺼졌다. `@capacitor/app` 의 backButton 을 받아 규칙으로 처리한다(MobileLayout): 탭 아래 화면 → 이전 화면(없으면 그 탭) / 활동 이외 탭 → 활동 탭 / 활동 탭 → "앱을 종료할까요?" 확인 후 종료. 리스너를 달면 Capacitor 기본 동작이 꺼지므로 모든 경우를 직접 처리해야 한다. 플러그인 추가라 APK 재빌드 필요.
+
+## APK 크기 (2026-10-02)
+`webDir` 는 `capacitor-shell/`(빈 index.html). 전에는 `dist/` 라서 `dist/downloads/tara-crm.apk` 까지 APK 안에 들어가 24MB → 47MB 로 불어났다. 껍데기 앱은 server.url 화면만 쓰므로 번들 자산이 필요 없다.

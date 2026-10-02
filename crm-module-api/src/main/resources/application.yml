@@ -50,6 +50,16 @@ spring:
 # 비밀번호 분실 시 임시 비밀번호를 Teams DM 으로 보내기 위한 MS Graph 서비스계정.
 # 운영에서 ENV(MS_TENANT_ID/MS_CLIENT_ID/MS_USERNAME/MS_PASSWORD) 로 주입.
 # 비우면 Teams 전송 불가 → 비밀번호 분실 발급이 실패(안내 메시지) 한다.
+# 웹 푸시(VAPID) — 활동 알림(아침 8시)을 아이폰 홈 화면 웹앱·브라우저로. 키는 env 로만(한 번 만든 키를 계속 써야 구독이 살아 있다).
+# 생성: npx web-push generate-vapid-keys. 비우면 웹 푸시만 꺼지고 앱은 뜬다(안드로이드 APK 로컬 알림은 영향 없음).
+webpush:
+  public-key: ${WEBPUSH_PUBLIC_KEY:}
+  private-key: ${WEBPUSH_PRIVATE_KEY:}
+  subject: ${WEBPUSH_SUBJECT:mailto:crm@taratps.com}
+  reminder:
+    enabled: ${WEBPUSH_REMINDER_ENABLED:true}
+    cron: "${WEBPUSH_REMINDER_CRON:0 0 8 * * *}"   # Asia/Seoul
+
 msgraph:
   tenant-id: ${MS_TENANT_ID:}
   client-id: ${MS_CLIENT_ID:}

@@ -18,7 +18,7 @@ interface Props {
   defaultDate?: string;
   /** 신규 등록 시 기본 거래처 (거래처 히스토리에서 등록) */
   defaultPartner?: { partnerCd: string; partnerNm?: string | null };
-  /** 신규 등록 시 기본 영업기회 (파이프라인에서 '활동' 버튼으로 등록) */
+  /** 신규 등록 시 기본 수주 추진 (파이프라인에서 '활동' 버튼으로 등록) */
   defaultDealId?: number | null;
   /** 신규 등록 시 기본 담당자 (모바일 앱은 로그인 사용자) */
   defaultSalesEmpId?: string;
@@ -46,7 +46,7 @@ export default function ActivityFormModal({
   const [form] = Form.useForm<FormValues>();
   const [saving, setSaving] = useState(false);
   const [partnerKeyword, setPartnerKeyword] = useState('');
-  // 선택된 거래처의 영업기회만 후보로 보여준다 — 딜과 활동이 따로 놀지 않게.
+  // 선택된 거래처의 수주 추진만 후보로 보여준다 — 딜과 활동이 따로 놀지 않게.
   const selectedPartnerCd = Form.useWatch('partnerCd', form);
 
   const { data: users } = useQuery({ queryKey: ['sales-plan-users', undefined], queryFn: () => salesPlanApi.getUsers() });
@@ -191,11 +191,11 @@ export default function ActivityFormModal({
           />
         </Form.Item>
 
-        <Form.Item name="dealId" label="영업기회"
-          extra={selectedPartnerCd ? '이 거래처의 영업기회에 연결하면 딜 카드에서 진행 경과가 보입니다.' : '거래처를 먼저 고르면 그 거래처의 영업기회가 표시됩니다.'}>
-          <Select allowClear placeholder={selectedPartnerCd ? '연결할 영업기회 선택 (선택)' : '거래처 먼저 선택'}
+        <Form.Item name="dealId" label="수주 추진 건"
+          extra={selectedPartnerCd ? '이 거래처의 추진 건에 연결하면 추진 건 카드에서 진행 경과가 보입니다.' : '거래처를 먼저 고르면 그 거래처의 추진 건이 표시됩니다.'}>
+          <Select allowClear placeholder={selectedPartnerCd ? '연결할 추진 건 선택 (선택)' : '거래처 먼저 선택'}
             options={dealOptions} disabled={!selectedPartnerCd && !editing?.dealId}
-            notFoundContent="이 거래처에 등록된 영업기회가 없습니다" />
+            notFoundContent="이 거래처에 등록된 추진 건이 없습니다" />
         </Form.Item>
 
         <Form.Item name="title" label="제목" rules={[{ required: true, message: '제목을 입력하세요' }]}>

@@ -30,7 +30,7 @@ export interface ActivityItem {
   nextActionDt: string | null;
   nextAction: string | null;
   amount: number | null;
-  /** 연결된 영업기회 — 없으면 null */
+  /** 연결된 수주 추진 — 없으면 null */
   dealId: number | null;
   dealTitle: string | null;
   dealStage: string | null;
@@ -55,7 +55,7 @@ export interface CalendarDay {
   total: number;
   byType: Record<string, number>;
   followUps: number;
-  /** 그날 마감 예정인 영업기회 건수 */
+  /** 그날 마감 예정인 수주 추진 건수 */
   dealCloses: number;
 }
 

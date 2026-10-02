@@ -10,7 +10,7 @@ import lombok.Setter;
 
 import java.time.LocalDate;
 
-/** 영업기회(딜) 1건. */
+/** 수주 추진(딜) 1건. */
 @Entity
 @Table(name = "sales_deal")
 @Getter

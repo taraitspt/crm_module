@@ -27,7 +27,7 @@ const pushRecent = (p: Recent) => {
 };
 
 /**
- * 거래처 카드 — 검색해서 고르면 기본정보·계획 대비 실적·담당자·영업기회·최근 활동.
+ * 거래처 카드 — 검색해서 고르면 기본정보·계획 대비 실적·담당자·수주 추진·최근 활동.
  * 방문 전에 보고, 방문 후 바로 활동을 남기는 흐름. 최근 본 거래처는 폰에 기억한다.
  */
 const MobilePartnerPage: React.FC = () => {
@@ -155,7 +155,7 @@ const MobilePartnerPage: React.FC = () => {
           </MCard>
 
           {data.deals.length > 0 && (
-            <MCard title="영업기회" extra={`${data.deals.length}건`}>
+            <MCard title="수주 추진" extra={`${data.deals.length}건`}>
               {data.deals.map((d) => {
                 const s = stageMeta(d.stage);
                 return (

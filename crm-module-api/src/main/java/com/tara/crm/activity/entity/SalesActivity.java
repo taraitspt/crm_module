@@ -59,7 +59,7 @@ public class SalesActivity extends BaseEntity {
     @Column(name = "amount")
     private Long amount;
 
-    /** 연결된 영업기회. 없으면 null — 딜과 무관한 일반 활동. */
+    /** 연결된 수주 추진. 없으면 null — 딜과 무관한 일반 활동. */
     @Column(name = "deal_id")
     private Long dealId;
 }
