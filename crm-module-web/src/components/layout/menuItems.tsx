@@ -6,8 +6,7 @@ import {
   ScheduleOutlined,
   FilePdfOutlined,
   BuildOutlined,
-  UnorderedListOutlined,
-  InboxOutlined,
+  FundOutlined,
 } from '@ant-design/icons';
 import type { Role } from '@/types/auth';
 
@@ -25,12 +24,18 @@ export interface AppMenuItem {
 
 /** 시트 #1 0511_0 — 사이드바와 상단 메뉴가 동일 정의를 공유한다. */
 export const MENU_ITEMS: AppMenuItem[] = [
-  // 첫 화면 = 매출현황(계획 대비). 2026-09-18 기존 홈 대시보드는 폐기.
-  { key: '/', icon: <HomeOutlined />, label: '매출현황' },
-  // ERP 매출 상세 — 기간·사업부문 조회 + 엑셀. 권한 키는 MenuCatalog, 데이터 범위는 SALES_STATS.
-  { key: '/stats/sales-list', icon: <UnorderedListOutlined />, label: '매출리스트' },
-  // 매출은 등록됐는데 재고자산이 남은 주문(배치) — ERP 재고자산 현황 + 매출(배치번호) 대조
-  { key: '/stats/stock-leftover', icon: <InboxOutlined />, label: '매출 후 잔여재고' },
+  {
+    // 매출관리 (2026-10-06 상단 메뉴 통합). 첫 화면 = 매출현황(계획 대비, '/'). 2026-09-18 기존 홈 대시보드는 폐기.
+    // 매출리스트(/stats/sales-list)는 메뉴에 두지 않고 매출현황 안 버튼으로 연다 — 권한 키는 그대로라 버튼 노출도 그 키를 따른다.
+    // 매출 후 잔여재고·수주 담당팀 점검·운송정보 부서 점검은 '수주 점검' 한 항목(탭, ?tab=leftover|so-cc). 옛 경로는 리다이렉트.
+    key: 'sales',
+    icon: <FundOutlined />,
+    label: '매출관리',
+    children: [
+      { key: '/', icon: <HomeOutlined />, label: '매출현황' },
+      { key: '/stats/data-check', label: '수주 점검' },
+    ],
+  },
   {
     key: 'info',
     icon: <InfoCircleOutlined />,
@@ -154,9 +159,9 @@ export function filterMenuByRole(items: AppMenuItem[], role?: Role, deptCd?: num
 /** 현재 path 로 활성 topkey 결정 (사이드바 openKeys 및 헤더 selectedKeys 공통 사용). */
 export function getActiveTopKey(pathname: string): string {
   // 매출현황은 홈('/')이 정식 경로. 구 경로로 들어와도 홈이 활성화되게 먼저 판정한다.
-  if (pathname.startsWith('/stats/sales-status')) return '/';
-  if (pathname.startsWith('/stats/sales-list')) return '/stats/sales-list';
-  if (pathname.startsWith('/stats/stock-leftover')) return '/stats/stock-leftover';
+  if (pathname === '/' || pathname.startsWith('/stats/sales-status')) return 'sales';
+  if (pathname.startsWith('/stats/sales-list')) return 'sales';
+  if (pathname.startsWith('/stats/data-check') || pathname.startsWith('/stats/stock-leftover') || pathname.startsWith('/stats/so-cc-check')) return 'sales';
   if (pathname.startsWith('/activity')) return 'activity';
   if (pathname.startsWith('/deals')) return 'activity';
   if (pathname.startsWith('/tools/pdf')) return '/tools/pdf';

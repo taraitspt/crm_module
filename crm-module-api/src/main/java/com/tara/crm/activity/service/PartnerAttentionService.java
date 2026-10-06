@@ -172,7 +172,7 @@ public class PartnerAttentionService {
             }
         }
 
-        // 거래처별 마지막 영업활동 — 날짜뿐 아니라 담당자·거래처명도 쓴다(매출·계획이 없는 "개척 중" 거래처의 담당부서·이름).
+        // 거래처별 마지막 영업활동 — 날짜뿐 아니라 담당자·거래처명도 쓴다(매출·계획이 없는 "발굴 중" 거래처의 담당부서·이름).
         Map<String, LocalDate> lastActivity = new HashMap<>();
         Map<String, SalesActivity> lastAct = new HashMap<>();
         for (SalesActivity a : salesActivityRepository.findAll()) {
@@ -197,7 +197,7 @@ public class PartnerAttentionService {
         // 그래픽스·PM 사업부문을 보고 있을 땐 계획만 있는 거래처를 끼워 넣지 않는다.
         boolean planBelongsHere = plantCd == null || "1000".equals(plantCd);
         if (planBelongsHere) all.addAll(planAmt.keySet());
-        // 영업활동이 있는 거래처도 넣는다 — 매출·계획이 아직 없어도 "개척 중"으로 보여야 모바일 관리필요에서 바로 활동을 이어 쓸 수 있다(2026-10-06).
+        // 영업활동이 있는 거래처도 넣는다 — 매출·계획이 아직 없어도 "발굴 중"으로 보여야 모바일 관리필요에서 바로 활동을 이어 쓸 수 있다(2026-10-06).
         if (planBelongsHere) all.addAll(lastAct.keySet());
 
         // 올해 매출 순위 — VIP 판정 기준. 매출이 있는 거래처만 순위를 매긴다.
@@ -240,7 +240,7 @@ public class PartnerAttentionService {
             if (hasPlan && (act == null || daysSince > noContactDays)) {
                 reasons.add(AttentionDto.Reason.NO_CONTACT.name());
             }
-            // 개척 중 — 올해도 작년도 매출이 없는데 영업활동은 있다(계획 유무 무관). 기회 쪽 신호.
+            // 발굴 중 — 올해도 작년도 매출이 없는데 영업활동은 있다(계획 유무 무관). 기회 쪽 신호.
             if (hasActivity && curAmt == 0 && prevAmt == 0) {
                 reasons.add(AttentionDto.Reason.PROSPECT.name());
             }

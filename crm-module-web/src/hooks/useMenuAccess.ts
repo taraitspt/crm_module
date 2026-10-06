@@ -9,7 +9,7 @@ import { MENU_ITEMS, filterMenuByKeys, filterMenuByRole, type AppMenuItem } from
  * 서버의 메뉴 권한 설정을 우선 쓰고, 아직 못 받았거나 백엔드가 구버전이면
  * 기존 역할 기반 필터로 떨어져 화면이 비지 않게 한다.
  */
-export function useMenuAccess(): { items: AppMenuItem[]; scopes: Record<string, string> } {
+export function useMenuAccess(): { items: AppMenuItem[]; scopes: Record<string, string>; menuKeys: Set<string> | null } {
   const { user, isAuthenticated } = useAuthStore();
 
   const { data } = useQuery({
@@ -27,5 +27,7 @@ export function useMenuAccess(): { items: AppMenuItem[]; scopes: Record<string, 
     return filterMenuByRole(MENU_ITEMS, user?.role, user?.deptCd);
   }, [data, user?.role, user?.deptCd]);
 
-  return { items, scopes: data?.scopes ?? {} };
+  // 메뉴 밖 버튼(예: 매출현황 안 '매출리스트')의 노출 판정용. null = 서버 설정을 아직 못 받음(역할 폴백 중) → 호출 쪽에서 보여준다.
+  const menuKeys = useMemo(() => (data?.menuKeys && data.menuKeys.length > 0 ? new Set(data.menuKeys) : null), [data]);
+  return { items, scopes: data?.scopes ?? {}, menuKeys };
 }

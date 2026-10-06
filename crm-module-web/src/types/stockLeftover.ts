@@ -1,6 +1,6 @@
 /**
  * 매출 후 잔여재고 — 매출은 등록됐는데 오늘 기준 재고가 남은 주문 라인(배치 = 주문번호-순번). 서버는 Map(camelCase)으로 내려준다.
- * 재고는 ERP 재고자산 현황(현재고 − 오늘 전표), 매출은 SD_BILL(배치번호 기준).
+ * 재고는 ERP 재고자산 현황(현재고 − 오늘 전표), 매출은 SD_BILL(배치번호 기준). 자재유형 반제품(14)은 서버에서 제외.
  */
 export type LeftoverRow = Record<string, string | number | null | undefined>;
 
@@ -34,6 +34,7 @@ export const LEFTOVER_COLS: LeftoverCol[] = [
   tx('deptNm', '부서', 110),
   dt('ordDt', '주문일'),
   dt('dlvshDts', '납기일'),
+  tx('acctFgNms', '자재유형', 90),
   tx('slNms', '창고', 140),
   tx('itemNms', '재고 품목', 200),
   num('stockRows', '재고 행', 64),

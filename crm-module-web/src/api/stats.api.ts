@@ -1,6 +1,8 @@
 import apiClient from './client';
 import type { ApiResponse } from '@/types/common';
 import type { LeftoverRow } from '@/types/stockLeftover';
+import type { SoCcRow } from '@/types/soCcCheck';
+import type { TransportRow } from '@/types/transportCheck';
 import type {
   SalesTrendDto,
   DashboardSummaryDto,
@@ -215,3 +217,10 @@ export const getReceivableAging = (baseDate: string) =>
 /** 매출 후 잔여재고 — 매출 등록된 배치(주문번호-순번) 중 오늘 기준 재고 > 0. billFrom/billTo 는 마지막 매출일 범위(선택). 행은 Map(camelCase). */
 export const getStockLeftover = (params: { billFrom?: string; billTo?: string }) =>
   apiClient.get<ApiResponse<LeftoverRow[]>>('/stats/stock-leftover', { params, timeout: 120_000 });
+
+/** 수주 담당팀 점검 — 수주일 기간(최대 93일), 수주마다 비용센터 vs 담당자 소속 판정(ccMatch). 행은 Map(camelCase). */
+export const getSoCcCheck = (params: { startDate: string; endDate: string }) =>
+  apiClient.get<ApiResponse<SoCcRow[]>>('/stats/so-cc-check', { params, timeout: 120_000 });
+/** 운송정보 부서 점검 — 운송정보 등록일 기간(최대 93일), 행마다 부서 비용센터 vs 수주 라인 비용센터 판정(deptMatch). */
+export const getTransportDeptCheck = (params: { startDate: string; endDate: string }) =>
+  apiClient.get<ApiResponse<TransportRow[]>>('/stats/transport-dept-check', { params, timeout: 120_000 });

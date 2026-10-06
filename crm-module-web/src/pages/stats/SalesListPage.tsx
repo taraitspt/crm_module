@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Button, Card, Checkbox, Input, Popover, Select, Space, Table, Tag, message } from 'antd';
-import { SettingOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, SettingOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useQuery } from '@tanstack/react-query';
@@ -69,6 +70,7 @@ const displayVal = (row: SalesListRow, id: string): string => {
 const HIDDEN_COLS_KEY = 'sales-list-hidden-cols-v2';
 
 const SalesListPage: React.FC = () => {
+  const navigate = useNavigate();
   const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>([dayjs().startOf('month'), dayjs()]);
   const [plantCd, setPlantCd] = useState('1000');
   const [orderType, setOrderType] = useState<string>();
@@ -179,7 +181,12 @@ const SalesListPage: React.FC = () => {
 
   return (
     <PageLayout>
-      <PageHeader title="매출리스트" titleStyle={{ fontSize: 30, fontWeight: 900, color: '#001f3f' }} />
+      <PageHeader
+        title="매출리스트"
+        titleStyle={{ fontSize: 30, fontWeight: 900, color: '#001f3f' }}
+        // 메뉴 없이 매출현황 안 버튼으로 들어오는 화면 — 돌아갈 길을 머리에 둔다.
+        leading={<Button type="text" icon={<ArrowLeftOutlined />} onClick={() => navigate('/')} aria-label="매출현황으로" />}
+      />
       <Card size="small" style={{ marginBottom: 10 }}>
         <Space wrap size={8}>
           <span style={{ fontWeight: 600 }}>매출일</span>

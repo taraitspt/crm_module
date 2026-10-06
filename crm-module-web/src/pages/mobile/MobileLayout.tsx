@@ -32,7 +32,7 @@ export const MOBILE_TABS = [
   { key: 'activity', path: '/m/activity', label: '활동', icon: <CalendarOutlined />, menuKeys: ['/activity/calendar'] },
   { key: 'partner', path: '/m/partner', label: '거래처', icon: <ShopOutlined />, menuKeys: ['/activity/partner'] },
   { key: 'orders', path: '/m/orders', label: '주문', icon: <FileDoneOutlined />, menuKeys: ['/production/order-progress'] },
-  { key: 'production', path: '/m/production', label: '생산', icon: <ToolOutlined />, menuKeys: ['/production/equipment-board', '/production/plan-register'] },
+  { key: 'production', path: '/m/production', label: '생산', icon: <ToolOutlined />, menuKeys: ['/production/equipment-board', '/production/schedule'] },
   { key: 'attention', path: '/m/attention', label: '관리필요', icon: <AlertOutlined />, menuKeys: ['/activity/attention'] },
   { key: 'sales', path: '/m/sales', label: '매출', icon: <BarChartOutlined />, menuKeys: ['/'] },
 ];

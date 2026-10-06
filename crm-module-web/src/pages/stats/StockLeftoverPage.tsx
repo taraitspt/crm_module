@@ -27,7 +27,7 @@ const cell = (col: LeftoverCol, v: LeftoverRow[string]) => {
  * 매출 후 잔여재고 — 매출은 등록됐는데 오늘 기준 재고자산이 남아 있는 주문 라인(배치 = 주문번호-순번).
  * 기본은 전체(마지막 매출일 제한 없음). "전량 매출"(매출수량 ≥ 주문수량)인데 재고가 남은 것이 정리 대상이고, "부분 매출"은 분할매출 진행 중일 수 있다.
  */
-const StockLeftoverPage: React.FC = () => {
+const StockLeftoverPage: React.FC<{ embedded?: boolean }> = ({ embedded }) => {
   const [useRange, setUseRange] = useState(false);
   const [range, setRange] = useState<[Dayjs, Dayjs]>([dayjs().subtract(3, 'month').startOf('month'), dayjs()]);
   const [status, setStatus] = useState<'all' | 'FULL' | 'PARTIAL'>('all');
@@ -62,9 +62,8 @@ const StockLeftoverPage: React.FC = () => {
   ], []);
   const excelColumns = LEFTOVER_COLS.map((c) => ({ header: c.label, key: c.id, formatter: c.kind === 'date' ? (v: unknown) => ymd(v as string) : c.kind === 'status' ? (v: unknown) => BILL_STATUS[String(v ?? '')]?.label ?? '' : undefined }));
 
-  return (
-    <PageLayout>
-      <PageHeader title="매출 후 잔여재고" sub="매출은 등록됐는데 오늘 기준 재고자산이 남아 있는 주문(배치 = 주문번호-순번). ERP 재고자산 현황 기준." />
+  const body = (
+    <>
 
       <Row gutter={[10, 10]} style={{ marginBottom: 10 }}>
         <Col xs={12} md={6}><Kpi label="재고 남은 매출 배치" value={`${all.length.toLocaleString()}건`} sub={`재고 ${fmtQty(sum(all, 'stockQt'))}`} /></Col>
@@ -100,6 +99,14 @@ const StockLeftoverPage: React.FC = () => {
         .ant-table-small .ant-table-thead > tr > th { font-size: 12px; padding: 5px 6px !important; white-space: nowrap; }
         .ant-table-small .ant-table-tbody > tr > td { font-size: 12px; padding: 4px 6px !important; }
       `}</style>
+    </>
+  );
+  // 데이터 점검 탭 안에서는 바깥이 레이아웃·제목을 그린다.
+  if (embedded) return body;
+  return (
+    <PageLayout>
+      <PageHeader title="매출 후 잔여재고" sub="매출은 등록됐는데 오늘 기준 재고자산이 남아 있는 주문(배치 = 주문번호-순번). ERP 재고자산 현황 기준." />
+      {body}
     </PageLayout>
   );
 };

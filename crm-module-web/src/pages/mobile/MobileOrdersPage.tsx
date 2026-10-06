@@ -1,7 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Alert, Button, Input, Segmented, Select, Spin, Tag } from 'antd';
-import { LeftOutlined, RightOutlined } from '@ant-design/icons';
+import { LeftOutlined, PrinterOutlined, RightOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
+import { useMenuAccess } from '@/hooks/useMenuAccess';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useAuthStore } from '@/store/authStore';
 import { getOrderProgress } from '@/api/production.api';
@@ -15,9 +17,14 @@ const GROUP_COLOR = { todo: T.t3, doing: T.primary700, shipped: T.bl, done: T.ok
 /**
  * 주문 — 주문진행현황을 조회연월 단위로 카드로. 주문번호·주문명·담당자·수량·진행상태(굵게, 단계 색).
  * 기본은 내 담당(사번) 주문. 카드를 누르면 세부품목·납품예정·작업처·수주/매출번호가 펼쳐진다.
+ * 펼친 카드에서 바로 작업지시서(이 순번 / 주문 전체)를 연다 — 생산 탭의 별도 작업지시서 검색 화면은 이걸로 대체(사용자 2026-10-06).
+ * 버튼은 생산계획조회(/production/plan-register) 메뉴 권한이 있을 때만.
  */
 const MobileOrdersPage: React.FC = () => {
   const { user } = useAuthStore();
+  const navigate = useNavigate();
+  const { menuKeys } = useMenuAccess();
+  const canWorkOrder = menuKeys == null || menuKeys.has('/production/plan-register');
   const [month, setMonth] = useState<Dayjs>(() => dayjs().startOf('month'));
   const [mine, setMine] = useState(!!user?.employeeNo);
   const [dept, setDept] = useState<string>();
@@ -130,6 +137,12 @@ const MobileOrdersPage: React.FC = () => {
                 {(r.sodocNo || r.billdocNo) && <KV label="수주/매출">{[r.sodocNo, r.billdocNo].filter(Boolean).join(' · ')}</KV>}
                 <KV label="부서">{r.deptNm}</KV>
                 {r.rmkTxt && <KV label="비고"><span style={{ whiteSpace: 'pre-wrap' }}>{String(r.rmkTxt)}</span></KV>}
+                {canWorkOrder && (
+                  <div style={{ display: 'flex', gap: 8, marginTop: 10 }} onClick={(e) => e.stopPropagation()}>
+                    <Button size="small" icon={<PrinterOutlined />} onClick={() => navigate(`/production/work-order/${encodeURIComponent(String(r.orddocNo))}/${r.orddocSq}`)}>이 순번 작업지시서</Button>
+                    <Button size="small" type="text" onClick={() => navigate(`/production/work-order/${encodeURIComponent(String(r.orddocNo))}`)}>주문 전체</Button>
+                  </div>
+                )}
               </div>
             )}
           </MCard>

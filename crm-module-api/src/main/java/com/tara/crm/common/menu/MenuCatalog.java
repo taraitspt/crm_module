@@ -23,8 +23,10 @@ public final class MenuCatalog {
 
     public static final List<Entry> ENTRIES = List.of(
             new Entry("/", "홈", "매출현황", false),
-            new Entry("/stats/sales-list", "매출", "매출리스트", false),
-            new Entry("/stats/stock-leftover", "매출", "매출 후 잔여재고", false),
+            // 매출리스트는 상단 메뉴가 아니라 매출현황 안 버튼 — 이 키가 없으면 버튼도 안 보인다(2026-10-06)
+            new Entry("/stats/sales-list", "매출", "매출리스트 (매출현황 안 버튼)", false),
+            // 매출 후 잔여재고 + 수주 담당팀 점검 → 한 화면의 탭 (V154 에서 옛 키 정리)
+            new Entry("/stats/data-check", "매출", "수주 점검", false),
             new Entry("/info/sales-plan", "정보관리", "월매출계획", false),
             new Entry("/activity/attention", "영업관리", "관리 필요 거래처", false),
             new Entry("/deals", "영업관리", "수주 추진", false),

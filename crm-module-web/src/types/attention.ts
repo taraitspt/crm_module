@@ -19,7 +19,7 @@ export const REASONS: {
   { value: 'GROWTH', label: '성장', color: '#15803D', desc: '작년 대비 매출 증가', group: 'OPPORTUNITY' },
   { value: 'NEW', label: '신규', color: '#0891B2', desc: '작년 거래 없이 올해 발생', group: 'OPPORTUNITY' },
   // 매출·계획이 없어도 활동이 있으면 관리필요에 올린다 — 모바일에서 활동을 이어 쓰기 위해(2026-10-06). 담당은 마지막 활동 담당자(의 부서).
-  { value: 'PROSPECT', label: '개척 중', color: '#0F766E', desc: '매출은 아직 없지만 영업활동을 진행 중', group: 'OPPORTUNITY' },
+  { value: 'PROSPECT', label: '발굴 중', color: '#0F766E', desc: '매출은 아직 없지만 영업활동을 진행 중', group: 'OPPORTUNITY' },
 ];
 
 export const RISK_REASONS = REASONS.filter((r) => r.group === 'RISK');

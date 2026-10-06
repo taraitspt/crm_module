@@ -24,7 +24,7 @@ const MyPage = lazy(() => import('@/pages/auth/MyPage'));
 const SalesPlanPage = lazy(() => import('@/pages/info/SalesPlanPage'));
 const SalesStatusPage = lazy(() => import('@/pages/stats/SalesStatusPage'));
 const SalesListPage = lazy(() => import('@/pages/stats/SalesListPage'));
-const StockLeftoverPage = lazy(() => import('@/pages/stats/StockLeftoverPage'));
+const DataCheckPage = lazy(() => import('@/pages/stats/DataCheckPage'));
 
 // 영업관리 (CRM 영업활동)
 const ActivityCalendarPage = lazy(() => import('@/pages/activity/ActivityCalendarPage'));
@@ -53,7 +53,8 @@ const MobileSalesPage = lazy(() => import('@/pages/mobile/MobileSalesPage'));
 const MobileOrdersPage = lazy(() => import('@/pages/mobile/MobileOrdersPage'));
 const MobileProductionPage = lazy(() => import('@/pages/mobile/MobileProductionPage'));
 const MobileEquipmentPage = lazy(() => import('@/pages/mobile/MobileEquipmentPage'));
-const MobilePlanPage = lazy(() => import('@/pages/mobile/MobilePlanPage'));
+const MobileSchedulePage = lazy(() => import('@/pages/mobile/MobileSchedulePage'));
+// const MobilePlanPage = lazy(() => import('@/pages/mobile/MobilePlanPage')); — 작업지시서는 주문 탭 카드에서 연다(2026-10-06)
 const AppDownloadPage = lazy(() => import('@/pages/mobile/AppDownloadPage'));
 
 // 도구
@@ -154,7 +155,8 @@ const router = createBrowserRouter([
       { path: 'orders', element: <MobileOrdersPage /> },
       { path: 'production', element: <MobileProductionPage /> },
       { path: 'production/equipment', element: <MobileEquipmentPage /> },
-      { path: 'production/plan', element: <MobilePlanPage /> },
+      { path: 'production/schedule', element: <MobileSchedulePage /> },
+      // { path: 'production/plan', element: <MobilePlanPage /> },
       { path: 'attention', element: <MobileAttentionPage /> },
       { path: 'sales', element: <MobileSalesPage /> },
     ],
@@ -205,10 +207,13 @@ const router = createBrowserRouter([
     element: <Protected><SalesListPage /></Protected>,
   },
   // 매출 후 잔여재고 — 매출 등록됐는데 재고 남은 배치
+  // 데이터 점검 — 매출 후 잔여재고 · 수주 담당팀 점검 탭 (2026-10-06 통합). 옛 경로는 탭으로 리다이렉트.
   {
-    path: '/stats/stock-leftover',
-    element: <Protected><StockLeftoverPage /></Protected>,
+    path: '/stats/data-check',
+    element: <Protected><DataCheckPage /></Protected>,
   },
+  { path: '/stats/stock-leftover', element: <Navigate to="/stats/data-check?tab=leftover" replace /> },
+  { path: '/stats/so-cc-check', element: <Navigate to="/stats/data-check?tab=so-cc" replace /> },
   // 영업관리
   {
     path: '/activity/attention',

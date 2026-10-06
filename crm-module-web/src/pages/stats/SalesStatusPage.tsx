@@ -7,8 +7,11 @@ import {
   ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts';
 import dayjs from 'dayjs';
+import { UnorderedListOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
 import PageHeader from '@/components/layout/PageHeader';
+import { useMenuAccess } from '@/hooks/useMenuAccess';
 import { lookupApi } from '@/api/info.api';
 import { salesPlanApi } from '@/api/salesPlan.api';
 import type { SalesStatusRow } from '@/types/salesPlan';
@@ -124,6 +127,10 @@ function ChartCard({ title, extra, height, children }: {
  * 백엔드는 항상 12개월을 내려주므로 기간 변경은 재조회 없이 즉시 반영된다.
  */
 export default function SalesStatusPage() {
+  const navigate = useNavigate();
+  const { menuKeys } = useMenuAccess();
+  // 매출리스트는 상단 메뉴에서 빼고 여기서 연다(2026-10-06). 권한 키 /stats/sales-list 가 없으면 버튼도 숨긴다.
+  const canSalesList = menuKeys == null || menuKeys.has('/stats/sales-list');
   const thisYear = dayjs().year();
   const thisMonth = dayjs().month() + 1;
 
@@ -503,7 +510,12 @@ export default function SalesStatusPage() {
 
   return (
     <PageLayout>
-      <PageHeader title="매출현황 (계획 대비)" />
+      <PageHeader
+        title="매출현황 (계획 대비)"
+        actions={canSalesList && (
+          <Button icon={<UnorderedListOutlined />} onClick={() => navigate('/stats/sales-list')}>매출리스트</Button>
+        )}
+      />
 
       <Card variant="borderless" styles={{ body: { padding: '12px 16px' } }} style={{ marginBottom: 12, borderRadius: 12, border: `1px solid ${T.border2}` }}>
         <Row gutter={[12, 8]} align="middle">

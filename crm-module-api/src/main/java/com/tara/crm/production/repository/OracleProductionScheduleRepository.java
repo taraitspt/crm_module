@@ -7,15 +7,24 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * 생산일정현황 (TPS, 회사 1000 / 공장 1000) — ERP 인쇄·제본·코팅 생산일정현황 화면 쿼리 이식(사용자 제공 2026-10-06). 조회 전용.
@@ -34,11 +43,13 @@ import java.util.Map;
  * </ul>
  * 정본과 다른 점: 바인딩(기간·설비유형·검색어)을 뺐고, 인쇄 탭에 설비명(PM_EQ_SDTL)을 더했다(정본엔 코드만). 컬럼이 많아 Map(camelCase)으로 내려준다.
  * 인쇄 탭 속도: 정본은 제본처(3.4만 행)·후가공 목록(1.5만 행)·MES 실적·작업확인·용지입고 서브쿼리를 전 기간으로 만든 뒤 597행과 조인해 1주 조회가 13~16초였다.
- * 부품별로는 합쳐 6초라 결합이 느린 것 → 서브쿼리마다 "기간 안 인쇄 계획번호"(PLAN_IN_RANGE) 세미조인을 넣고, 행마다 돌던 단가 스칼라 서브쿼리는 같은 행 값(MAX(WRK_UM))으로 바꿨다. 결과는 같다.
+ * 부품별로는 합쳐 6초라 결합이 느린 것. 세미조인·힌트(MATERIALIZE/NO_MERGE)·리터럴 바인딩으로는 안 풀려(힌트·리터럴은 300초 초과) 2026-10-06 **뼈대 + 보조 집계 5개 병렬 조회 후 자바 합성**으로 바꿨다(findPrintRows). 결과는 같다.
  */
 @Repository
 @ConditionalOnProperty(name = "oracle.enabled", havingValue = "true")
 public class OracleProductionScheduleRepository {
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(OracleProductionScheduleRepository.class);
 
     private final NamedParameterJdbcTemplate jdbc;
 
@@ -91,123 +102,243 @@ public class OracleProductionScheduleRepository {
             """;
 
     // ───────────────────────────── 인쇄 ─────────────────────────────
-    private static final String PRINT_SQL = """
-            SELECT T.COMPANY_CD, T.PLANT_CD, T.PLMK_CD, T.PLMK_NM, T.PRW_ISSUE_YN,
-                   CASE WHEN T.ISSUE_YN = 0 THEN 'Y' ELSE 'N' END AS ISSUE_YN,
-                   T.PURWRHSNG_QT_YN, T.ISPC_YN, T.PLAN_NO, T.PLAN_HIS_SQ, T.PLAN_SQ, T.PLAN_LOW_SQ, T.SCHDUL_SQ, T.PRPCNT_SQ,
-                   T.CNFM_YN, T.CNFM_DTS, T.RCPT_PRRG_DTS, T.DLVSH_DTS, T.PARTNER_CD, T.PARTNER_NM, T.ITEM_CD, T.ITEM_NM, T.SPCFCS_ITEM_NM,
-                   T.CONFIG_CD, T.CONFIG_NM, T.PR_RMK_DC, T.OP_CD, T.OP_NM, T.BND_PARTNER_NM, T.WRK_CD, T.WRK_NM, T.PLAN_DT, T.WRK_TM_CNT,
-                   T.MTRIL_CD, T.MTRIL_NM, T.DTL_SIZE_DC, T.GNRL_QT, T.NET_PPCNT_QT, T.EQP_CD, T.EQP_NM, T.PAGE_NO, T.TONG_CNT,
-                   CASE WHEN T.WORK_CNT > T.TONG_CNT THEN T.TONG_CNT ELSE T.WORK_CNT END AS WORK_CNT,
-                   T.RE_TONG_CNT,
-                   T.WRK_UM,
-                   T.WRK_AMT, T.ORDDOC_NO, T.ORDDOC_SQ, T.CMPT_YN, NVL(T.PRPCNT_CLOSE_YN, 'N') AS PRPCNT_CLOSE_YN
-            FROM (
-                WITH PPPIX AS (
-                    SELECT PPPIX.COMPANY_CD, PPPIX.PLANT_CD, PPPIX.PLAN_NO, PPPIX.PLAN_SQ, PPPIX.KEY_VAL_NM,
-                           LISTAGG(PPPIX.WRK_CD, '-') WITHIN GROUP (ORDER BY PLAN_NO, ORDDOC_NO, ORDDOC_SQ, PAGE_SQ, LINE_SQ) AS WRK_CD,
-                           LISTAGG(MC_WRK.SYSDEF_NM, '-') WITHIN GROUP (ORDER BY PLAN_NO, ORDDOC_NO, ORDDOC_SQ, PAGE_SQ, LINE_SQ) AS WRK_NM
-                    FROM PP_PLANPROCS_INFO_X20329 PPPIX
-                    LEFT OUTER JOIN MA_CODEDTL MC_WRK ON PPPIX.COMPANY_CD = MC_WRK.COMPANY_CD AND PPPIX.WRK_CD = MC_WRK.SYSDEF_CD AND MC_WRK.MODULE_CD = 'SD' AND MC_WRK.FIELD_CD = 'Z010_20329'
-                    WHERE PPPIX.COMPANY_CD = '1000' AND PPPIX.PLAN_NO IN """ + PLAN_IN_RANGE + """
+    // 인쇄 탭은 정본 쿼리를 한 덩어리로 돌리지 않는다(2026-10-06). 뼈대(인쇄 계획 행 + 주문·품목·설비 코드)만 SQL 로 집계하고,
+    // 무거운 보조 집계 다섯 개(제본처 PPB · 후가공 WRK_CD 목록 PPPIX · MES 미연동 작업확인 MWDX · 구매지 용지입고 PPSX · 재고지 용지입고 IMSX)는
+    // 각각 "기간 안 계획번호"로 좁힌 독립 쿼리로 **병렬** 조회해 자바에서 붙인다.
+    // 이유: 부품별로는 0.3~2.5초인데 한 SQL 로 합치면 1주 조회가 12~24초였고, 힌트(MATERIALIZE/NO_MERGE)·리터럴 바인딩은 300초를 넘겨 더 나빠졌다.
+    // 결과는 정본과 같다 — 보조 집계는 모두 그룹 키(계획/차수/순번/하위순번 또는 KEY_VAL_NM)당 한 행이라 조인해도 행이 늘지 않고,
+    // 제본처(PPB)만 공정(OP_CD)마다 행이 갈라지는데 그건 자바에서 똑같이 갈라 준다. 합계(SUM)에 곱해지던 중복 조인 배수는 COUNT(*)=ROW_MULT 로 들고 와 그대로 곱한다.
 
-                    GROUP BY PPPIX.COMPANY_CD, PPPIX.PLANT_CD, PPPIX.PLAN_NO, PPPIX.PLAN_SQ, PPPIX.KEY_VAL_NM
-                )
-                SELECT PPIX.COMPANY_CD, PPIX.PLANT_CD, PPIX.PLMK_CD, MC_PLMK.SYSDEF_NM AS PLMK_NM,
-                       SUM(CASE WHEN NVL(PPIX.ISSUE_YN, 'N') = 'Y' THEN 1 ELSE 0 END) AS PRW_ISSUE_YN,
-                       SUM(CASE WHEN NVL(PPLIX.ISSUE_YN, 'N') = 'N' THEN 1 ELSE 0 END) AS ISSUE_YN,
-                       (CASE WHEN MIX.PPR_FG_CD = '100' AND PPSX.PURDOC_NO IS NOT NULL THEN 'Y'
-                             WHEN MIX.PPR_FG_CD = '200' AND IMSX.INVTRX_RSV_NO IS NOT NULL THEN 'Y'
-                             WHEN MIX.PPR_FG_CD = '200' AND IMSX.INVTRX_RSV_NO IS NULL THEN 'N'
-                             ELSE 'N' END) AS PURWRHSNG_QT_YN,
-                       NVL(PPIX.ISPC_YN, 'N') AS ISPC_YN,
-                       PPIX.PLAN_NO, PPIX.PLAN_HIS_SQ, PPIX.PLAN_SQ, PPIX.PLAN_LOW_SQ, PPIX.SCHDUL_SQ, PPIX.PRPCNT_SQ, PPIX.CNFM_YN,
-                       TO_CHAR(SODX.CNFM_DTS, 'yyyyMMdd') AS CNFM_DTS, TO_CHAR(PPDX.RCPT_PRRG_DTS, 'yyyyMMdd') AS RCPT_PRRG_DTS, TO_CHAR(PPDX.DLVSH_DTS, 'yyyyMMdd') AS DLVSH_DTS,
-                       SOMX.PARTNER_CD, CPM_SOMX.PARTNER_NM, PPIX.ITEM_CD, PPDX.ITEM_NM, PPDX.SPCFCS_ITEM_NM, PPIX.CONFIG_CD, MC_CONFIG.SYSDEF_NM AS CONFIG_NM, PPIX.PR_RMK_DC,
-                       PPB.OP_CD, PPB.OP_NM, PPB.BND_PARTNER_NM, PPPIX.WRK_CD, PPPIX.WRK_NM, PPIX.PLAN_DT, NVL(PPIX.WRK_TM_CNT, 0) AS WRK_TM_CNT,
-                       PPIX.MTRIL_CD, CI_MTRIL.ITEM_NM AS MTRIL_NM, PPIX.DTL_SIZE_DC,
-                       (COALESCE(PPIX.GNRL_PRW_BEF_QT, 0) + COALESCE(PPIX.SPCLR_PRW_BEF_QT, 0)) || '/' || (COALESCE(PPIX.GNRL_PRW_AFTR_QT, 0) + COALESCE(PPIX.SPCLR_PRW_AFTR_QT, 0)) AS GNRL_QT,
-                       SUM(CASE WHEN NVL(PPIX.VNR_NET_QT, 0) > 0 THEN NVL(PPIX.VNR_NET_QT, 0) * 500 ELSE NVL(PPIX.NET_PPCNT_QT, 0) END) AS NET_PPCNT_QT,
-                       PPIX.EQP_CD, PES_EQ.EQP_NM,
-                       SUM(""" + PAGE_CASE + """
+    /** 뼈대 — 정본 SELECT 에서 PPB·PPPIX·MWDX·PPSX·IMSX 조인만 뺀 것. 내부 열 ISSUE_RAW·PPR_FG_CD·KEY_VAL_NM·ARLT_CNT·ROW_MULT 는 자바 합성 후 지운다. */
+    private static final String PRINT_BASE_SQL = """
+            SELECT PPIX.COMPANY_CD, PPIX.PLANT_CD, PPIX.PLMK_CD, MC_PLMK.SYSDEF_NM AS PLMK_NM,
+                   SUM(CASE WHEN NVL(PPIX.ISSUE_YN, 'N') = 'Y' THEN 1 ELSE 0 END) AS PRW_ISSUE_YN,
+                   SUM(CASE WHEN NVL(PPLIX.ISSUE_YN, 'N') = 'N' THEN 1 ELSE 0 END) AS ISSUE_RAW,
+                   MIX.PPR_FG_CD,
+                   NVL(PPIX.ISPC_YN, 'N') AS ISPC_YN,
+                   PPIX.PLAN_NO, PPIX.PLAN_HIS_SQ, PPIX.PLAN_SQ, PPIX.PLAN_LOW_SQ, PPIX.SCHDUL_SQ, PPIX.PRPCNT_SQ, PPIX.CNFM_YN, PPIX.KEY_VAL_NM,
+                   TO_CHAR(SODX.CNFM_DTS, 'yyyyMMdd') AS CNFM_DTS, TO_CHAR(PPDX.RCPT_PRRG_DTS, 'yyyyMMdd') AS RCPT_PRRG_DTS, TO_CHAR(PPDX.DLVSH_DTS, 'yyyyMMdd') AS DLVSH_DTS,
+                   SOMX.PARTNER_CD, CPM_SOMX.PARTNER_NM, PPIX.ITEM_CD, PPDX.ITEM_NM, PPDX.SPCFCS_ITEM_NM, PPIX.CONFIG_CD, MC_CONFIG.SYSDEF_NM AS CONFIG_NM, PPIX.PR_RMK_DC,
+                   PPIX.PLAN_DT, NVL(PPIX.WRK_TM_CNT, 0) AS WRK_TM_CNT,
+                   PPIX.MTRIL_CD, CI_MTRIL.ITEM_NM AS MTRIL_NM, PPIX.DTL_SIZE_DC,
+                   (COALESCE(PPIX.GNRL_PRW_BEF_QT, 0) + COALESCE(PPIX.SPCLR_PRW_BEF_QT, 0)) || '/' || (COALESCE(PPIX.GNRL_PRW_AFTR_QT, 0) + COALESCE(PPIX.SPCLR_PRW_AFTR_QT, 0)) AS GNRL_QT,
+                   SUM(CASE WHEN NVL(PPIX.VNR_NET_QT, 0) > 0 THEN NVL(PPIX.VNR_NET_QT, 0) * 500 ELSE NVL(PPIX.NET_PPCNT_QT, 0) END) AS NET_PPCNT_QT,
+                   PPIX.EQP_CD, PES_EQ.EQP_NM,
+                   SUM(""" + PAGE_CASE + """
             ) AS PAGE_NO,
-                       SUM(""" + NET_SHEETS + " * " + PAGE_CASE + """
+                   SUM(""" + NET_SHEETS + " * " + PAGE_CASE + """
             ) AS TONG_CNT,
-                       SUM(NVL(PPIX.ARLT_QT, 0) * """ + PAGE_CASE + """
-            ) + SUM(NVL(MWDX.RE_NET_QT, 0)) AS WORK_CNT,
-                       SUM(""" + NET_SHEETS + " * " + PAGE_CASE + " - (NVL(PPIX.ARLT_QT, 0) * " + PAGE_CASE + """
-            )) - SUM(NVL(MWDX.RE_NET_QT, 0)) AS RE_TONG_CNT,
-                       MAX(PPIX.WRK_UM) AS WRK_UM, PPIX.WRK_AMT, PPIX.ORDDOC_NO, PPIX.ORDDOC_SQ, PPLIX.CMPT_YN, PPIX.PRPCNT_CLOSE_YN
-                FROM PP_PLANPRW_INFO_X20329 PPIX
-                LEFT OUTER JOIN PM_EQ_DTL PED ON PED.COMPANY_CD = PPIX.COMPANY_CD AND PED.EQP_CD = PPIX.EQP_CD AND PED.PLANT_CD = PPIX.PLANT_CD
-                LEFT OUTER JOIN PM_EQ_SDTL PES_EQ ON PES_EQ.COMPANY_CD = PPIX.COMPANY_CD AND PES_EQ.EQP_CD = PPIX.EQP_CD AND PES_EQ.LANG_CD = 'KO'
-                LEFT OUTER JOIN SD_ORDER_DTL_X20329 SODX ON PPIX.COMPANY_CD = SODX.COMPANY_CD AND PPIX.ORDDOC_NO = SODX.ORDDOC_NO AND PPIX.ORDDOC_SQ = SODX.ORDDOC_SQ
-                LEFT OUTER JOIN SD_ORDER_MST_X20329 SOMX ON PPIX.COMPANY_CD = SOMX.COMPANY_CD AND PPIX.ORDDOC_NO = SOMX.ORDDOC_NO
-                LEFT OUTER JOIN PP_PLAN_DTL_X20329 PPDX ON PPIX.COMPANY_CD = PPDX.COMPANY_CD AND PPIX.PLAN_NO = PPDX.PLAN_NO AND PPIX.PLAN_HIS_SQ = PPDX.PLAN_HIS_SQ AND PPIX.PLAN_SQ = PPDX.PLAN_SQ
-                LEFT OUTER JOIN """ + BIND_PARTNER_SUB.replace("%BND_RANGE%", "AND PPBIX.PLAN_NO IN " + PLAN_IN_RANGE) + """
-                             ON PPIX.COMPANY_CD = PPB.COMPANY_CD AND PPIX.PLAN_NO = PPB.PLAN_NO AND PPIX.PLAN_SQ = PPB.PLAN_SQ AND PPIX.ITEM_CD = PPB.BAN_ITEM_CD
-                LEFT OUTER JOIN PPPIX PPPIX ON PPIX.COMPANY_CD = PPPIX.COMPANY_CD AND PPIX.PLANT_CD = PPPIX.PLANT_CD AND PPPIX.KEY_VAL_NM = PPIX.KEY_VAL_NM
-                LEFT OUTER JOIN ME_EQPCAPA_INFO MEI2 ON PPIX.COMPANY_CD = MEI2.COMPANY_CD AND PPIX.PLANT_CD = MEI2.PLANT_CD AND PPIX.EQP_CD = MEI2.EQP_CD
-                LEFT OUTER JOIN CI_PARTNER_MST CPM_SOMX ON SOMX.PARTNER_CD = CPM_SOMX.PARTNER_CD
-                LEFT OUTER JOIN CI_ITEM CI_MTRIL ON PPIX.MTRIL_CD = CI_MTRIL.ITEM_CD
-                LEFT OUTER JOIN MA_CODEDTL MC_PLMK ON PPIX.COMPANY_CD = MC_PLMK.COMPANY_CD AND PPIX.PLMK_CD = MC_PLMK.SYSDEF_CD AND MC_PLMK.MODULE_CD = 'SD' AND MC_PLMK.FIELD_CD = 'Z010_20329'
-                LEFT OUTER JOIN MA_CODEDTL MC_CONFIG ON PPIX.COMPANY_CD = MC_CONFIG.COMPANY_CD AND PPIX.CONFIG_CD = MC_CONFIG.SYSDEF_CD AND MC_CONFIG.MODULE_CD = 'SD' AND MC_CONFIG.FIELD_CD = 'Z007_20329'
-                LEFT OUTER JOIN PP_PLANPLMK_INFO_X20329 PPLIX ON PPLIX.COMPANY_CD = PPIX.COMPANY_CD AND PPLIX.PLANT_CD = PPIX.PLANT_CD AND PPLIX.KEY_VAL_NM = PPIX.KEY_VAL_NM AND COALESCE(PPLIX.SUPP_YN, 'N') = 'N'
-                LEFT OUTER JOIN (
-                    -- 작업확인(WC20) 중 MES 로 실적이 안 넘어간 것 — 정미/2 를 작업통수에 더한다
-                    SELECT MWDX.COMPANY_CD, MWDX.PLANT_CD, MWDX.PLAN_NO, MWDX.PLAN_SQ, MWDX.PLAN_LOW_SQ,
-                           CASE WHEN COUNT(PPI.COUNT_PROD_NO) > 0 THEN 0 ELSE SUM(MWDX.NET_QT) / 2 END RE_NET_QT
-                    FROM ME_WOCONF_DTL_X20329 MWDX
-                    INNER JOIN PM_EQ_DTL PED ON MWDX.COMPANY_CD = PED.COMPANY_CD AND MWDX.PLANT_CD = PED.PLANT_CD AND MWDX.EQP_CD = PED.EQP_CD
-                    INNER JOIN MA_CODEDTL MC ON MC.COMPANY_CD = PED.COMPANY_CD AND MC.MODULE_CD = 'PM' AND MC.FIELD_CD = 'P00470' AND MC.SYSDEF_CD = PED.EQP_TP_CD
-                    LEFT OUTER JOIN (SELECT PPI.SODOC_NO, PPI.SODOC_SQ, PPI.INTL_NO, COUNT(PPI.PROD_NO) AS COUNT_PROD_NO
-                                     FROM PP_PROD_IF PPI
-                                     WHERE PPI.COMPANY_CD = '1000' AND PPI.PLANT_CD = '1000' AND PPI.INTL_SYS_CD = 'MES' AND PPI.CRUD_FG = 'I' AND PPI.REL1_CD = 'WC20'
-                                       AND PPI.SODOC_NO IN """ + PLAN_IN_RANGE + """
-
-                                     GROUP BY PPI.SODOC_NO, PPI.SODOC_SQ, PPI.INTL_NO) PPI
-                                 ON PPI.SODOC_NO = MWDX.PLAN_NO AND PPI.SODOC_SQ = MWDX.PLAN_SQ AND PPI.INTL_NO = MWDX.PLAN_LOW_SQ
-                    WHERE MC.FLAG_CD = 'WC20' AND MWDX.COMPANY_CD = '1000' AND MWDX.PLANT_CD = '1000'
-                      AND MWDX.PLAN_NO IN """ + PLAN_IN_RANGE + """
-
-                    GROUP BY MWDX.COMPANY_CD, MWDX.PLANT_CD, MWDX.PLAN_NO, MWDX.PLAN_SQ, MWDX.PLAN_LOW_SQ) MWDX
-                             ON PPIX.COMPANY_CD = MWDX.COMPANY_CD AND PPIX.PLANT_CD = MWDX.PLANT_CD AND PPIX.PLAN_NO = MWDX.PLAN_NO AND PPIX.PLAN_SQ = MWDX.PLAN_SQ AND PPIX.PLAN_LOW_SQ = MWDX.PLAN_LOW_SQ
-                LEFT OUTER JOIN MA_ITEM_X20329 MIX ON MIX.COMPANY_CD = PPIX.COMPANY_CD AND MIX.ITEM_CD = PPIX.MTRIL_CD
-                LEFT OUTER JOIN (
-                    -- 구매지 용지입고 — 발주 입고수량+수입수량 > 0 (26.02.02 기준)
-                    SELECT PPSX.COMPANY_CD, PPSX.PLAN_NO, PPSX.PLAN_SQ, PPSX.PLAN_LOW_SQ, MAX(PPD.PURDOC_NO) AS PURDOC_NO
-                    FROM PU_PURORDER_SDTL_X20329 PPSX
-                    INNER JOIN PU_PURORDERDLV_DTL PPD ON PPD.COMPANY_CD = PPSX.COMPANY_CD AND PPD.PURDOC_NO = PPSX.PURDOC_NO AND PPD.PURDOC_SQ = PPSX.PURDOC_SQ
-                                                     AND NVL(PPD.PO_CNCL_YN, 'N') = 'N' AND PPD.PURWRHSNG_QT + PPD.IMPR_QT > 0
-                    WHERE PPSX.COMPANY_CD = '1000' AND PPSX.PLAN_NO IN """ + PLAN_IN_RANGE + """
-
-                    GROUP BY PPSX.COMPANY_CD, PPSX.PLAN_NO, PPSX.PLAN_SQ, PPSX.PLAN_LOW_SQ) PPSX
-                             ON PPSX.COMPANY_CD = PPIX.COMPANY_CD AND PPSX.PLAN_NO = PPIX.PLAN_NO AND PPSX.PLAN_SQ = PPIX.PLAN_SQ AND PPSX.PLAN_LOW_SQ = PPIX.PLAN_LOW_SQ
-                LEFT OUTER JOIN (
-                    -- 재고지 용지입고 — 자재예약의 출고전표가 미취소 (26.02.02 기준)
-                    SELECT IMSX.COMPANY_CD, IMSX.PLAN_NO, IMSX.PLAN_SQ, IMSX.PLAN_LOW_SQ, MAX(IMSX.INVTRX_RSV_NO) AS INVTRX_RSV_NO
-                    FROM IM_MTLRSV_SDTL_X20329 IMSX
-                    INNER JOIN IM_MTLDOC_DTL IMD ON IMD.COMPANY_CD = IMSX.COMPANY_CD AND IMD.RSV_NO = IMSX.INVTRX_RSV_NO AND IMD.RSV_SQ = IMSX.INVTRX_RSV_SQ AND NVL(IMD.INVTRX_CNCL_YN, 'N') = 'N'
-                    WHERE IMSX.COMPANY_CD = '1000' AND IMSX.PLAN_NO IN """ + PLAN_IN_RANGE + """
-
-                    GROUP BY IMSX.COMPANY_CD, IMSX.PLAN_NO, IMSX.PLAN_SQ, IMSX.PLAN_LOW_SQ) IMSX
-                             ON IMSX.COMPANY_CD = PPIX.COMPANY_CD AND IMSX.PLAN_NO = PPIX.PLAN_NO AND IMSX.PLAN_SQ = PPIX.PLAN_SQ AND IMSX.PLAN_LOW_SQ = PPIX.PLAN_LOW_SQ
-                WHERE PPIX.COMPANY_CD = '1000' AND PPIX.PLANT_CD = '1000'
-                AND NVL(PPIX.GRP_YN, 'N') NOT IN ('Y')
-                """ + COMMON_WHERE + """
-                GROUP BY PPIX.COMPANY_CD, PPIX.PLANT_CD, PPIX.PLMK_CD, MC_PLMK.SYSDEF_NM,
-                         (CASE WHEN MIX.PPR_FG_CD = '100' AND PPSX.PURDOC_NO IS NOT NULL THEN 'Y'
-                               WHEN MIX.PPR_FG_CD = '200' AND IMSX.INVTRX_RSV_NO IS NOT NULL THEN 'Y'
-                               WHEN MIX.PPR_FG_CD = '200' AND IMSX.INVTRX_RSV_NO IS NULL THEN 'N'
-                               ELSE 'N' END),
-                         PPIX.ISPC_YN, PPIX.PLAN_NO, PPIX.PLAN_HIS_SQ, PPIX.PLAN_SQ, PPIX.PLAN_LOW_SQ, PPIX.SCHDUL_SQ, PPIX.PRPCNT_SQ, PPIX.CNFM_YN,
-                         SODX.CNFM_DTS, PPDX.RCPT_PRRG_DTS, PPDX.DLVSH_DTS, SOMX.PARTNER_CD, CPM_SOMX.PARTNER_NM, PPIX.ITEM_CD, PPDX.ITEM_NM, PPDX.SPCFCS_ITEM_NM,
-                         PPIX.CONFIG_CD, MC_CONFIG.SYSDEF_NM, PPIX.PR_RMK_DC, PPB.OP_CD, PPB.OP_NM, PPB.BND_PARTNER_NM, PPPIX.WRK_CD, PPPIX.WRK_NM, PPIX.PLAN_DT, PPIX.WRK_TM_CNT,
-                         PPIX.MTRIL_CD, CI_MTRIL.ITEM_NM, PPIX.DTL_SIZE_DC, PPIX.GNRL_PRW_BEF_QT, PPIX.SPCLR_PRW_BEF_QT, PPIX.GNRL_PRW_AFTR_QT, PPIX.SPCLR_PRW_AFTR_QT,
-                         PPIX.WRK_AMT, PPIX.ORDDOC_NO, PPIX.ORDDOC_SQ, PPLIX.CMPT_YN, PPIX.EQP_CD, PES_EQ.EQP_NM, PPIX.PRPCNT_CLOSE_YN
-            ) T
-            ORDER BY T.PLAN_DT, T.SCHDUL_SQ, T.COMPANY_CD, T.PLANT_CD, T.PLAN_NO, T.PLAN_HIS_SQ, T.PLAN_SQ, T.PLAN_LOW_SQ
+                   SUM(NVL(PPIX.ARLT_QT, 0) * """ + PAGE_CASE + """
+            ) AS ARLT_CNT,
+                   COUNT(*) AS ROW_MULT,
+                   MAX(PPIX.WRK_UM) AS WRK_UM, PPIX.WRK_AMT, PPIX.ORDDOC_NO, PPIX.ORDDOC_SQ, PPLIX.CMPT_YN, PPIX.PRPCNT_CLOSE_YN
+            FROM PP_PLANPRW_INFO_X20329 PPIX
+            LEFT OUTER JOIN PM_EQ_DTL PED ON PED.COMPANY_CD = PPIX.COMPANY_CD AND PED.EQP_CD = PPIX.EQP_CD AND PED.PLANT_CD = PPIX.PLANT_CD
+            LEFT OUTER JOIN PM_EQ_SDTL PES_EQ ON PES_EQ.COMPANY_CD = PPIX.COMPANY_CD AND PES_EQ.EQP_CD = PPIX.EQP_CD AND PES_EQ.LANG_CD = 'KO'
+            LEFT OUTER JOIN SD_ORDER_DTL_X20329 SODX ON PPIX.COMPANY_CD = SODX.COMPANY_CD AND PPIX.ORDDOC_NO = SODX.ORDDOC_NO AND PPIX.ORDDOC_SQ = SODX.ORDDOC_SQ
+            LEFT OUTER JOIN SD_ORDER_MST_X20329 SOMX ON PPIX.COMPANY_CD = SOMX.COMPANY_CD AND PPIX.ORDDOC_NO = SOMX.ORDDOC_NO
+            LEFT OUTER JOIN PP_PLAN_DTL_X20329 PPDX ON PPIX.COMPANY_CD = PPDX.COMPANY_CD AND PPIX.PLAN_NO = PPDX.PLAN_NO AND PPIX.PLAN_HIS_SQ = PPDX.PLAN_HIS_SQ AND PPIX.PLAN_SQ = PPDX.PLAN_SQ
+            LEFT OUTER JOIN ME_EQPCAPA_INFO MEI2 ON PPIX.COMPANY_CD = MEI2.COMPANY_CD AND PPIX.PLANT_CD = MEI2.PLANT_CD AND PPIX.EQP_CD = MEI2.EQP_CD
+            LEFT OUTER JOIN CI_PARTNER_MST CPM_SOMX ON SOMX.PARTNER_CD = CPM_SOMX.PARTNER_CD
+            LEFT OUTER JOIN CI_ITEM CI_MTRIL ON PPIX.MTRIL_CD = CI_MTRIL.ITEM_CD
+            LEFT OUTER JOIN MA_CODEDTL MC_PLMK ON PPIX.COMPANY_CD = MC_PLMK.COMPANY_CD AND PPIX.PLMK_CD = MC_PLMK.SYSDEF_CD AND MC_PLMK.MODULE_CD = 'SD' AND MC_PLMK.FIELD_CD = 'Z010_20329'
+            LEFT OUTER JOIN MA_CODEDTL MC_CONFIG ON PPIX.COMPANY_CD = MC_CONFIG.COMPANY_CD AND PPIX.CONFIG_CD = MC_CONFIG.SYSDEF_CD AND MC_CONFIG.MODULE_CD = 'SD' AND MC_CONFIG.FIELD_CD = 'Z007_20329'
+            LEFT OUTER JOIN PP_PLANPLMK_INFO_X20329 PPLIX ON PPLIX.COMPANY_CD = PPIX.COMPANY_CD AND PPLIX.PLANT_CD = PPIX.PLANT_CD AND PPLIX.KEY_VAL_NM = PPIX.KEY_VAL_NM AND COALESCE(PPLIX.SUPP_YN, 'N') = 'N'
+            LEFT OUTER JOIN MA_ITEM_X20329 MIX ON MIX.COMPANY_CD = PPIX.COMPANY_CD AND MIX.ITEM_CD = PPIX.MTRIL_CD
+            WHERE PPIX.COMPANY_CD = '1000' AND PPIX.PLANT_CD = '1000'
+            AND NVL(PPIX.GRP_YN, 'N') NOT IN ('Y')
+            """ + COMMON_WHERE + """
+            GROUP BY PPIX.COMPANY_CD, PPIX.PLANT_CD, PPIX.PLMK_CD, MC_PLMK.SYSDEF_NM, MIX.PPR_FG_CD,
+                     PPIX.ISPC_YN, PPIX.PLAN_NO, PPIX.PLAN_HIS_SQ, PPIX.PLAN_SQ, PPIX.PLAN_LOW_SQ, PPIX.SCHDUL_SQ, PPIX.PRPCNT_SQ, PPIX.CNFM_YN, PPIX.KEY_VAL_NM,
+                     SODX.CNFM_DTS, PPDX.RCPT_PRRG_DTS, PPDX.DLVSH_DTS, SOMX.PARTNER_CD, CPM_SOMX.PARTNER_NM, PPIX.ITEM_CD, PPDX.ITEM_NM, PPDX.SPCFCS_ITEM_NM,
+                     PPIX.CONFIG_CD, MC_CONFIG.SYSDEF_NM, PPIX.PR_RMK_DC, PPIX.PLAN_DT, PPIX.WRK_TM_CNT,
+                     PPIX.MTRIL_CD, CI_MTRIL.ITEM_NM, PPIX.DTL_SIZE_DC, PPIX.GNRL_PRW_BEF_QT, PPIX.SPCLR_PRW_BEF_QT, PPIX.GNRL_PRW_AFTR_QT, PPIX.SPCLR_PRW_AFTR_QT,
+                     PPIX.WRK_AMT, PPIX.ORDDOC_NO, PPIX.ORDDOC_SQ, PPLIX.CMPT_YN, PPIX.EQP_CD, PES_EQ.EQP_NM, PPIX.PRPCNT_CLOSE_YN
+            ORDER BY PPIX.PLAN_DT, PPIX.SCHDUL_SQ, PPIX.COMPANY_CD, PPIX.PLANT_CD, PPIX.PLAN_NO, PPIX.PLAN_HIS_SQ, PPIX.PLAN_SQ, PPIX.PLAN_LOW_SQ
             """;
+
+    /** 제본처 — 계획/순번/제품품목/공정당 한 행. 공정이 여럿이면 뼈대 행이 그만큼 갈라진다(정본의 GROUP BY 와 같음). */
+    private static final String PRINT_AUX_PPB_SQL = "SELECT PPB.PLAN_NO, PPB.PLAN_SQ, PPB.BAN_ITEM_CD, PPB.OP_CD, PPB.OP_NM, PPB.BND_PARTNER_NM FROM "
+            + BIND_PARTNER_SUB.replace("%BND_RANGE%", "AND PPBIX.PLAN_NO IN " + PLAN_IN_RANGE);
+
+    /** 후가공 작업 코드/이름 목록 — KEY_VAL_NM 당 한 행. */
+    private static final String PRINT_AUX_PPPIX_SQL = """
+            SELECT PPPIX.KEY_VAL_NM,
+                   LISTAGG(PPPIX.WRK_CD, '-') WITHIN GROUP (ORDER BY PLAN_NO, ORDDOC_NO, ORDDOC_SQ, PAGE_SQ, LINE_SQ) AS WRK_CD,
+                   LISTAGG(MC_WRK.SYSDEF_NM, '-') WITHIN GROUP (ORDER BY PLAN_NO, ORDDOC_NO, ORDDOC_SQ, PAGE_SQ, LINE_SQ) AS WRK_NM
+            FROM PP_PLANPROCS_INFO_X20329 PPPIX
+            LEFT OUTER JOIN MA_CODEDTL MC_WRK ON PPPIX.COMPANY_CD = MC_WRK.COMPANY_CD AND PPPIX.WRK_CD = MC_WRK.SYSDEF_CD AND MC_WRK.MODULE_CD = 'SD' AND MC_WRK.FIELD_CD = 'Z010_20329'
+            WHERE PPPIX.COMPANY_CD = '1000' AND PPPIX.PLANT_CD = '1000' AND PPPIX.PLAN_NO IN """ + PLAN_IN_RANGE + """
+
+            GROUP BY PPPIX.COMPANY_CD, PPPIX.PLANT_CD, PPPIX.PLAN_NO, PPPIX.PLAN_SQ, PPPIX.KEY_VAL_NM
+            """;
+
+    /**
+     * 작업확인(WC20) 작업량 — 계획/순번/하위순번당 정미/2. MES 로 실적이 넘어간 라인은 자바에서 0 으로 바꾼다(PRINT_AUX_PPI_SQL).
+     * 기간 안 행을 먼저 뽑는 인라인 뷰(ROWNUM > 0 = 뷰 병합 금지)로 설비·설비유형 조인을 그 뒤에 — 정본대로 조인하면 설비 쪽에서 시작해 2.9초, 이렇게 하면 0.3초(행 수 동일 1,605).
+     */
+    private static final String PRINT_AUX_MWDX_SQL = """
+            SELECT M.PLAN_NO, M.PLAN_SQ, M.PLAN_LOW_SQ, SUM(M.NET_QT) / 2 AS HALF_NET_QT
+            FROM (SELECT MWDX.COMPANY_CD, MWDX.PLANT_CD, MWDX.PLAN_NO, MWDX.PLAN_SQ, MWDX.PLAN_LOW_SQ, MWDX.EQP_CD, MWDX.NET_QT
+                  FROM ME_WOCONF_DTL_X20329 MWDX
+                  WHERE MWDX.COMPANY_CD = '1000' AND MWDX.PLANT_CD = '1000' AND MWDX.PLAN_NO IN """ + PLAN_IN_RANGE + """
+             AND ROWNUM > 0) M
+            INNER JOIN PM_EQ_DTL PED ON M.COMPANY_CD = PED.COMPANY_CD AND M.PLANT_CD = PED.PLANT_CD AND M.EQP_CD = PED.EQP_CD
+            INNER JOIN MA_CODEDTL MC ON MC.COMPANY_CD = PED.COMPANY_CD AND MC.MODULE_CD = 'PM' AND MC.FIELD_CD = 'P00470' AND MC.SYSDEF_CD = PED.EQP_TP_CD
+            WHERE MC.FLAG_CD = 'WC20'
+            GROUP BY M.PLAN_NO, M.PLAN_SQ, M.PLAN_LOW_SQ
+            """;
+
+    /** MES 로 실적이 들어온 작업확인 라인(계획/순번/하위순번) — PP_PROD_IF 가 190만 행에 SODOC_NO 인덱스가 없어 1.2초. 따로 돌려 병렬로 숨긴다. */
+    private static final String PRINT_AUX_PPI_SQL = """
+            SELECT PPI.SODOC_NO AS PLAN_NO, PPI.SODOC_SQ AS PLAN_SQ, PPI.INTL_NO AS PLAN_LOW_SQ
+            FROM PP_PROD_IF PPI
+            WHERE PPI.COMPANY_CD = '1000' AND PPI.PLANT_CD = '1000' AND PPI.INTL_SYS_CD = 'MES' AND PPI.CRUD_FG = 'I' AND PPI.REL1_CD = 'WC20'
+              AND PPI.SODOC_NO IN """ + PLAN_IN_RANGE + """
+
+            GROUP BY PPI.SODOC_NO, PPI.SODOC_SQ, PPI.INTL_NO
+            """;
+
+    /** 구매지 용지입고 — 발주 입고수량+수입수량 > 0 (26.02.02 기준). */
+    private static final String PRINT_AUX_PPSX_SQL = """
+            SELECT PPSX.PLAN_NO, PPSX.PLAN_SQ, PPSX.PLAN_LOW_SQ, MAX(PPD.PURDOC_NO) AS PURDOC_NO
+            FROM PU_PURORDER_SDTL_X20329 PPSX
+            INNER JOIN PU_PURORDERDLV_DTL PPD ON PPD.COMPANY_CD = PPSX.COMPANY_CD AND PPD.PURDOC_NO = PPSX.PURDOC_NO AND PPD.PURDOC_SQ = PPSX.PURDOC_SQ
+                                             AND NVL(PPD.PO_CNCL_YN, 'N') = 'N' AND PPD.PURWRHSNG_QT + PPD.IMPR_QT > 0
+            WHERE PPSX.COMPANY_CD = '1000' AND PPSX.PLAN_NO IN """ + PLAN_IN_RANGE + """
+
+            GROUP BY PPSX.COMPANY_CD, PPSX.PLAN_NO, PPSX.PLAN_SQ, PPSX.PLAN_LOW_SQ
+            """;
+
+    /** 재고지 용지입고 — 자재예약의 출고전표가 미취소 (26.02.02 기준). */
+    private static final String PRINT_AUX_IMSX_SQL = """
+            SELECT IMSX.PLAN_NO, IMSX.PLAN_SQ, IMSX.PLAN_LOW_SQ, MAX(IMSX.INVTRX_RSV_NO) AS INVTRX_RSV_NO
+            FROM IM_MTLRSV_SDTL_X20329 IMSX
+            INNER JOIN IM_MTLDOC_DTL IMD ON IMD.COMPANY_CD = IMSX.COMPANY_CD AND IMD.RSV_NO = IMSX.INVTRX_RSV_NO AND IMD.RSV_SQ = IMSX.INVTRX_RSV_SQ AND NVL(IMD.INVTRX_CNCL_YN, 'N') = 'N'
+            WHERE IMSX.COMPANY_CD = '1000' AND IMSX.PLAN_NO IN """ + PLAN_IN_RANGE + """
+
+            GROUP BY IMSX.COMPANY_CD, IMSX.PLAN_NO, IMSX.PLAN_SQ, IMSX.PLAN_LOW_SQ
+            """;
+
+    /** 보조 조회 여섯 개를 동시에 돌리는 풀 — ERP 커넥션 풀(기본 10) 안에서 뼈대 1 + 보조 6. */
+    private static final ExecutorService PRINT_POOL = Executors.newFixedThreadPool(6, r -> {
+        Thread t = new Thread(r, "sched-print-aux");
+        t.setDaemon(true);
+        return t;
+    });
+
+    /** 인쇄 탭 — 뼈대 + 보조 집계 병렬 조회 후 자바에서 합성. 1주(600행) 기준 12~13초 → 수 초. */
+    private List<Map<String, Object>> findPrintRows(MapSqlParameterSource p) {
+        MapSqlParameterSource range = new MapSqlParameterSource().addValue("start", p.getValue("start")).addValue("end", p.getValue("end"));
+        long t0 = System.currentTimeMillis();
+        CompletableFuture<List<Map<String, Object>>> ppb = timed("PPB", () -> jdbc.query(PRINT_AUX_PPB_SQL, range, this::map));
+        CompletableFuture<List<Map<String, Object>>> pppix = timed("PPPIX", () -> jdbc.query(PRINT_AUX_PPPIX_SQL, range, this::map));
+        CompletableFuture<List<Map<String, Object>>> mwdx = timed("MWDX", () -> jdbc.query(PRINT_AUX_MWDX_SQL, range, this::map));
+        CompletableFuture<List<Map<String, Object>>> ppi = timed("PPI", () -> jdbc.query(PRINT_AUX_PPI_SQL, range, this::map));
+        CompletableFuture<List<Map<String, Object>>> ppsx = timed("PPSX", () -> jdbc.query(PRINT_AUX_PPSX_SQL, range, this::map));
+        CompletableFuture<List<Map<String, Object>>> imsx = timed("IMSX", () -> jdbc.query(PRINT_AUX_IMSX_SQL, range, this::map));
+        long tb = System.currentTimeMillis();
+        List<Map<String, Object>> base = jdbc.query(PRINT_BASE_SQL, p, this::map);   // 뼈대는 호출 스레드에서
+        log.debug("[schedule/print] BASE {}ms rows={}", System.currentTimeMillis() - tb, base.size());
+
+        Map<String, List<Map<String, Object>>> ppbByKey = new HashMap<>();
+        for (Map<String, Object> r : ppb.join()) ppbByKey.computeIfAbsent(k(r, "planNo", "planSq", "banItemCd"), x -> new ArrayList<>()).add(r);
+        Map<String, Map<String, Object>> procByKey = new HashMap<>();
+        for (Map<String, Object> r : pppix.join()) procByKey.putIfAbsent(str(r.get("keyValNm")), r);
+        // 정본 CASE WHEN COUNT(PPI.COUNT_PROD_NO) > 0 THEN 0 ELSE SUM(NET_QT)/2 — MES 실적이 있는 라인은 0.
+        Set<String> mesLines = new HashSet<>();
+        for (Map<String, Object> r : ppi.join()) mesLines.add(k(r, "planNo", "planSq", "planLowSq"));
+        Map<String, BigDecimal> reNetByKey = new HashMap<>();
+        for (Map<String, Object> r : mwdx.join()) {
+            String key = k(r, "planNo", "planSq", "planLowSq");
+            reNetByKey.put(key, mesLines.contains(key) ? BigDecimal.ZERO : num(r.get("halfNetQt")));
+        }
+        Set<String> purchased = new HashSet<>();
+        for (Map<String, Object> r : ppsx.join()) if (r.get("purdocNo") != null) purchased.add(k(r, "planNo", "planSq", "planLowSq"));
+        Set<String> reserved = new HashSet<>();
+        for (Map<String, Object> r : imsx.join()) if (r.get("invtrxRsvNo") != null) reserved.add(k(r, "planNo", "planSq", "planLowSq"));
+
+        List<Map<String, Object>> out = new ArrayList<>(base.size() + 32);
+        for (Map<String, Object> b : base) {
+            String lineKey = k(b, "planNo", "planSq", "planLowSq");
+            // 용지입고 — 구매지(100)는 발주 입고, 재고지(200)는 자재예약 출고전표. 정본 CASE 그대로.
+            String pprFg = str(b.get("pprFgCd"));
+            String purYn = "100".equals(pprFg) && purchased.contains(lineKey) ? "Y"
+                    : "200".equals(pprFg) && reserved.contains(lineKey) ? "Y" : "N";
+            BigDecimal tong = num(b.get("tongCnt"));
+            BigDecimal arlt = num(b.get("arltCnt"));
+            BigDecimal mult = num(b.get("rowMult"));
+            BigDecimal reNet = reNetByKey.getOrDefault(lineKey, BigDecimal.ZERO).multiply(mult);   // 정본 SUM(NVL(MWDX.RE_NET_QT,0)) = 그룹 행 수 × 값
+            BigDecimal work = arlt.add(reNet);
+            BigDecimal reTong = tong.subtract(arlt).subtract(reNet);
+            Map<String, Object> proc = procByKey.get(str(b.get("keyValNm")));
+            List<Map<String, Object>> bnds = ppbByKey.getOrDefault(k(b, "planNo", "planSq", "itemCd"), List.of());
+
+            List<Map<String, Object>> splits = bnds.isEmpty() ? Collections.singletonList(null) : bnds;
+            for (Map<String, Object> bnd : splits) {
+                Map<String, Object> r = new LinkedHashMap<>();
+                r.put("companyCd", b.get("companyCd")); r.put("plantCd", b.get("plantCd"));
+                r.put("plmkCd", b.get("plmkCd")); r.put("plmkNm", b.get("plmkNm"));
+                r.put("prwIssueYn", b.get("prwIssueYn"));
+                r.put("issueYn", num(b.get("issueRaw")).signum() == 0 ? "Y" : "N");
+                r.put("purwrhsngQtYn", purYn);
+                r.put("ispcYn", b.get("ispcYn"));
+                for (String c : List.of("planNo", "planHisSq", "planSq", "planLowSq", "schdulSq", "prpcntSq", "cnfmYn", "cnfmDts", "rcptPrrgDts", "dlvshDts",
+                        "partnerCd", "partnerNm", "itemCd", "itemNm", "spcfcsItemNm", "configCd", "configNm", "prRmkDc")) r.put(c, b.get(c));
+                r.put("opCd", bnd == null ? null : bnd.get("opCd"));
+                r.put("opNm", bnd == null ? null : bnd.get("opNm"));
+                r.put("bndPartnerNm", bnd == null ? null : bnd.get("bndPartnerNm"));
+                r.put("wrkCd", proc == null ? null : proc.get("wrkCd"));
+                r.put("wrkNm", proc == null ? null : proc.get("wrkNm"));
+                for (String c : List.of("planDt", "wrkTmCnt", "mtrilCd", "mtrilNm", "dtlSizeDc", "gnrlQt", "netPpcntQt", "eqpCd", "eqpNm", "pageNo")) r.put(c, b.get(c));
+                r.put("tongCnt", plain(tong));
+                r.put("workCnt", plain(work.compareTo(tong) > 0 ? tong : work));
+                r.put("reTongCnt", plain(reTong));
+                for (String c : List.of("wrkUm", "wrkAmt", "orddocNo", "orddocSq", "cmptYn")) r.put(c, b.get(c));
+                r.put("prpcntCloseYn", b.get("prpcntCloseYn") == null ? "N" : b.get("prpcntCloseYn"));
+                out.add(r);
+            }
+        }
+        log.debug("[schedule/print] total {}ms out={}", System.currentTimeMillis() - t0, out.size());
+        return out;
+    }
+
+    /** 보조 조회 하나를 풀에서 돌리고 걸린 시간을 남긴다 — 어느 집계가 ERP 상태에 따라 튀는지 보려고. */
+    private CompletableFuture<List<Map<String, Object>>> timed(String name, java.util.function.Supplier<List<Map<String, Object>>> q) {
+        return CompletableFuture.supplyAsync(() -> {
+            long t = System.currentTimeMillis();
+            List<Map<String, Object>> r = q.get();
+            log.debug("[schedule/print] {} {}ms rows={}", name, System.currentTimeMillis() - t, r.size());
+            return r;
+        }, PRINT_POOL);
+    }
+
+    private static String k(Map<String, Object> r, String... cols) {
+        StringBuilder sb = new StringBuilder();
+        for (String c : cols) sb.append(plainStr(r.get(c))).append('|');
+        return sb.toString();
+    }
+
+    private static String str(Object v) { return v == null ? null : String.valueOf(v); }
+
+    /** 숫자 키(순번 등)는 1 과 1.0 이 같은 키가 되게 평문으로. */
+    private static String plainStr(Object v) {
+        if (v instanceof BigDecimal d) return plain(d).toPlainString();
+        return v == null ? "" : String.valueOf(v);
+    }
+
+    private static BigDecimal num(Object v) {
+        if (v == null) return BigDecimal.ZERO;
+        if (v instanceof BigDecimal d) return d;
+        if (v instanceof Number n) return new BigDecimal(n.toString());
+        return new BigDecimal(String.valueOf(v));
+    }
+
+    /** 뒤 0 제거(12.50 → 12.5, 25.0 → 25). 지수 표기는 안 쓴다. */
+    private static BigDecimal plain(BigDecimal d) {
+        BigDecimal s = d.stripTrailingZeros();
+        return s.scale() < 0 ? s.setScale(0) : s;
+    }
 
     // ───────────────────────────── 제본 ─────────────────────────────
     private static final String BIND_SQL = """
@@ -325,16 +456,12 @@ public class OracleProductionScheduleRepository {
      * 바인드면 14초 안팎. ERP 캐시 상태에 따라 4초~수 분까지 흔들리므로 더 손대지 않는다.
      */
     public List<Map<String, Object>> findRows(Tab tab, LocalDate start, LocalDate end, String eqpTp, String planNo, String orderNo) {
-        String sql = switch (tab) {
-            case PRINT -> PRINT_SQL;
-            case BIND -> BIND_SQL;
-            case COAT -> COAT_SQL;
-        };
         MapSqlParameterSource p = new MapSqlParameterSource()
                 .addValue("start", start.format(BASIC)).addValue("end", end.format(BASIC))
                 .addValue("eqpTp", eqpTp == null || eqpTp.isBlank() ? null : eqpTp, java.sql.Types.VARCHAR)
                 .addValue("planNo", planNo == null ? "" : planNo).addValue("orderNo", orderNo == null ? "" : orderNo);
-        return jdbc.query(sql, p, this::map);
+        if (tab == Tab.PRINT) return findPrintRows(p);
+        return jdbc.query(tab == Tab.BIND ? BIND_SQL : COAT_SQL, p, this::map);
     }
 
     private Map<String, Object> map(ResultSet rs, int i) throws SQLException {
