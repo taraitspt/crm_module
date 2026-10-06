@@ -480,7 +480,7 @@ public class OracleEquipmentPerfRepository {
         return row;
     }
 
-    static String camel(String upperSnake) {
+    public static String camel(String upperSnake) {
         StringBuilder sb = new StringBuilder();
         boolean up = false;
         for (char ch : upperSnake.toLowerCase().toCharArray()) {

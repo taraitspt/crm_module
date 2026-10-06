@@ -4,6 +4,7 @@ import type { ProductionPlanRow, ProductionPlanTab } from '@/types/production';
 import type { EquipmentPerfRow } from '@/types/equipmentPerf';
 import type { OrderProgressRow } from '@/types/orderProgress';
 import type { PlanMode, PlanRow, PlanTab, WorkOrderData } from '@/types/planRegister';
+import type { ScheduleRow, ScheduleTab } from '@/types/productionSchedule';
 
 /**
  * 생산계획현황 — 탭별 행 (TPS, 계획일 기준, 최대 31일).
@@ -23,6 +24,10 @@ export const getOrderProgress = (params: { startDate: string; endDate: string })
 /** 작업장의 설비 목록 — 가동 현황 보드가 실적 없는 설비도 "대기"로 보여주기 위해. */
 export const getEquipments = (workCenter = 'WC20') =>
   apiClient.get<ApiResponse<{ eqpCd: string; eqpNm: string | null }[]>>('/production/equipment-perf/equipments', { params: { workCenter } });
+
+/** 생산일정현황 — 탭(print|bind|coat)별 행, 계획일 기간(최대 31일), 설비 유형(eqpTp, 없으면 전체). */
+export const getProductionSchedule = (tab: ScheduleTab, params: { startDate: string; endDate: string; eqpTp?: string; planNo?: string; orderNo?: string }) =>
+  apiClient.get<ApiResponse<ScheduleRow[]>>(`/production/schedule/${tab}`, { params, timeout: 120_000 });
 
 // ── 생산계획조회 (ERP 생산계획등록 조회 이식) ──
 /** 주문리스트 — 주문일 기간(최대 31일). 계획번호·계획상태(미작성/작성중/작성 완료)·탭별 확정여부 포함. */

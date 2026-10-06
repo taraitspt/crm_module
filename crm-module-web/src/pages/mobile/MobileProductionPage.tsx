@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { DashboardOutlined, FileDoneOutlined, PrinterOutlined, RightOutlined } from '@ant-design/icons';
+import { DashboardOutlined, PrinterOutlined, RightOutlined } from '@ant-design/icons';
 import { useMenuAccess } from '@/hooks/useMenuAccess';
 import type { AppMenuItem } from '@/components/layout/menuItems';
 import { T } from '@/theme/designTokens';
@@ -12,7 +12,7 @@ function keysOf(items: AppMenuItem[], out = new Set<string>()): Set<string> {
 }
 
 /**
- * 생산 탭 홈 — 폰에서 볼 생산 화면 세 가지로 가는 입구(설비 가동 현황 · 작업지시서 · 주문진행현황).
+ * 생산 탭 홈 — 설비 가동 현황 · 작업지시서 입구. 주문진행현황은 하단 "주문" 탭이 따로 있어 여기 두지 않는다(사용자 지적 2026-10-06).
  * 각 항목은 PC 메뉴 키 권한을 따른다.
  */
 const MobileProductionPage: React.FC = () => {
@@ -21,7 +21,6 @@ const MobileProductionPage: React.FC = () => {
   const entries = [
     { to: '/m/production/equipment', menuKey: '/production/equipment-board', icon: <DashboardOutlined />, title: '설비 가동 현황', desc: '인쇄·제본 설비마다 지금 돌리는 작업과 오늘 생산량. 60초마다 갱신.' },
     { to: '/m/production/plan', menuKey: '/production/plan-register', icon: <PrinterOutlined />, title: '작업지시서', desc: '주문·의뢰 번호로 찾아 상세 순번을 고르면 그 라인의 작업지시서를 봅니다.' },
-    { to: '/m/orders', menuKey: '/production/order-progress', icon: <FileDoneOutlined />, title: '주문진행현황', desc: '주문별 진행 단계(접수 → 진행 중 → 출고 → 완료). 하단 "주문" 탭과 같습니다.' },
   ].filter((e) => allowed.has(e.menuKey));
 
   return (

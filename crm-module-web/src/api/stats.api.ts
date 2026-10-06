@@ -1,5 +1,6 @@
 import apiClient from './client';
 import type { ApiResponse } from '@/types/common';
+import type { LeftoverRow } from '@/types/stockLeftover';
 import type {
   SalesTrendDto,
   DashboardSummaryDto,
@@ -210,3 +211,7 @@ export const getReceivableAging = (baseDate: string) =>
   apiClient.get<ApiResponse<import('@/types/stats').ReceivableAgingDto>>('/stats/receivable-aging', {
     params: { baseDate },
   });
+
+/** 매출 후 잔여재고 — 매출 등록된 배치(주문번호-순번) 중 오늘 기준 재고 > 0. billFrom/billTo 는 마지막 매출일 범위(선택). 행은 Map(camelCase). */
+export const getStockLeftover = (params: { billFrom?: string; billTo?: string }) =>
+  apiClient.get<ApiResponse<LeftoverRow[]>>('/stats/stock-leftover', { params, timeout: 120_000 });

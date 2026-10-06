@@ -24,6 +24,7 @@ public final class MenuCatalog {
     public static final List<Entry> ENTRIES = List.of(
             new Entry("/", "홈", "매출현황", false),
             new Entry("/stats/sales-list", "매출", "매출리스트", false),
+            new Entry("/stats/stock-leftover", "매출", "매출 후 잔여재고", false),
             new Entry("/info/sales-plan", "정보관리", "월매출계획", false),
             new Entry("/activity/attention", "영업관리", "관리 필요 거래처", false),
             new Entry("/deals", "영업관리", "수주 추진", false),
@@ -37,6 +38,7 @@ public final class MenuCatalog {
             new Entry("/production/equipment-board", "생산현황", "설비 가동 현황", false),
             new Entry("/production/order-progress", "생산현황", "주문진행현황", false),
             new Entry("/production/plan-register", "생산현황", "생산계획조회", false),
+            new Entry("/production/schedule", "생산현황", "생산일정현황", false),
             new Entry("/tools/pdf", "도구", "PDF 변환", false),
             new Entry("/admin/active-users", "관리자", "실시간 접속 현황", true),
             new Entry("/admin/erp-sync", "관리자", "ERP 동기화", true),

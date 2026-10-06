@@ -7,6 +7,7 @@ import {
   FilePdfOutlined,
   BuildOutlined,
   UnorderedListOutlined,
+  InboxOutlined,
 } from '@ant-design/icons';
 import type { Role } from '@/types/auth';
 
@@ -28,6 +29,8 @@ export const MENU_ITEMS: AppMenuItem[] = [
   { key: '/', icon: <HomeOutlined />, label: '매출현황' },
   // ERP 매출 상세 — 기간·사업부문 조회 + 엑셀. 권한 키는 MenuCatalog, 데이터 범위는 SALES_STATS.
   { key: '/stats/sales-list', icon: <UnorderedListOutlined />, label: '매출리스트' },
+  // 매출은 등록됐는데 재고자산이 남은 주문(배치) — ERP 재고자산 현황 + 매출(배치번호) 대조
+  { key: '/stats/stock-leftover', icon: <InboxOutlined />, label: '매출 후 잔여재고' },
   {
     key: 'info',
     icon: <InfoCircleOutlined />,
@@ -67,6 +70,7 @@ export const MENU_ITEMS: AppMenuItem[] = [
       { key: '/production/equipment-board', label: '설비 가동 현황' },
       { key: '/production/order-progress', label: '주문진행현황' },
       { key: '/production/plan-register', label: '생산계획조회' },
+      { key: '/production/schedule', label: '생산일정현황' },
     ],
   },
   // 2026-09-18 '데이터 분석' 탭 전체 미사용 — 매출현황은 홈('/')으로 올라갔고,
@@ -152,6 +156,7 @@ export function getActiveTopKey(pathname: string): string {
   // 매출현황은 홈('/')이 정식 경로. 구 경로로 들어와도 홈이 활성화되게 먼저 판정한다.
   if (pathname.startsWith('/stats/sales-status')) return '/';
   if (pathname.startsWith('/stats/sales-list')) return '/stats/sales-list';
+  if (pathname.startsWith('/stats/stock-leftover')) return '/stats/stock-leftover';
   if (pathname.startsWith('/activity')) return 'activity';
   if (pathname.startsWith('/deals')) return 'activity';
   if (pathname.startsWith('/tools/pdf')) return '/tools/pdf';

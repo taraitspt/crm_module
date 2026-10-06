@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Alert, Button, Select, Spin, Tag } from 'antd';
+import { Alert, Button, Segmented, Select, Spin, Tag } from 'antd';
 import dayjs from 'dayjs';
 import { useAuthStore } from '@/store/authStore';
 import { attentionApi } from '@/api/activity.api';
@@ -23,9 +23,11 @@ const MobileAttentionPage: React.FC = () => {
   const qc = useQueryClient();
   const year = dayjs().year();
   const toMm = dayjs().month() + 1;
-  // 기본 범위 — 영업 담당은 내 부서, 전사를 보는 역할(관리자·임원·센터장·재무)은 전체
-  const companyWide = user?.role === 'ADMIN' || user?.role === 'EXECUTIVE' || user?.role === 'CENTER_LEADER' || user?.role === 'FINANCE';
-  const [deptCd, setDeptCd] = useState<string | undefined>(!companyWide && user?.deptCd != null ? String(user.deptCd) : undefined);
+  // 기본 범위 — 누구나 "내 부서"로 시작한다(본인 부서 거래처만 보고 싶어 함, 사용자 결정 2026-10-06). 전체로 바꾸면 다른 부서도 고를 수 있다.
+  const myDept = user?.deptCd != null ? String(user.deptCd) : undefined;
+  const [scope, setScope] = useState<'mine' | 'all'>(myDept ? 'mine' : 'all');
+  const [pickDept, setPickDept] = useState<string | undefined>();
+  const deptCd = scope === 'mine' ? myDept : pickDept;
   const [reason, setReason] = useState<AttentionReason | undefined>();
   const [limit, setLimit] = useState(PAGE);
   const [modalOpen, setModalOpen] = useState(false);
@@ -52,10 +54,15 @@ const MobileAttentionPage: React.FC = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <Select allowClear placeholder="부서 전체" value={deptCd} onChange={(v) => { setDeptCd(v); setLimit(PAGE); }}
-          options={(depts ?? []).map((d) => ({ value: String(d.deptCd), label: d.deptNm }))} style={{ flex: 1 }} />
+        <Segmented size="small" value={scope} onChange={(v) => { setScope(v as 'mine' | 'all'); setLimit(PAGE); }}
+          options={[{ value: 'mine', label: user?.departmentName ? `내 부서 · ${user.departmentName}` : '내 부서', disabled: !myDept }, { value: 'all', label: '전체' }]} />
+        <span style={{ flex: 1 }} />
         <span style={{ fontSize: 12, color: T.t3, whiteSpace: 'nowrap' }}>{year}년 1~{toMm}월 · TPS</span>
       </div>
+      {scope === 'all' && (
+        <Select allowClear placeholder="부서 전체 — 다른 부서만 보려면 선택" value={pickDept} onChange={(v) => { setPickDept(v); setLimit(PAGE); }}
+          options={(depts ?? []).map((d) => ({ value: String(d.deptCd), label: d.deptNm }))} />
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
         <KpiTile label="관리 필요" value={`${data?.total ?? 0}곳`} />

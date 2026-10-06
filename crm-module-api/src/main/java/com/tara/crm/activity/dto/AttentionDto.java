@@ -25,7 +25,8 @@ public class AttentionDto {
      *  GROWTH : 올해 매출이 작년 대비 기준(기본 130%) 이상 — 성장
      *  NEW    : 작년 거래가 없다가 올해 발생 — 신규
      */
-    public enum Reason { CHURN, DECLINE, NO_PLAN, NO_CONTACT, VIP, GROWTH, NEW }
+    /** PROSPECT = 개척 중: 매출(올해·작년)은 없지만 영업활동이 있는 거래처 — 활동만으로도 관리필요에 올린다(2026-10-06). */
+    public enum Reason { CHURN, DECLINE, NO_PLAN, NO_CONTACT, VIP, GROWTH, NEW, PROSPECT }
 
     /** 거래처를 담당하는 부서 한 곳과 그 부서가 올린 매출 */
     @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder

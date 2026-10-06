@@ -16,7 +16,7 @@ const RANGES = [{ value: 7, label: '최근 7일' }, { value: 14, label: '최근 
 
 /**
  * 생산 > 작업지시서(모바일) — 생산계획조회의 축소판. 주문/의뢰를 고르고 번호·주문명·거래처로 찾은 뒤
- * 주문을 펼쳐 상세 순번(라인)을 고르면 그 라인의 작업지시서(/production/work-order/:no/:sq)를 연다. 작업지시서는 라인 하나당 한 장.
+ * 주문을 펼치면 "전체 지시서"(라인 전부 한 장, /production/work-order/:no)와 라인별 "지시서"(/production/work-order/:no/:sq)를 연다.
  */
 const MobilePlanPage: React.FC = () => {
   const navigate = useNavigate();
@@ -47,7 +47,8 @@ const MobilePlanPage: React.FC = () => {
     return c;
   }, [all]);
 
-  const openWorkOrder = (no: string, sq: PlanRow[string]) => navigate(`/production/work-order/${encodeURIComponent(no)}/${sq}?mode=${mode}`);
+  const openWorkOrder = (no: string, sq?: PlanRow[string]) =>
+    navigate(`/production/work-order/${encodeURIComponent(no)}${sq == null ? '' : `/${sq}`}?mode=${mode}`);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -91,7 +92,7 @@ const MobilePlanPage: React.FC = () => {
               {String(r.partnerNm ?? '')} · {String(r.bizrsptEmpnoNm ?? '')} · {ymd(r.ordDt)}
               {r.cnfmNList ? <span style={{ color: T.wa }}> · 미확정 {String(r.cnfmNList)}</span> : null}
             </div>
-            {isOpen && <Lines orderNo={no} planNo={r.planNo ? String(r.planNo) : undefined} mode={mode} onOpen={(sq) => openWorkOrder(no, sq)} />}
+            {isOpen && <Lines orderNo={no} planNo={r.planNo ? String(r.planNo) : undefined} mode={mode} onOpen={(sq) => openWorkOrder(no, sq)} onOpenAll={() => openWorkOrder(no)} />}
           </MCard>
         );
       })}
@@ -101,7 +102,7 @@ const MobilePlanPage: React.FC = () => {
 };
 
 /** 펼친 주문의 상세 순번(라인) — 줄마다 작업지시서 버튼. */
-function Lines({ orderNo, planNo, mode, onOpen }: { orderNo: string; planNo?: string; mode: PlanMode; onOpen: (sq: PlanRow[string]) => void }) {
+function Lines({ orderNo, planNo, mode, onOpen, onOpenAll }: { orderNo: string; planNo?: string; mode: PlanMode; onOpen: (sq: PlanRow[string]) => void; onOpenAll: () => void }) {
   const { data, isFetching, error } = useQuery({
     queryKey: ['plan-register-detail', mode, orderNo, planNo],
     queryFn: () => getPlanOrderDetail(orderNo, planNo, mode),
@@ -113,6 +114,11 @@ function Lines({ orderNo, planNo, mode, onOpen }: { orderNo: string; planNo?: st
       {isFetching && lines.length === 0 && <div style={{ textAlign: 'center', padding: 10 }}><Spin size="small" /></div>}
       {error && <Alert type="error" showIcon message="상세를 가져오지 못했습니다." />}
       {!isFetching && lines.length === 0 && !error && <div style={{ fontSize: 12, color: T.t4 }}>라인이 없습니다</div>}
+      {lines.length > 0 && (
+        <Button block type="primary" icon={<PrinterOutlined />} onClick={onOpenAll} style={{ marginBottom: 6 }}>
+          전체 작업지시서 (라인 {lines.length}개 한 장)
+        </Button>
+      )}
       {lines.map((l) => (
         <div key={String(l.orddocSq)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: `1px solid ${T.border3}` }}>
           <span style={{ fontSize: 11, color: T.t4, minWidth: 22 }}>#{String(l.orddocSq)}</span>

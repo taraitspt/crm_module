@@ -24,6 +24,7 @@ const MyPage = lazy(() => import('@/pages/auth/MyPage'));
 const SalesPlanPage = lazy(() => import('@/pages/info/SalesPlanPage'));
 const SalesStatusPage = lazy(() => import('@/pages/stats/SalesStatusPage'));
 const SalesListPage = lazy(() => import('@/pages/stats/SalesListPage'));
+const StockLeftoverPage = lazy(() => import('@/pages/stats/StockLeftoverPage'));
 
 // 영업관리 (CRM 영업활동)
 const ActivityCalendarPage = lazy(() => import('@/pages/activity/ActivityCalendarPage'));
@@ -41,6 +42,7 @@ const EquipmentBoardPage = lazy(() => import('@/pages/production/EquipmentBoardP
 const OrderProgressPage = lazy(() => import('@/pages/production/OrderProgressPage'));
 const PlanRegisterPage = lazy(() => import('@/pages/production/PlanRegisterPage'));
 const WorkOrderPage = lazy(() => import('@/pages/production/WorkOrderPage'));
+const ProductionSchedulePage = lazy(() => import('@/pages/production/ProductionSchedulePage'));
 
 // 모바일 앱(PWA, /m) — 폰에서 쓰는 네 화면만. PC 메뉴 전체를 옮기지 않는다.
 const MobileLayout = lazy(() => import('@/pages/mobile/MobileLayout'));
@@ -202,6 +204,11 @@ const router = createBrowserRouter([
     path: '/stats/sales-list',
     element: <Protected><SalesListPage /></Protected>,
   },
+  // 매출 후 잔여재고 — 매출 등록됐는데 재고 남은 배치
+  {
+    path: '/stats/stock-leftover',
+    element: <Protected><StockLeftoverPage /></Protected>,
+  },
   // 영업관리
   {
     path: '/activity/attention',
@@ -251,6 +258,10 @@ const router = createBrowserRouter([
   {
     path: '/production/plan-register',
     element: <Protected><PlanRegisterPage /></Protected>,
+  },
+  {
+    path: '/production/schedule',
+    element: <Protected><ProductionSchedulePage /></Protected>,
   },
   {
     // 작업지시서 — 생산계획조회에서 새 탭으로 여는 인쇄용 단독 화면(메뉴 키 /production/plan-register 를 따른다)

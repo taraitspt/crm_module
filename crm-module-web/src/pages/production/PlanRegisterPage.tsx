@@ -41,7 +41,8 @@ const widthOf = (cols: PlanCol[]) => cols.reduce((s, c) => s + c.width, 48);
  * 생산계획조회 — ERP "생산계획등록(타라)" 화면을 조회 전용으로 옮긴 것.
  * 조회 방향은 주문적용(TOR…)/의뢰적용(PQE…) 둘 — ERP 화면의 라디오와 같다. 공정 탭 쿼리는 같고 리스트·상세·작업지시서 머리만 테이블이 다르다.
  * 위: 주문리스트(주문일 기간) + 선택한 주문의 상세정보·공정별특이사항·생산 전달사항. 아래: 그 주문 계획의 인쇄·제판·후가공·접지·제본 탭.
- * 작업지시서는 주문상세 순번(라인) 하나당 한 장 — 상세 행을 고르고 버튼(또는 상세 행 더블클릭)으로 /production/work-order/:orderNo/:sq 를 새 탭에 연다.
+ * 작업지시서는 두 가지 — 선택한 라인 한 장(/production/work-order/:orderNo/:sq, 상세 행 더블클릭도 같음)과
+ * 주문 전체(라인 전부를 ERP 출력처럼 한 장에, /production/work-order/:orderNo). 둘 다 새 탭.
  */
 const PlanRegisterPage: React.FC = () => {
   const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>([dayjs().subtract(6, 'day'), dayjs()]);
@@ -127,8 +128,9 @@ const PlanRegisterPage: React.FC = () => {
         : c)), [mode]);
 
   const openWorkOrder = (no?: string, sq?: number) => {
-    if (!no || sq == null) return;
-    window.open(`/production/work-order/${encodeURIComponent(no)}/${sq}?mode=${mode}`, '_blank', 'noopener');
+    if (!no) return;
+    const base = `/production/work-order/${encodeURIComponent(no)}`;
+    window.open(`${sq == null ? base : `${base}/${sq}`}?mode=${mode}`, '_blank', 'noopener');
   };
 
   return (
@@ -139,9 +141,14 @@ const PlanRegisterPage: React.FC = () => {
         actions={(
           <Space>
             <Button icon={<ReloadOutlined />} onClick={() => ordersQ.refetch()} loading={ordersQ.isFetching}>새로고침</Button>
-            <Tooltip title={selectedLine ? `${orderNo} #${selectedSq} ${String(selectedLine.spcfcsItemNm ?? '')} 작업지시서를 새 탭으로 엽니다 (라인 하나당 한 장)` : '주문상세에서 라인을 선택하세요'}>
+            <Tooltip title={orderNo ? `${orderNo} 라인 ${lines.length}개를 한 장에 — ERP 출력과 같은 모양` : `${doc}을 먼저 선택하세요`}>
+              <Button icon={<PrinterOutlined />} disabled={!orderNo || lines.length === 0} onClick={() => openWorkOrder(orderNo)}>
+                전체 작업지시서{lines.length ? ` (${lines.length})` : ''}
+              </Button>
+            </Tooltip>
+            <Tooltip title={selectedLine ? `${orderNo} #${selectedSq} ${String(selectedLine.spcfcsItemNm ?? '')} 한 장만` : `${doc}상세에서 라인을 선택하세요`}>
               <Button type="primary" icon={<PrinterOutlined />} disabled={!selectedLine} onClick={() => openWorkOrder(orderNo, selectedSq)}>
-                작업지시서{selectedSq != null ? ` #${selectedSq}` : ''}
+                선택 라인 지시서{selectedSq != null ? ` #${selectedSq}` : ''}
               </Button>
             </Tooltip>
           </Space>
@@ -182,7 +189,7 @@ const PlanRegisterPage: React.FC = () => {
             <Space size={8}>
               <span style={{ fontWeight: 700 }}>{doc}상세정보</span>
               {selected && <span style={{ fontSize: 12, color: T.t3 }}>{String(selected.orddocNo)} · {String(selected.orddocNm ?? '')}</span>}
-              {selected && <span style={{ fontSize: 11, color: T.t4 }}>행을 고르고 더블클릭하면 그 라인 작업지시서</span>}
+              {selected && <span style={{ fontSize: 11, color: T.t4 }}>행 더블클릭 = 그 라인 지시서 · 전체는 위 버튼</span>}
               {selected && (planNo
                 ? <Tag color="blue" style={{ margin: 0 }}>{planNo}</Tag>
                 : <Tag style={{ margin: 0 }}>계획 미작성</Tag>)}
