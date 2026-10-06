@@ -45,6 +45,7 @@ public class ErpMasterSyncService {
     private final ErpItemJpaRepository erpItemJpaRepository;
     private final ErpSyncLogRepository erpSyncLogRepository;
     private final ErpCodeRepository erpCodeRepository;
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
     private final CommonCodeRepository commonCodeRepository;
 
     private static final int DEFAULT_COMPANY_CD = 1000;
@@ -189,6 +190,8 @@ public class ErpMasterSyncService {
      * Insert 만 하던 기존 로직 → upsert 로 교체.
      * 신규: 전체 필드 + cc_cd, 가입일.
      * 기존: 비밀번호·role·status 는 그대로 두고 cc_cd, deptCd, name, email, phone 만 갱신.
+     * job_title 은 **비어 있을 때만** ERP 직책 코드(ODTY_CD)로 채운다(ErpJobTitle) — 관리자가 사용자 관리에서 넣은
+     * 직책이 우선이라서. 뜻이 확인되지 않은 코드면 그대로 둔다. 역할은 직책을 따라 바꾸지 않는다(HRM 이식 2026-10-06).
      */
     private void upsertUser(ErpEmployeeDto erp) {
         // CI_USER_MST.USER_ID 없으면 EMP_NO 로 폴백
@@ -205,20 +208,36 @@ public class ErpMasterSyncService {
             if (erp.getKorNm() != null && !erp.getKorNm().isBlank()) u.setName(erp.getKorNm());
             if (erp.getEmail() != null && !erp.getEmail().isBlank()) u.setEmail(erp.getEmail());
             if (erp.getPhone() != null && !erp.getPhone().isBlank()) u.setPhone(erp.getPhone());
+            if (u.getJobTitle() == null || u.getJobTitle().isBlank()) {
+                String title = com.tara.crm.integration.erp.ErpJobTitle.of(erp.getOdtyCd());
+                if (title != null) u.setJobTitle(title);
+            }
         } else {
             User newUser = User.builder()
                     .id(new com.tara.crm.common.id.UserId(DEFAULT_COMPANY_CD, userKey))
                     .employeeNo(erp.getEmpNo())
                     .name(erp.getKorNm() != null ? erp.getKorNm() : erp.getEmpNo())
-                    .password("$2a$12$QXhqnMTekjwjBypVhveZIemFPYOxtoV3nWUVWUmORx2hvByan1thi")
+                    .password(passwordEncoder.encode(randomSecret()))   // 아무도 모르는 값 — 첫 로그인은 Teams 1회용 비밀번호로만(C1)
+                    .initialLoginPending(true)
+                    .mustChangePassword(true)
                     .role(com.tara.crm.auth.entity.Role.MANAGER)
                     .deptCd(erp.getDeptCd() != null ? safeParseInt(erp.getDeptCd()) : null)
                     .ccCd(erp.getCcCd())
                     .email(erp.getEmail())
                     .phone(erp.getPhone())
+                    .jobTitle(com.tara.crm.integration.erp.ErpJobTitle.of(erp.getOdtyCd()))
                     .build();
             userRepository.save(newUser);
         }
+    }
+
+    private static final java.security.SecureRandom SECRET_RNG = new java.security.SecureRandom();
+
+    /** 새 계정의 자리표시 비밀번호 — 어디에도 알려주지 않는 256비트 무작위. 로그인은 initial_login_pending 이 막는다. */
+    private static String randomSecret() {
+        byte[] b = new byte[32];
+        SECRET_RNG.nextBytes(b);
+        return java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(b);
     }
 
     private static Integer safeParseInt(String s) {
@@ -241,15 +260,20 @@ public class ErpMasterSyncService {
                     catch (NumberFormatException e) { continue; }
 
                     var deptId = new com.tara.crm.common.id.DepartmentId(DEFAULT_COMPANY_CD, deptCdInt);
+                    // 상위 부서(UP_DEPT_CD) — 조직도의 뿌리. ERP 에 값이 있을 때만 덮어쓴다.
+                    // ERP 가 비어 있으면 관리자가 부서 관리에서 넣은 값을 지키려고 건드리지 않는다(HRM 이식 2026-10-06).
+                    Integer upDeptCd = safeParseInt(erp.getUpDeptCd());
                     Department dept = departmentRepository.findById(deptId).orElse(null);
                     if (dept != null) {
                         if (erp.getDeptNm() != null) dept.setDeptNm(erp.getDeptNm());
                         dept.setErpDeptCode(erp.getDeptCd());
+                        if (upDeptCd != null) dept.setUpDeptCd(upDeptCd);
                     } else {
                         dept = Department.builder()
                                 .id(deptId)
                                 .deptNm(erp.getDeptNm() != null ? erp.getDeptNm() : erp.getDeptCd())
                                 .erpDeptCode(erp.getDeptCd())
+                                .upDeptCd(upDeptCd)
                                 .build();
                         departmentRepository.save(dept);
                     }

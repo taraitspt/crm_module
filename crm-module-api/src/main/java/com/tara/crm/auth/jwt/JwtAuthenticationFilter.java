@@ -77,6 +77,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(authentication);
             log.debug("JWT 인증 성공 - userId: {}, role: {}, companyCd: {}, plantCd: {}", userId, role, companyCd, plantCd);
 
+            // 임시 비밀번호 상태(pwc 클레임) — 비밀번호 변경·내 정보·로그아웃 등 /api/auth/** 와 접속 핑만 허용, 나머지는 403.
+            // 프론트 ProtectedRoute 만 믿지 않는다(보안 점검 M3, 2026-10-06).
+            if (jwtTokenProvider.isPasswordChangeRequired(token) && !allowedWhilePasswordChangeRequired(request.getRequestURI())) {
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                response.setContentType("application/json;charset=UTF-8");
+                response.getWriter().write("{\"success\":false,\"errorCode\":\"AUTH_011\",\"message\":\"임시 비밀번호 상태입니다. 새 비밀번호를 먼저 설정하세요.\"}");
+                return;
+            }
+
             // 실시간 접속 현황 기록 — 하트비트 핑(.../active-users/ping)은 접속(lastBeat)만, 그 외는 활동(lastActivity)까지.
             // 외부 API 클라이언트(서비스 계정) 호출은 사람 접속이 아니므로 기록하지 않는다.
             if (apiClientId == null) {
@@ -87,6 +96,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private static boolean allowedWhilePasswordChangeRequired(String uri) {
+        if (uri == null) return false;
+        return uri.startsWith("/api/auth/") || uri.endsWith("/active-users/ping");
     }
 
     private String resolveToken(HttpServletRequest request) {

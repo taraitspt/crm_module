@@ -22,6 +22,7 @@ const ForcePasswordChangePage: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const setPasswordResetRequired = useAuthStore((s) => s.setPasswordResetRequired);
+  const setTokens = useAuthStore((s) => s.setTokens);
   const logoutStore = useAuthStore((s) => s.logout);
 
   const handleSubmit = async (values: FormValues) => {
@@ -39,7 +40,8 @@ const ForcePasswordChangePage: React.FC = () => {
     }
     setLoading(true);
     try {
-      await changeMyPassword({ currentPassword: values.currentPassword, newPassword: values.newPassword });
+      const fresh = await changeMyPassword({ currentPassword: values.currentPassword, newPassword: values.newPassword });
+      if (fresh?.accessToken) setTokens(fresh.accessToken);   // 임시 비밀번호 토큰 → 정상 토큰
       setPasswordResetRequired(false);
       message.success('비밀번호가 변경됐습니다.');
       navigate('/');

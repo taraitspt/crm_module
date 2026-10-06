@@ -30,21 +30,35 @@ public class JwtTokenProvider {
 
     public String generateAccessToken(String userId, String employeeNo, String name,
                                        String role, Integer companyCd, Integer plantCd, Integer deptCd) {
+        return generateAccessToken(userId, employeeNo, name, role, companyCd, plantCd, deptCd, false);
+    }
+
+    /** passwordChangeRequired = 임시 비밀번호 상태. 토큰에 pwc 클레임을 실어 필터가 비밀번호 변경 외 API 를 막는다(보안 점검 M3). */
+    public String generateAccessToken(String userId, String employeeNo, String name,
+                                       String role, Integer companyCd, Integer plantCd, Integer deptCd,
+                                       boolean passwordChangeRequired) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + accessTokenExpiration);
 
-        return Jwts.builder()
+        var b = Jwts.builder()
                 .subject(userId)
                 .claim("employeeNo", employeeNo)
                 .claim("name", name)
                 .claim("role", role)
                 .claim("companyCd", companyCd)
                 .claim("plantCd", plantCd)
-                .claim("deptCd", deptCd)
-                .issuedAt(now)
+                .claim("deptCd", deptCd);
+        if (passwordChangeRequired) b = b.claim("pwc", Boolean.TRUE);
+        return b.issuedAt(now)
                 .expiration(expiry)
                 .signWith(key)
                 .compact();
+    }
+
+    /** 임시 비밀번호 상태 토큰인지(pwc 클레임). */
+    public boolean isPasswordChangeRequired(String token) {
+        Object v = getClaims(token).get("pwc");
+        return Boolean.TRUE.equals(v);
     }
 
     /**

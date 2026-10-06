@@ -25,17 +25,25 @@ export const permissionApi = {
 };
 
 export const userAdminApi = {
-  list: async (params: { keyword?: string; deptCd?: number; role?: string }) => {
+  list: async (params: { keyword?: string; deptCd?: number; role?: string; status?: string }) => {
     const res = await apiClient.get<ApiResponse<AdminUser[]>>('/admin/users', {
       params: {
         keyword: params.keyword || undefined,
         deptCd: params.deptCd ?? undefined,
         role: params.role || undefined,
+        status: params.status || undefined,
       },
     });
     return res.data.data ?? [];
   },
-  update: async (userId: string, payload: { role: string; deptCd?: number | null; status?: string }) => {
+  /** 연속 실패로 잠긴 계정 해제 (ADMIN) */
+  unlock: async (userId: string) => {
+    await apiClient.post(`/admin/users/${encodeURIComponent(userId)}/unlock`);
+  },
+  /** 여러 명 상태 일괄 변경 — ACTIVE 재직 / INACTIVE 미사용·퇴직. 반환 = 바뀐 인원 수 */
+  bulkStatus: async (userIds: string[], status: 'ACTIVE' | 'INACTIVE') =>
+    (await apiClient.post<ApiResponse<number>>('/admin/users/bulk-status', { userIds, status })).data.data,
+  update: async (userId: string, payload: { role: string; deptCd?: number | null; jobTitle?: string | null; status?: string }) => {
     await apiClient.put(`/admin/users/${encodeURIComponent(userId)}`, payload);
   },
 };

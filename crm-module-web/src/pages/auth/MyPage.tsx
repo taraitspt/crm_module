@@ -24,7 +24,6 @@ interface ProfileForm {
   phone: string;
   contactPhone: string;
   email: string;
-  jobTitle: string;
 }
 
 interface PasswordForm {
@@ -34,7 +33,7 @@ interface PasswordForm {
 }
 
 const MyPage: React.FC = () => {
-  const { user, setUser } = useAuthStore();
+  const { user, setUser, setTokens } = useAuthStore();
   const [profileForm] = Form.useForm<ProfileForm>();
   const [passwordForm] = Form.useForm<PasswordForm>();
   const [savingProfile, setSavingProfile] = useState(false);
@@ -45,9 +44,8 @@ const MyPage: React.FC = () => {
       phone: user?.phone ?? '',
       contactPhone: user?.contactPhone ?? '',
       email: user?.email ?? '',
-      jobTitle: user?.jobTitle ?? '',
     });
-  }, [user?.phone, user?.contactPhone, user?.email, user?.jobTitle, profileForm]);
+  }, [user?.phone, user?.contactPhone, user?.email, profileForm]);
 
   // 시트 #1 0504 — 비밀번호 변경.
   const handlePasswordSubmit = async (values: PasswordForm) => {
@@ -57,10 +55,11 @@ const MyPage: React.FC = () => {
     }
     setSavingPassword(true);
     try {
-      await changeMyPassword({
+      const fresh = await changeMyPassword({
         currentPassword: values.currentPassword,
         newPassword: values.newPassword,
       });
+      if (fresh?.accessToken) setTokens(fresh.accessToken);
       message.success('비밀번호가 변경되었습니다.');
       passwordForm.resetFields();
     } catch (err: unknown) {
@@ -79,7 +78,6 @@ const MyPage: React.FC = () => {
         phone: (values.phone ?? '').trim(),
         contactPhone: (values.contactPhone ?? '').trim(),
         email: (values.email ?? '').trim(),
-        jobTitle: (values.jobTitle ?? '').trim(),
       });
       setUser(updated);
       message.success('연락처/이메일이 저장되었습니다.');
@@ -164,14 +162,7 @@ const MyPage: React.FC = () => {
             >
               <Input placeholder="name@tara.co.kr" maxLength={100} style={{ maxWidth: 360 }} />
             </Form.Item>
-            <Form.Item
-              name="jobTitle"
-              label="직책"
-              extra="견적서·거래명세서의 담당자 표기에 사용됩니다 (예: 파트장, 팀장, 사원)."
-              rules={[{ max: 50, message: '50자 이내여야 합니다.' }]}
-            >
-              <Input placeholder="예: 파트장" maxLength={50} style={{ maxWidth: 240 }} />
-            </Form.Item>
+            {/* 직책은 본인이 바꾸지 않는다 — 관리자 > 사용자 관리에서만(2026-10-06). 위 '내 정보'에 보이기만 한다. */}
 
             <Divider style={{ margin: '12px 0' }} />
 

@@ -25,6 +25,7 @@ const pathLabels: Record<string, string> = {
   '/production/work-order': '작업지시서',
   '/tools/pdf': 'PDF 변환',
   '/admin/users': '사용자 관리',
+  '/admin/departments': '부서 관리',
   '/admin/menu-permissions': '권한 관리',
   '/admin/receivable-aging': '채권연령분석',
   '/info': '정보관리',

@@ -24,6 +24,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -198,7 +199,8 @@ public class ErpLookupController {
         return ApiResponse.ok("일자별 가입자 동기화 완료: " + target);
     }
 
-    @Operation(summary = "Oracle 테이블 컬럼 조회 (진단용)")
+    @Operation(summary = "Oracle 테이블 컬럼 조회 (진단용)")
+    @PreAuthorize("hasRole('ADMIN')")   // ERP 스키마 열거·진단용 — 화면에서 안 쓰는 개발자 도구(보안 점검 H2, 2026-10-06)
     @GetMapping("/oracle-columns")
     public ApiResponse<List<String>> getOracleColumns(@RequestParam String tableName) {
         if (erpPartnerRepository.isEmpty()) {
@@ -207,7 +209,8 @@ public class ErpLookupController {
         return ApiResponse.ok(erpPartnerRepository.get().getTableColumns(tableName.toUpperCase()));
     }
 
-    @Operation(summary = "Oracle 컬럼명 패턴으로 테이블 검색 (진단용)")
+    @Operation(summary = "Oracle 컬럼명 패턴으로 테이블 검색 (진단용)")
+    @PreAuthorize("hasRole('ADMIN')")   // ERP 스키마 열거·진단용 — 화면에서 안 쓰는 개발자 도구(보안 점검 H2, 2026-10-06)
     @GetMapping("/oracle-find-tables")
     public ApiResponse<List<Map<String, String>>> findOracleTables(
             @RequestParam(required = false, defaultValue = "") String tablePattern,
@@ -267,6 +270,7 @@ public class ErpLookupController {
         }
         List<Map<String, Object>> result = departments.stream()
                 .filter(d -> d.getDeptNm() != null && !d.getDeptNm().isBlank())
+                .filter(Department::isInUse)
                 .collect(Collectors.toMap(
                     d -> d.getDeptNm().trim(),
                     d -> {
@@ -297,6 +301,7 @@ public class ErpLookupController {
                         m.put("deptCd", d.getId().getDeptCd());
                         m.put("deptNm", d.getDeptNm());
                         m.put("upDeptCd", d.getUpDeptCd());
+                        m.put("manual", d.isManual()); // 부서 관리에서 직접 추가한 묶음(ERP 코드 없음) — 사람이 없다
                         return m;
                     },
                     (a, b) -> a,
@@ -412,14 +417,16 @@ public class ErpLookupController {
         }
     }
 
-    @Operation(summary = "코드 조회 진단 (MA_CODEDTL FIELD_CD 샘플 확인)")
+    @Operation(summary = "코드 조회 진단 (MA_CODEDTL FIELD_CD 샘플 확인)")
+    @PreAuthorize("hasRole('ADMIN')")   // ERP 스키마 열거·진단용 — 화면에서 안 쓰는 개발자 도구(보안 점검 H2, 2026-10-06)
     @GetMapping("/diagnose-codes")
     public ApiResponse<Map<String, Object>> diagnoseCodes() {
         if (erpCodeRepository.isEmpty()) return ApiResponse.ok(Map.of("error", "Oracle 비활성화 상태"));
         return ApiResponse.ok(erpCodeRepository.get().diagnoseCodeLookup());
     }
 
-    @Operation(summary = "Oracle WRK_FG 실제 코드 전수 조회 (진단용)")
+    @Operation(summary = "Oracle WRK_FG 실제 코드 전수 조회 (진단용)")
+    @PreAuthorize("hasRole('ADMIN')")   // ERP 스키마 열거·진단용 — 화면에서 안 쓰는 개발자 도구(보안 점검 H2, 2026-10-06)
     @GetMapping("/diagnose-wrkfg")
     public ApiResponse<Map<String, Object>> diagnoseWrkFg() {
         if (erpCodeRepository.isEmpty()) return ApiResponse.ok(Map.of("error", "Oracle 비활성화 상태"));
@@ -522,7 +529,8 @@ public class ErpLookupController {
         return ApiResponse.ok(result);
     }
 
-    @Operation(summary = "담당부서 Oracle JOIN 체인 진단 (각 단계별 데이터 확인)")
+    @Operation(summary = "담당부서 Oracle JOIN 체인 진단 (각 단계별 데이터 확인)")
+    @PreAuthorize("hasRole('ADMIN')")   // ERP 스키마 열거·진단용 — 화면에서 안 쓰는 개발자 도구(보안 점검 H2, 2026-10-06)
     @GetMapping("/diagnose-dept")
     public ApiResponse<Map<String, Object>> diagnoseDept() {
         if (erpPartnerRepository.isEmpty()) {
@@ -531,7 +539,8 @@ public class ErpLookupController {
         return ApiResponse.ok(erpPartnerRepository.get().diagnoseDeptChain());
     }
 
-    @Operation(summary = "SS_PARTNER_MST 기반 담당부서 진단")
+    @Operation(summary = "SS_PARTNER_MST 기반 담당부서 진단")
+    @PreAuthorize("hasRole('ADMIN')")   // ERP 스키마 열거·진단용 — 화면에서 안 쓰는 개발자 도구(보안 점검 H2, 2026-10-06)
     @GetMapping("/diagnose-ss-partner")
     public ApiResponse<Map<String, Object>> diagnoseSsPartner() {
         if (erpPartnerRepository.isEmpty()) {
@@ -540,7 +549,8 @@ public class ErpLookupController {
         return ApiResponse.ok(erpPartnerRepository.get().diagnoseSsPartner());
     }
 
-    @Operation(summary = "MA_PARTNER_PTR RSPT_TP_CD 타입 분석")
+    @Operation(summary = "MA_PARTNER_PTR RSPT_TP_CD 타입 분석")
+    @PreAuthorize("hasRole('ADMIN')")   // ERP 스키마 열거·진단용 — 화면에서 안 쓰는 개발자 도구(보안 점검 H2, 2026-10-06)
     @GetMapping("/diagnose-rspt-type")
     public ApiResponse<Map<String, Object>> diagnoseRsptType() {
         if (erpPartnerRepository.isEmpty()) {
@@ -549,7 +559,8 @@ public class ErpLookupController {
         return ApiResponse.ok(erpPartnerRepository.get().diagnoseRsptType());
     }
 
-    @Operation(summary = "MA_PARTNER_PTR 및 VW_MA_PARTNER_MST 담당부서 진단")
+    @Operation(summary = "MA_PARTNER_PTR 및 VW_MA_PARTNER_MST 담당부서 진단")
+    @PreAuthorize("hasRole('ADMIN')")   // ERP 스키마 열거·진단용 — 화면에서 안 쓰는 개발자 도구(보안 점검 H2, 2026-10-06)
     @GetMapping("/diagnose-partner-ptr")
     public ApiResponse<Map<String, Object>> diagnosePartnerPtr() {
         if (erpPartnerRepository.isEmpty()) {
@@ -558,7 +569,8 @@ public class ErpLookupController {
         return ApiResponse.ok(erpPartnerRepository.get().diagnosePartnerPtr());
     }
 
-    @Operation(summary = "ASGNR_DEPT_NM vs VW_MA_DEPT_MST 교차 확인")
+    @Operation(summary = "ASGNR_DEPT_NM vs VW_MA_DEPT_MST 교차 확인")
+    @PreAuthorize("hasRole('ADMIN')")   // ERP 스키마 열거·진단용 — 화면에서 안 쓰는 개발자 도구(보안 점검 H2, 2026-10-06)
     @GetMapping("/diagnose-asgnr-dept-match")
     public ApiResponse<Map<String, Object>> diagnoseAsgnrDeptMatch() {
         if (erpPartnerRepository.isEmpty()) {
@@ -567,7 +579,8 @@ public class ErpLookupController {
         return ApiResponse.ok(erpPartnerRepository.get().diagnoseAsgnrDeptMatch());
     }
 
-    @Operation(summary = "searchPaged 직접 테스트 (에러 진단용)")
+    @Operation(summary = "searchPaged 직접 테스트 (에러 진단용)")
+    @PreAuthorize("hasRole('ADMIN')")   // ERP 스키마 열거·진단용 — 화면에서 안 쓰는 개발자 도구(보안 점검 H2, 2026-10-06)
     @GetMapping("/test-search-paged")
     public ApiResponse<Map<String, Object>> testSearchPaged() {
         Map<String, Object> result = new java.util.LinkedHashMap<>();
@@ -631,7 +644,8 @@ public class ErpLookupController {
         return ApiResponse.ok(List.of(m));
     }
 
-    @Operation(summary = "ERP 동기화 이력 조회 (최근 50건)")
+    @Operation(summary = "ERP 동기화 이력 조회 (최근 50건)")
+    @PreAuthorize("hasRole('ADMIN')")   // ERP 스키마 열거·진단용 — 화면에서 안 쓰는 개발자 도구(보안 점검 H2, 2026-10-06)
     @GetMapping("/sync-logs")
     public ApiResponse<List<Map<String, Object>>> getSyncLogs() {
         List<com.tara.crm.integration.erp.entity.ErpSyncLog> logs =
@@ -655,7 +669,8 @@ public class ErpLookupController {
         return ApiResponse.ok(result);
     }
 
-    @Operation(summary = "MA_DEPT_MST UP_DEPT_CD 분포 진단")
+    @Operation(summary = "MA_DEPT_MST UP_DEPT_CD 분포 진단")
+    @PreAuthorize("hasRole('ADMIN')")   // ERP 스키마 열거·진단용 — 화면에서 안 쓰는 개발자 도구(보안 점검 H2, 2026-10-06)
     @GetMapping("/diagnose-up-dept-cd")
     public ApiResponse<List<Map<String, Object>>> diagnoseUpDeptCd() {
         if (erpDepartmentRepository.isEmpty()) {
@@ -669,7 +684,8 @@ public class ErpLookupController {
         }
     }
 
-    @Operation(summary = "HR_EMP_MST PLANT_CD 분포 진단")
+    @Operation(summary = "HR_EMP_MST PLANT_CD 분포 진단")
+    @PreAuthorize("hasRole('ADMIN')")   // ERP 스키마 열거·진단용 — 화면에서 안 쓰는 개발자 도구(보안 점검 H2, 2026-10-06)
     @GetMapping("/diagnose-plant-cd")
     public ApiResponse<Map<String, Object>> diagnosePlantCd() {
         if (erpEmployeeRepository.isEmpty()) {

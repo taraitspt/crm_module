@@ -26,7 +26,7 @@ public class UpdateProfileRequest {
     @Size(max = 100, message = "이메일은 100자 이내여야 합니다.")
     private String email;
 
-    /** 시트 #1 0504 — 직책 (견적서 발신자 표기에 사용). */
+    /** 직책 — 더 이상 본인이 바꾸지 않는다(관리자 > 사용자 관리). 옛 화면 호환으로 필드만 남기고 서버는 무시한다(2026-10-06). */
     @Size(max = 50, message = "직책은 50자 이내여야 합니다.")
     private String jobTitle;
 }

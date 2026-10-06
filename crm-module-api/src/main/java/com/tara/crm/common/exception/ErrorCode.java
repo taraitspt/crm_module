@@ -20,6 +20,10 @@ public enum ErrorCode {
     TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "AUTH_003", "토큰이 만료되었습니다."),
     TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "AUTH_004", "유효하지 않은 토큰입니다."),
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "AUTH_007", "접근 권한이 없습니다."),
+    ACCOUNT_LOCKED(HttpStatus.LOCKED, "AUTH_008", "비밀번호를 여러 번 틀려 계정이 잠겼습니다. 잠시 후 다시 시도하세요."),
+    INITIAL_PASSWORD_REQUIRED(HttpStatus.UNAUTHORIZED, "AUTH_010", "처음 로그인하는 계정입니다. [비밀번호 분실]에서 Teams로 1회용 비밀번호를 받은 뒤 그 비밀번호로 로그인하세요."),
+    PASSWORD_CHANGE_REQUIRED(HttpStatus.FORBIDDEN, "AUTH_011", "임시 비밀번호 상태입니다. 새 비밀번호를 먼저 설정하세요."),
+    MFA_CHALLENGE_EXPIRED(HttpStatus.UNAUTHORIZED, "AUTH_012", "인증 코드 입력 횟수를 넘겼거나 만료됐습니다. 다시 로그인해 새 코드를 받으세요."),
 
     // 사용자
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USER_001", "사용자를 찾을 수 없습니다."),

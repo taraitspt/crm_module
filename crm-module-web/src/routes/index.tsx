@@ -62,13 +62,14 @@ const PdfConverterPage = lazy(() => import('@/pages/tools/PdfConverterPage'));
 
 // 권한
 const UserAdminPage = lazy(() => import('@/pages/admin/UserAdminPage'));
+const DepartmentAdminPage = lazy(() => import('@/pages/admin/DepartmentAdminPage'));
 const MenuPermissionPage = lazy(() => import('@/pages/admin/MenuPermissionPage'));
 
 // 관리자
 const ErpSyncPage = lazy(() => import('@/pages/admin/ErpSyncPage'));
 const ActiveUsersPage = lazy(() => import('@/pages/admin/ActiveUsersPage'));
-const ClosingPeriodPage = lazy(() => import('@/pages/admin/ClosingPeriodPage'));
-const CommonCodePage = lazy(() => import('@/pages/admin/CommonCodePage'));
+// const ClosingPeriodPage = lazy(() => import('@/pages/admin/ClosingPeriodPage')); — 2026-10-06 메뉴 제거(월마감 관리)
+// const CommonCodePage = lazy(() => import('@/pages/admin/CommonCodePage')); — 2026-10-06 메뉴 제거(공통코드 관리)
 const ReceivableAgingPage = lazy(() => import('@/pages/admin/ReceivableAgingPage'));
 
 // 통계
@@ -287,6 +288,11 @@ const router = createBrowserRouter([
     path: '/admin/users',
     element: <Protected allowedRoles={['ADMIN']}><UserAdminPage /></Protected>,
   },
+  // 부서 관리(조직도) — HRM 에서 이식 (ADMIN)
+  {
+    path: '/admin/departments',
+    element: <Protected allowedRoles={['ADMIN']}><DepartmentAdminPage /></Protected>,
+  },
   {
     path: '/admin/menu-permissions',
     element: <Protected allowedRoles={['ADMIN']}><MenuPermissionPage /></Protected>,
@@ -300,14 +306,15 @@ const router = createBrowserRouter([
     path: '/admin/erp-sync',
     element: <Protected allowedRoles={['ADMIN']}><ErpSyncPage /></Protected>,
   },
-  {
-    path: '/admin/closing',
-    element: <Protected allowedRoles={['ADMIN', 'FINANCE']}><ClosingPeriodPage /></Protected>,
-  },
-  {
-    path: '/admin/common-codes',
-    element: <Protected allowedRoles={['ADMIN']}><CommonCodePage /></Protected>,
-  },
+  // 2026-10-06 월마감 관리·공통코드 관리 메뉴 제거 — 코드는 남김(menuItems.tsx 와 함께 주석)
+  // {
+  //   path: '/admin/closing',
+  //   element: <Protected allowedRoles={['ADMIN', 'FINANCE']}><ClosingPeriodPage /></Protected>,
+  // },
+  // {
+  //   path: '/admin/common-codes',
+  //   element: <Protected allowedRoles={['ADMIN']}><CommonCodePage /></Protected>,
+  // },
   {
     path: '/admin/receivable-aging',
     element: <Protected allowedRoles={['ADMIN', 'FINANCE']}><ReceivableAgingPage /></Protected>,

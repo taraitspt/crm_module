@@ -52,7 +52,7 @@ const ForgotPasswordPage: React.FC = () => {
             <div style={{ marginBottom: 32 }}>
               <Title level={3} style={{ margin: 0, fontWeight: 700 }}>임시 비밀번호 발급</Title>
               <Text type="secondary" style={{ fontSize: 15 }}>
-                ERP ID를 입력하면 Teams로 임시 비밀번호를 보내드립니다.
+                ERP ID를 입력하면 Teams로 1회용 임시 비밀번호를 보내드립니다. 처음 로그인하는 분도 여기서 받아 시작합니다.
               </Text>
             </div>
 

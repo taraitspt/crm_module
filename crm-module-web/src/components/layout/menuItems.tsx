@@ -113,9 +113,11 @@ export const MENU_ITEMS: AppMenuItem[] = [
     children: [
       { key: '/admin/active-users', label: '실시간 접속 현황', roles: ['ADMIN'] },
       { key: '/admin/erp-sync', label: 'ERP 동기화', roles: ['ADMIN'] },
-      { key: '/admin/closing', label: '월마감 관리', roles: ['ADMIN', 'FINANCE'] },
-      { key: '/admin/common-codes', label: '공통코드 관리', roles: ['ADMIN'] },
+      // 2026-10-06 월마감 관리·공통코드 관리는 쓰지 않아 뺐다(사용자 결정). 코드는 남아 있다 — 되살리려면 여기와 routes/index.tsx, MenuCatalog 를 함께 푼다.
+      // { key: '/admin/closing', label: '월마감 관리', roles: ['ADMIN', 'FINANCE'] },
+      // { key: '/admin/common-codes', label: '공통코드 관리', roles: ['ADMIN'] },
       { key: '/admin/users', label: '사용자 관리', roles: ['ADMIN'] },
+      { key: '/admin/departments', label: '부서 관리', roles: ['ADMIN'] },
       { key: '/admin/menu-permissions', label: '권한 관리', roles: ['ADMIN'] },
       // 채권연령분석 — 더존 채권원장 기준 사업부별(파주/그래픽스/PM/전사) 채권 대시보드. 2026-09-28 sm_module 에서 이관.
       { key: '/admin/receivable-aging', label: '채권연령분석', roles: ['ADMIN', 'FINANCE'] },

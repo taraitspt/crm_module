@@ -15,6 +15,11 @@ export const ROLE_META: { value: string; label: string; primary: boolean }[] = [
   { value: 'STAFF', label: '사원', primary: false },
 ];
 
+/** 직책 — 백엔드 JobTitle.ALL 과 같은 값(한글 그대로 저장). 낮은 직책부터. 관리자만 사용자 관리에서 바꾼다.
+ *  역할(시스템 권한)과 별개 — 직책을 바꿔도 역할은 그대로다. */
+export const JOB_TITLES = ['매니저', '파트장', '센터장', '팀장', '본부장', '대표이사', '회장'] as const;
+export const JOB_TITLE_OPTIONS = JOB_TITLES.map((t) => ({ value: t, label: t }));
+
 export const roleMeta = (r?: string | null) =>
   ROLE_META.find((x) => x.value === r) ?? { value: r ?? '-', label: r ?? '-', primary: false };
 
@@ -82,6 +87,8 @@ export interface AdminUser {
   name: string;
   deptCd: number | null;
   deptNm: string | null;
+  /** 직책 (JOB_TITLES 중 하나 — 옛 자유 입력값이 남아 있을 수 있다) */
+  jobTitle: string | null;
   role: string | null;
   /** 역할에서 파생된 리소스별 범위 — 여기서 직접 바꾸지 않는다 */
   scopes: Record<string, DataScope>;
@@ -89,6 +96,12 @@ export interface AdminUser {
   email: string | null;
   phone: string | null;
   mustChangePassword: boolean;
+  /** 연속 로그인 실패 횟수 */
+  failedLoginCount: number;
+  /** 잠금 해제 시각(ISO) — null 이면 잠기지 않음 */
+  lockedUntil: string | null;
+  /** 지금 잠겨 있는가 */
+  locked: boolean;
 }
 
 /** 리소스 표시명 — 사용자 목록처럼 매트릭스를 안 받아오는 곳에서 쓴다. */

@@ -23,13 +23,15 @@ public class ErpDepartmentRepository {
             ErpDepartmentDto.builder()
                     .deptCd(rs.getString("DEPT_CD"))
                     .deptNm(rs.getString("DEPT_NM"))
+                    .upDeptCd(rs.getString("UP_DEPT_CD"))
                     .upDeptNm(rs.getString("UP_DEPT_NM"))
                     .build();
 
+    // UP_DEPT_CD 를 같이 가져온다 — 예전엔 상위 부서 이름만 읽고 코드는 저장하지 않아 departments.up_dept_cd 가 전부 비어 있었다(2026-10-02).
     public List<ErpDepartmentDto> findAll() {
         return jdbcTemplate.query(
                 """
-                SELECT d.DEPT_CD, d.DEPT_NM, ud.DEPT_NM AS UP_DEPT_NM
+                SELECT d.DEPT_CD, d.DEPT_NM, d.UP_DEPT_CD, ud.DEPT_NM AS UP_DEPT_NM
                   FROM MA_DEPT_MST d
                   LEFT JOIN MA_DEPT_MST ud
                     ON ud.COMPANY_CD = d.COMPANY_CD AND ud.DEPT_CD = d.UP_DEPT_CD
@@ -44,7 +46,7 @@ public class ErpDepartmentRepository {
     public List<ErpDepartmentDto> findByCompanyCd(String companyCd) {
         return jdbcTemplate.query(
                 """
-                SELECT d.DEPT_CD, d.DEPT_NM, ud.DEPT_NM AS UP_DEPT_NM
+                SELECT d.DEPT_CD, d.DEPT_NM, d.UP_DEPT_CD, ud.DEPT_NM AS UP_DEPT_NM
                   FROM MA_DEPT_MST d
                   LEFT JOIN MA_DEPT_MST ud
                     ON ud.COMPANY_CD = d.COMPANY_CD AND ud.DEPT_CD = d.UP_DEPT_CD

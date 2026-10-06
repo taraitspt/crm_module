@@ -73,6 +73,13 @@ server:
     max-http-form-post-size: 500MB
 
 # JWT 설정
+# 로그인 잠금 — 비밀번호를 연속으로 틀리면 계정을 잠근다(HRM 에서 이식, 2026-10-06).
+# 성공하거나 비밀번호를 바꾸거나 관리자가 풀면 해제. env AUTH_LOCKOUT_MAX_FAILURES / AUTH_LOCKOUT_MINUTES 로 조정.
+auth:
+  lockout:
+    max-failures: ${AUTH_LOCKOUT_MAX_FAILURES:5}
+    lock-minutes: ${AUTH_LOCKOUT_MINUTES:30}
+
 jwt:
   # 기본값 없음 — env JWT_SECRET 이 비어 있으면 기동 자체가 실패한다. 소스에 비밀키를 두지 않는다(.env.local / 운영 env 로만 주입).
   secret: ${JWT_SECRET}

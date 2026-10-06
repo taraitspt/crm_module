@@ -44,9 +44,9 @@ public final class MenuCatalog {
             new Entry("/tools/pdf", "도구", "PDF 변환", false),
             new Entry("/admin/active-users", "관리자", "실시간 접속 현황", true),
             new Entry("/admin/erp-sync", "관리자", "ERP 동기화", true),
-            new Entry("/admin/closing", "관리자", "월마감 관리", true),
-            new Entry("/admin/common-codes", "관리자", "공통코드 관리", true),
+            // 2026-10-06 월마감 관리(/admin/closing)·공통코드 관리(/admin/common-codes) 메뉴 제거 — V157 에서 권한 행 정리. API·화면 코드는 남아 있다.
             new Entry("/admin/users", "관리자", "사용자 관리", true),
+            new Entry("/admin/departments", "관리자", "부서 관리 (조직도)", true),
             new Entry("/admin/menu-permissions", "관리자", "권한 관리", true),
             new Entry("/admin/receivable-aging", "관리자", "채권연령분석", true)
     );

@@ -56,8 +56,10 @@ const LoginPage: React.FC = () => {
       const r = await verifyMfaApi({ challenge: mfaChallenge, code: mfaCode });
       await completeLogin(r);
     } catch (err: unknown) {
-      const e = err as { response?: { data?: { message?: string } } };
+      const e = err as { response?: { data?: { message?: string; errorCode?: string } } };
       message.error(e?.response?.data?.message || '인증 코드가 올바르지 않습니다.');
+      // 5회 초과·만료(AUTH_012) — challenge 가 폐기됐으니 로그인 단계로 되돌린다.
+      if (e?.response?.data?.errorCode === 'AUTH_012') { setMfaChallenge(null); setMfaCode(''); }
     } finally {
       setMfaLoading(false);
     }
@@ -94,9 +96,15 @@ const LoginPage: React.FC = () => {
       await completeLogin(result);
     } catch (err: unknown) {
       // API 에러 메시지가 있으면 해당 메시지를 표시
-      const axiosErr = err as { response?: { data?: { message?: string } } };
+      const axiosErr = err as { response?: { data?: { message?: string; errorCode?: string } } };
       const errorMsg = axiosErr?.response?.data?.message
         || '로그인에 실패했습니다. 아이디와 비밀번호를 확인하세요.';
+      // 첫 로그인 대기 계정(AUTH_010) — 공통 초기 비밀번호가 없어졌으니 1회용 비밀번호 발급 화면으로 바로 안내한다.
+      if (axiosErr?.response?.data?.errorCode === 'AUTH_010') {
+        message.warning(errorMsg, 6);
+        navigate('/forgot-password', { state: { loginId: values.id, firstLogin: true } });
+        return;
+      }
       message.error(errorMsg);
     } finally {
       setLoading(false);
@@ -155,9 +163,7 @@ const LoginPage: React.FC = () => {
               {!mfaChallenge && (
                 <>
                   <Text type="secondary" style={{ fontSize: 13, color: '#94a3b8', display: 'block', marginTop: 4 }}>
-                    ERP와 동일한 ID로 입력 부탁드립니다.(초기비밀번호 : 1111)
-                    <br></br>
-                    비밀번호 잊으신경우 임시 비밀번호 발급부탁드립니다.
+                    ERP와 같은 ID로 로그인합니다. 처음 로그인하거나 비밀번호를 잊었다면 [비밀번호 분실]에서 Teams로 1회용 비밀번호를 받아 시작하세요.
                   </Text>
                 </>
               )}

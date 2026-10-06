@@ -101,8 +101,7 @@ public class AuthController {
                 companyCd != null ? companyCd : 1000,
                 request.getPhone(),
                 request.getContactPhone(),
-                request.getEmail(),
-                request.getJobTitle()
+                request.getEmail()
         );
         return ResponseEntity.ok(ApiResponse.ok(userResponse));
     }
@@ -110,18 +109,18 @@ public class AuthController {
     /** 시트 #1 0504 — 비밀번호 변경. 현재 비밀번호 검증 후 새 비밀번호 저장. */
     @Operation(summary = "내 비밀번호 변경")
     @PutMapping("/me/password")
-    public ResponseEntity<ApiResponse<Void>> changeMyPassword(
+    public ResponseEntity<ApiResponse<TokenResponse>> changeMyPassword(
             Authentication authentication,
             @Valid @RequestBody ChangePasswordRequest request
     ) {
         String userId = authentication.getName();
         Integer companyCd = SecurityContextUtil.getCurrentCompanyCd();
-        authService.changeMyPassword(
+        // 새 토큰(pwc 없음)을 돌려준다 — 임시 비밀번호 토큰은 변경 후에도 필터가 막기 때문.
+        return ResponseEntity.ok(ApiResponse.ok(authService.changeMyPassword(
                 userId,
                 companyCd != null ? companyCd : 1000,
                 request.getCurrentPassword(),
                 request.getNewPassword()
-        );
-        return ResponseEntity.ok(ApiResponse.ok());
+        )));
     }
 }
