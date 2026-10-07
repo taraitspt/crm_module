@@ -33,7 +33,7 @@ C:\Android\Sdk\cmdline-tools\latest\bin\sdkmanager.bat --sdk_root=C:\Android\Sdk
 ```powershell
 cd crm-module-web
 $env:JAVA_HOME = (Get-ChildItem 'C:\Program Files\Eclipse Adoptium' -Directory -Filter 'jdk-21*' | Select-Object -First 1).FullName
-$env:CAP_SERVER_URL = 'https://crm.example.com'   # 실제 서버 주소. 생략하면 config 기본값
+$env:CAP_SERVER_URL = 'https://crm.taratps.com'   # 실제 서버 주소. 생략하면 config 기본값(같은 운영 도메인)
 npm run app:android   # scripts/build-apk.cjs — cap sync → gradlew assembleDebug → downloads 복사 (셸 종류 무관)
 ```
 `android/app/build/outputs/apk/debug/app-debug.apk` 가 만들어지고 `public/downloads/tara-crm.apk`(그리고 dist 가 있으면 `dist/downloads/`)로 복사된다. 그다음 `npm run build` 로 배포본을 만들면 `/downloads/tara-crm.apk` 로 내려받을 수 있다.

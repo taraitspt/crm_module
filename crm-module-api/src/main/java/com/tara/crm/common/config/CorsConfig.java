@@ -15,8 +15,9 @@ public class CorsConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // 개발 환경 허용 오리진
+        // 허용 오리진 — 운영은 화면과 API 가 같은 도메인이라 보통 CORS 를 안 타지만, 다른 경로로 띄울 때를 위해 넣어 둔다.
         configuration.setAllowedOrigins(List.of(
+                "https://crm.taratps.com", // CRM 운영 (2026-10-07)
                 "http://localhost:5173",   // Vite dev server
                 "http://localhost:3000"    // 대체 포트
         ));

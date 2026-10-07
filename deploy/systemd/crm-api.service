@@ -1,0 +1,23 @@
+# CRM 백엔드 — /etc/systemd/system/crm-api.service
+# jar 는 /opt/crm/crm-module-api.jar, 환경변수는 /etc/crm/crm.env(권한 600, root 소유).
+[Unit]
+Description=TARA CRM API (Spring Boot)
+After=network-online.target mariadb.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=crm
+Group=crm
+WorkingDirectory=/opt/crm
+EnvironmentFile=/etc/crm/crm.env
+# 서버 메모리 2GB(Lightsail) — MariaDB·nginx 와 같이 쓰므로 힙은 768MB. 서버를 키우면 같이 올린다.
+ExecStart=/usr/bin/java -Xms256m -Xmx768m -XX:+UseSerialGC -Duser.timezone=Asia/Seoul -Dfile.encoding=UTF-8 \
+  -jar /opt/crm/crm-module-api.jar --spring.profiles.active=prod --server.address=127.0.0.1
+SuccessExitStatus=143
+Restart=on-failure
+RestartSec=10
+# 로그는 journalctl -u crm-api -f
+
+[Install]
+WantedBy=multi-user.target

@@ -118,7 +118,6 @@ const MobileLayout: React.FC = () => {
       confirming = true;
       modal.confirm({
         title: '앱을 종료할까요?',
-        content: '뒤로 갈 화면이 없습니다. 종료하면 홈 화면으로 나갑니다.',
         okText: '종료', cancelText: '취소', okButtonProps: { danger: true },
         onOk: () => { void CapApp.exitApp(); },
         afterClose: () => { confirming = false; },

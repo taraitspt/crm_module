@@ -44,6 +44,8 @@ crm-module-web/.vite/
 !crm-module-api/src/main/resources/images/*.png
 # 프론트 브랜드 에셋(로고 등)은 의도적으로 포함
 !crm-module-web/src/assets/**/*.png
+# PWA·홈 화면 아이콘(public/pwa-*.png, apple-touch-icon.png) — 빠지면 앱 설치 아이콘이 깨진다(2026-10-07)
+!crm-module-web/public/*.png
 
 # === Logs ===
 *.log
@@ -161,3 +163,10 @@ crm-module-web/android/.gradle/
 crm-module-web/android/local.properties
 crm-module-web/ios/App/Pods/
 
+
+# 운영 비밀값·DB 덤프 — 서버로 옮기는 용도, 절대 커밋 금지
+deploy/secret/
+# 안드로이드 앱 이미지(아이콘·시작 화면)와 원본, Gradle 실행 파일 — 빠지면 APK 빌드가 실패한다(2026-10-07)
+!crm-module-web/android/app/src/main/res/**/*.png
+!crm-module-web/assets/*.png
+!crm-module-web/android/gradle/wrapper/gradle-wrapper.jar
