@@ -42,6 +42,10 @@ public class ProductionPlanDto {
         /** 대수 — 제본 탭에는 없음(전체대수 fullPressCount) */
         private BigDecimal pressSq;
         private String equipmentName;
+        /** 외주 발주 업체 — 설비가 외주 자리표시("외주(톰슨)" 등)일 때 실제 업체. 발주 없으면 null. */
+        private String vendorName;
+        /** 외주 발주 납기요청일(= 입고요청일) yyyy-MM-dd. */
+        private String poReqDate;
         /** 재단규격 / 터잡기 / 면수 / 절수 — 제본 탭에는 없음 */
         private String cutSize;
         private String imposition;
@@ -55,6 +59,10 @@ public class ProductionPlanDto {
         private BigDecimal stdAmount;
         /** 대수마감여부 Y/N */
         private String pressCloseYn;
+        /** 완료 = 대수마감 Y 또는 외부입고 설비 (ProductionRules — 주문별 생애주기와 같은 기준) */
+        private String doneYn;
+        /** 설비가 외부입고(…) — 대수마감 없이 완료로 본다 */
+        private String extYn;
         /** 실적상태 코드(MA_CODEDTL CI/P00070) — 실적 연동 전이면 null */
         private String resultStatusCd;
         /** 실적상태명 — 실적 연동 전이면 '실적없음' */

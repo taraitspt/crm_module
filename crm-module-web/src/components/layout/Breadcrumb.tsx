@@ -22,6 +22,7 @@ const pathLabels: Record<string, string> = {
   '/production/order-progress': '주문진행현황',
   '/production/plan-register': '생산계획조회',
   '/production/schedule': '생산일정현황',
+  '/production/lifecycle': '주문별 생애주기',
   '/production/work-order': '작업지시서',
   '/tools/pdf': 'PDF 변환',
   '/admin/users': '사용자 관리',
@@ -55,6 +56,12 @@ const pathLabels: Record<string, string> = {
   '/stats/design-sales': '디자인매출통계',
 };
 
+/**
+ * 라벨은 있지만 화면(라우트)이 없는 묶음 경로 — 링크로 걸면 404 가 나므로 글자로만 보여준다.
+ * 메뉴 묶음(영업관리·정보관리·통계·생산현황)과 번호가 붙어야만 열리는 작업지시서.
+ */
+const GROUP_ONLY = new Set(['/activity', '/info', '/stats', '/production', '/production/work-order']);
+
 const AppBreadcrumb: React.FC = () => {
   const location = useLocation();
   const { token } = useToken();
@@ -80,7 +87,7 @@ const AppBreadcrumb: React.FC = () => {
       const label = pathLabels[currentPath];
       if (label) {
         items.push({
-          title: currentPath === location.pathname
+          title: currentPath === location.pathname || GROUP_ONLY.has(currentPath)
             ? label
             : <Link to={currentPath}>{label}</Link>,
         });

@@ -20,7 +20,9 @@ const { Text } = Typography;
 const MAX_RANGE_DAYS = 31;
 
 /**
- * 실적있음/실적없음 2계열 색 — 매출현황과 같은 검증 조합(validate_palette 통과, protan ΔE 16.5).
+ * 완료/미완료 2계열 색 — 매출현황과 같은 검증 조합(validate_palette 통과, protan ΔE 16.5).
+ * 완료 = 대수마감 Y 또는 외부입고 설비(서버 doneYn) — 주문별 생애주기와 같은 기준(2026-10-08).
+ * MES 실적 연동(실적있음/없음)은 외부입고·외주에 거의 안 생겨 진행 판단에 쓰지 않고 참고로만 보여준다.
  * 그 외 차트는 단일 색(TARA GREEN)만 쓴다.
  */
 const C_DONE = '#0096A2';
@@ -178,25 +180,26 @@ const ProductionDashboardPage: React.FC = () => {
 
   const kpi = useMemo(() => {
     const noResult = rows.filter((r) => r.resultStatusName === NO_RESULT).length;
-    const closed = rows.filter((r) => r.pressCloseYn === 'Y').length;
+    const done = rows.filter((r) => r.doneYn === 'Y').length;
+    const ext = rows.filter((r) => r.doneYn === 'Y' && r.extYn === 'Y' && r.pressCloseYn !== 'Y').length;
     return {
       total: rows.length,
       orders: new Set(rows.map((r) => r.orderNo).filter(Boolean)).size,
       plans: new Set(rows.map((r) => r.planNo).filter(Boolean)).size,
       qty: rows.reduce((s, r) => s + qtyOf(r), 0),
       amount: rows.reduce((s, r) => s + Number(r.workAmount ?? 0), 0),
-      noResult, noResultPct: pct(noResult, rows.length),
-      closed, closedPct: pct(closed, rows.length),
+      noResult, resultPct: pct(rows.length - noResult, rows.length),
+      done, donePct: pct(done, rows.length), ext,
     };
   }, [rows, tabMeta.qtyField]);
 
-  // 일자별 — 기간 안의 모든 날을 채워 빈 날이 그대로 보이게 한다. 실적있음/없음 2계열 스택.
+  // 일자별 — 기간 안의 모든 날을 채워 빈 날이 그대로 보이게 한다. 완료/미완료 2계열 스택.
   const byDay = useMemo(() => {
     const map = new Map<string, { done: number; none: number }>();
     for (const r of rows) {
       const k = r.planDate ?? '';
       const cur = map.get(k) ?? { done: 0, none: 0 };
-      if (r.resultStatusName === NO_RESULT) cur.none += valOf(r); else cur.done += valOf(r);
+      if (r.doneYn === 'Y') cur.done += valOf(r); else cur.none += valOf(r);
       map.set(k, cur);
     }
     const out: { name: string; fullName: string; done: number; none: number }[] = [];
@@ -262,9 +265,10 @@ const ProductionDashboardPage: React.FC = () => {
           <Col xs={12} md={8} xl={4}><StatTile label="주문 수" value={fmtNum(kpi.orders)} sub="주문번호 기준" /></Col>
           <Col xs={12} md={8} xl={4}><StatTile label={`${tabMeta.qtyLabel} 합계`} value={fmtNum(kpi.qty)} /></Col>
           <Col xs={12} md={8} xl={4}><StatTile label="사내금액 합계" value={fmtCompact(kpi.amount)} sub={`${fmtNum(kpi.amount)} 원`} /></Col>
-          <Col xs={12} md={8} xl={4}><StatTile label="실적없음" value={`${kpi.noResultPct}%`} color={kpi.noResult > 0 ? C_NONE : T.t1}
-            sub={`${fmtNum(kpi.noResult)} / ${fmtNum(kpi.total)}건`} /></Col>
-          <Col xs={12} md={8} xl={4}><StatTile label="대수마감" value={`${kpi.closedPct}%`} sub={`${fmtNum(kpi.closed)}건 마감`} /></Col>
+          <Col xs={12} md={8} xl={4}><StatTile label="완료" value={`${kpi.donePct}%`} color={C_DONE}
+            sub={`${fmtNum(kpi.done)} / ${fmtNum(kpi.total)}건${kpi.ext ? ` · 외부입고 ${fmtNum(kpi.ext)}` : ''}`} /></Col>
+          <Col xs={12} md={8} xl={4}><StatTile label="MES 실적 연동 (참고)" value={`${kpi.resultPct}%`}
+            sub={`${fmtNum(kpi.total - kpi.noResult)}건 · 외부입고·외주는 거의 없음`} /></Col>
         </Row>
 
         {rows.length === 0 && !isFetching ? (
@@ -275,7 +279,7 @@ const ProductionDashboardPage: React.FC = () => {
           <>
             <Row gutter={[10, 10]} style={{ marginBottom: 10 }}>
               <Col span={24}>
-                <ChartCard title={`일자별 ${m.label}`} extra="실적있음 / 실적없음" height={240}>
+                <ChartCard title={`일자별 ${m.label}`} extra="완료 / 미완료 (대수마감·외부입고 기준)" height={240}>
                   <BarChart data={byDay} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
                     <CartesianGrid stroke={T.border2} vertical={false} />
                     <XAxis dataKey="name" tick={{ fontSize: 11, fill: T.t3 }} axisLine={{ stroke: T.border1 }} tickLine={false} interval={0} />
@@ -283,8 +287,8 @@ const ProductionDashboardPage: React.FC = () => {
                     <Tooltip content={<ChartTooltip unit={m.unit} />} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
                     <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, paddingTop: 4 }} />
                     {/* 스택 사이 2px 는 표면색 스트로크로 띄운다. 둥근 끝은 맨 위 계열만 */}
-                    <Bar dataKey="done" name="실적있음" stackId="d" fill={C_DONE} stroke={T.surface} strokeWidth={1} maxBarSize={22} isAnimationActive={false} />
-                    <Bar dataKey="none" name="실적없음" stackId="d" fill={C_NONE} stroke={T.surface} strokeWidth={1} radius={[4, 4, 0, 0]} maxBarSize={22} isAnimationActive={false} />
+                    <Bar dataKey="done" name="완료" stackId="d" fill={C_DONE} stroke={T.surface} strokeWidth={1} maxBarSize={22} isAnimationActive={false} />
+                    <Bar dataKey="none" name="미완료" stackId="d" fill={C_NONE} stroke={T.surface} strokeWidth={1} radius={[4, 4, 0, 0]} maxBarSize={22} isAnimationActive={false} />
                   </BarChart>
                 </ChartCard>
               </Col>
@@ -310,7 +314,7 @@ const ProductionDashboardPage: React.FC = () => {
               <Col xs={24} xl={12}>
                 <Card variant="borderless" styles={{ body: { padding: '14px 16px 10px' } }}
                   style={{ borderRadius: 12, border: `1px solid ${T.border2}` }}>
-                  <Text style={{ fontSize: 13, fontWeight: 600, color: T.t1, display: 'block', marginBottom: 8 }}>실적상태 분포</Text>
+                  <Text style={{ fontSize: 13, fontWeight: 600, color: T.t1, display: 'block', marginBottom: 8 }}>MES 실적 연동 상태 (참고)</Text>
                   <Table<Agg & { pct: number }> size="small" pagination={false} rowKey="name" columns={statusColumns} dataSource={byStatus} />
                 </Card>
               </Col>

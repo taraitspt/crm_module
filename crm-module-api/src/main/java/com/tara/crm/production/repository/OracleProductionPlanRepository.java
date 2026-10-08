@@ -54,12 +54,7 @@ public class OracleProductionPlanRepository {
                                                     AND PPI.SODOC_SQ = PPIX.PLAN_SQ
                                                     AND PPI.INTL_NO = PPIX.PLAN_LOW_SQ
                                                     AND PPI.REL1_CD = PPIX.TOP_ORGN_CD
-                                                    AND NOT EXISTS (
-                                                            SELECT  1
-                                                            FROM    PP_PROD_MST PPM
-                                                            WHERE   PPM.COMPANY_CD = PPI.COMPANY_CD
-                                                            AND     PPM.PROD_NO = PPI.PROD_NO
-                                                            AND     PPM.CNCL_YN = 'Y')
+                                                    AND %s
                         WHERE   PPIX.COMPANY_CD = '1000'
                         AND     PPIX.PLANT_CD = '1000'
                         AND     PPIX.PLAN_DT BETWEEN ? AND ?
@@ -68,18 +63,24 @@ public class OracleProductionPlanRepository {
                         AND PPI.PLAN_SQ = M.PLAN_SQ
                         AND PPI.PLAN_LOW_SQ = M.PLAN_LOW_SQ
                         AND PPI.TOP_ORGN_CD = M.TOP_ORGN_CD
-                """.formatted(planTable, extraWhere);
+                """.formatted(planTable, ProductionRules.notCancelled("PPI"), extraWhere);
     }
 
-    /** 주문명·영업거래처 — 주문(SOMX) 또는 사전주문(PPRMX) 에서. 모든 탭 동일. */
-    private static final String ORDER_JOINS = """
+    /** 주문명·영업거래처 — 주문(SOMX) 또는 사전주문(PPRMX) 에서 + 외주 발주 업체(PO.VENDOR_NM). 모든 탭 동일. */
+    private static String orderJoins(String planTable) {
+        return ORDER_JOINS_BASE + ProductionRules.vendorJoin("PO", "M",
+                "SELECT PLAN_NO FROM " + planTable + " WHERE COMPANY_CD = '1000' AND PLANT_CD = '1000' AND PLAN_DT BETWEEN ? AND ?");
+    }
+
+    private static final String ORDER_JOINS_BASE = """
             LEFT OUTER JOIN SD_ORDER_MST_X20329 SOMX    ON  SOMX.COMPANY_CD = M.COMPANY_CD
                                                         AND SOMX.ORDDOC_NO = M.ORDDOC_NO
                                                         AND SOMX.PLAN_PLANT_CD = M.PLANT_CD
-            LEFT OUTER JOIN CI_PARTNER_MST CPM          ON  CPM.PARTNER_CD = SOMX.PARTNER_CD
             LEFT OUTER JOIN PP_PREORD_MST_X20329 PPRMX  ON  PPRMX.COMPANY_CD = M.COMPANY_CD
                                                         AND PPRMX.PLAN_ORD_NO = M.ORDDOC_NO
                                                         AND PPRMX.PLANT_CD = M.PLANT_CD
+            -- 거래처 = 주문(TOR) 또는 의뢰(PQE). ERP 정본은 주문 거래처만 봐서 의뢰 건이 비었다 — 주문별 생애주기와 같게 둘 다 본다(2026-10-08).
+            LEFT OUTER JOIN CI_PARTNER_MST CPM          ON  CPM.PARTNER_CD = NVL(SOMX.PARTNER_CD, PPRMX.PARTNER_CD)
             LEFT OUTER JOIN PM_EQ_SDTL PES  ON  PES.COMPANY_CD = M.COMPANY_CD
                                             AND PES.EQP_CD = M.EQP_CD
                                             AND PES.LANG_CD = 'KO'
@@ -112,9 +113,13 @@ public class OracleProductionPlanRepository {
             SELECT  M.PLAN_NO, M.PLAN_SQ, M.PLAN_LOW_SQ, M.PLAN_DT, M.ORDDOC_NO
             ,       NVL(SOMX.ORDDOC_NM, PPRMX.QODOC_NM) AS ORDDOC_NM
             ,       CPM.PARTNER_NM, M.ORDDOC_SQ, M.ITEM_CD, PPDX.SPCFCS_ITEM_NM, M.ORD_QT
-            ,       PES.EQP_NM
+            ,       PES.EQP_NM, PO.VENDOR_NM, PO.REQ_DT AS PO_REQ_DT
             ,       M.WRK_UM, M.WRK_AMT, M.STD_UM, M.STD_AMT
             ,       NVL(M.PRPCNT_CLOSE_YN, 'N') AS PRPCNT_CLOSE_YN
+            ,       """ + ProductionRules.doneExpr("M", "PES") + """
+             AS DONE_YN
+            ,       """ + ProductionRules.extExpr("PES") + """
+             AS EXT_YN
             ,       PPI.INTL_ST
             ,       NVL(MCS.SYSDEF_NM, '실적없음') AS INTL_ST_NM
             ,       PPI.BASE_END_DT
@@ -153,7 +158,7 @@ public class OracleProductionPlanRepository {
                                                             AND PPLIX.PLANT_CD = M.PLANT_CD
                                                             AND PPLIX.KEY_VAL_NM = M.KEY_VAL_NM
                                                             AND NVL(PPLIX.SUPP_YN, 'N') != 'Y'
-            """ + resultSub("PP_PLANPRW_INFO_X20329", "") + ORDER_JOINS + """
+            """ + resultSub("PP_PLANPRW_INFO_X20329", "") + orderJoins("PP_PLANPRW_INFO_X20329") + """
             LEFT OUTER JOIN ME_EQPCAPA_INFO MEI     ON  MEI.COMPANY_CD = M.COMPANY_CD
                                                     AND MEI.PLANT_CD = M.PLANT_CD
                                                     AND MEI.EQP_CD = M.EQP_CD
@@ -186,7 +191,7 @@ public class OracleProductionPlanRepository {
             LEFT OUTER JOIN PP_PLANPRW_INFO_X20329 PPIX ON  M.COMPANY_CD = PPIX.COMPANY_CD
                                                         AND M.PLANT_CD = PPIX.PLANT_CD
                                                         AND M.KEY_VAL_NM = PPIX.KEY_VAL_NM
-            """ + resultSub("PP_PLANPLMK_INFO_X20329", "") + ORDER_JOINS + """
+            """ + resultSub("PP_PLANPLMK_INFO_X20329", "") + orderJoins("PP_PLANPLMK_INFO_X20329") + """
             LEFT OUTER JOIN CI_ITEM CI      ON  CI.ITEM_CD = PPIX.MTRIL_CD
             """
             + code("MC", "SD", "Z007_20329", "M.CONFIG_CD")
@@ -211,7 +216,7 @@ public class OracleProductionPlanRepository {
             LEFT OUTER JOIN PP_PLANPRW_INFO_X20329 PPIX ON  PPIX.COMPANY_CD = M.COMPANY_CD
                                                         AND PPIX.PLANT_CD = M.PLANT_CD
                                                         AND PPIX.KEY_VAL_NM = M.KEY_VAL_NM
-            """ + resultSub("PP_PLANPROCS_INFO_X20329", "") + ORDER_JOINS
+            """ + resultSub("PP_PLANPROCS_INFO_X20329", "") + orderJoins("PP_PLANPROCS_INFO_X20329")
             + code("MC", "PP", "Z005_20329", "M.OP_CD")
             + code("MC2", "PP", "Z002_20329", "M.INTLTSH_CD")
             + code("MC3", "SD", "Z010_20329", "M.WRK_CD")
@@ -221,8 +226,8 @@ public class OracleProductionPlanRepository {
             """;
 
     /** 접지/제본 은 같은 테이블(PP_PLANBBND_INFO_X20329)을 제품여부(LAST_YN)·보충(SUPP_YN)으로 가른다 — ERP 고정값. */
-    private static final String FOLD_FILTER = "AND NVL(PPIX.LAST_YN, 'N') != 'Y' AND NVL(PPIX.SUPP_YN, 'N') != 'Y'";
-    private static final String BIND_FILTER = "AND (NVL(PPIX.LAST_YN, 'N') = 'Y' OR NVL(PPIX.SUPP_YN, 'N') = 'Y')";
+    private static final String FOLD_FILTER = "AND " + ProductionRules.isFold("PPIX");
+    private static final String BIND_FILTER = "AND " + ProductionRules.isBind("PPIX");
 
     // ── 접지 — PP_PLANBBND_INFO_X20329 (제품 아님·보충 아님) ──
     private static final String FOLD_SQL = COMMON_SELECT + """
@@ -239,7 +244,7 @@ public class OracleProductionPlanRepository {
             LEFT OUTER JOIN PP_PLANPRW_INFO_X20329 PPIX ON  PPIX.COMPANY_CD = M.COMPANY_CD
                                                         AND PPIX.PLANT_CD = M.PLANT_CD
                                                         AND PPIX.KEY_VAL_NM = M.KEY_VAL_NM
-            """ + resultSub("PP_PLANBBND_INFO_X20329", FOLD_FILTER) + ORDER_JOINS + """
+            """ + resultSub("PP_PLANBBND_INFO_X20329", FOLD_FILTER) + orderJoins("PP_PLANBBND_INFO_X20329") + """
             LEFT OUTER JOIN CI_ITEM CI      ON  CI.ITEM_CD = M.ITEM_CD
             """
             + code("MC", "SD", "Z007_20329", "M.CONFIG_CD")
@@ -262,7 +267,7 @@ public class OracleProductionPlanRepository {
             ,       DECODE(M.LAST_YN, 'Y', 'YES', 'NO') AS LAST_YN
             FROM    PP_PLANBBND_INFO_X20329 M
             """ + PLAN_DTL_JOIN
-            + resultSub("PP_PLANBBND_INFO_X20329", BIND_FILTER) + ORDER_JOINS + """
+            + resultSub("PP_PLANBBND_INFO_X20329", BIND_FILTER) + orderJoins("PP_PLANBBND_INFO_X20329") + """
             LEFT OUTER JOIN CI_ITEM CI      ON  CI.ITEM_CD = M.ITEM_CD
             """
             + code("MC", "SD", "Z007_20329", "M.CONFIG_CD")
@@ -283,8 +288,8 @@ public class OracleProductionPlanRepository {
             case FOLD -> FOLD_SQL;
             case BIND -> BIND_SQL;
         };
-        // 실적상태 서브쿼리 → 본문 순서로 기간이 두 번 들어간다.
-        return jdbcTemplate.query(sql, (rs, i) -> map(tab, rs), start, end, start, end);
+        // 실적상태 서브쿼리 → 외주 발주(계획번호 범위) → 본문 순서로 기간이 세 번 들어간다.
+        return jdbcTemplate.query(sql, (rs, i) -> map(tab, rs), start, end, start, end, start, end);
     }
 
     private Row map(Tab tab, ResultSet rs) throws SQLException {
@@ -305,11 +310,15 @@ public class OracleProductionPlanRepository {
                 .processName(rs.getString("OP_NM"))
                 .workName(rs.getString("WRK_NM"))
                 .equipmentName(rs.getString("EQP_NM"))
+                .vendorName(rs.getString("VENDOR_NM"))
+                .poReqDate(ymd(rs.getString("PO_REQ_DT")))
                 .workUnitPrice(rs.getBigDecimal("WRK_UM"))
                 .workAmount(rs.getBigDecimal("WRK_AMT"))
                 .stdUnitPrice(rs.getBigDecimal("STD_UM"))
                 .stdAmount(rs.getBigDecimal("STD_AMT"))
                 .pressCloseYn(rs.getString("PRPCNT_CLOSE_YN"))
+                .doneYn(rs.getString("DONE_YN"))
+                .extYn(rs.getString("EXT_YN"))
                 .resultStatusCd(rs.getString("INTL_ST"))
                 .resultStatusName(rs.getString("INTL_ST_NM"))
                 .resultDate(ymd(rs.getString("BASE_END_DT")));

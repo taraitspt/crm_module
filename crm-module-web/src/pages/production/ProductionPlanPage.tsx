@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button, Card, Checkbox, Input, Popover, Select, Space, Table, Tabs, Tag, message } from 'antd';
+import { Button, Card, Checkbox, Input, Popover, Select, Space, Table, Tabs, Tag, Tooltip, message } from 'antd';
 import { SettingOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs, { type Dayjs } from 'dayjs';
@@ -41,8 +41,11 @@ const HEAD: ColDef[] = [
 const SHEET: ColDef[] = [tx('cutSize', '재단규격', 90), amt('pages', '면수', 65), tx('imposition', '터잡기', 75), amt('cutCount', '절수', 65)];
 /** 사내/표준 단가·금액. */
 const MONEY: ColDef[] = [amt('workUnitPrice', '사내단가', 90), amt('workAmount', '사내금액', 105), amt('stdUnitPrice', '표준단가', 90), amt('stdAmount', '표준금액', 105)];
-/** 대수마감·실적상태·실적일자 — 모든 탭 꼬리. */
-const TAIL: ColDef[] = [en('pressCloseYn', '대수마감', 80, 'center'), en('resultStatusName', '실적상태', 100, 'center'), tx('resultDate', '실적일자', 100)];
+/**
+ * 진행·대수마감·실적상태·실적일자 — 모든 탭 꼬리.
+ * 진행(doneYn) = 대수마감 Y 또는 외부입고 설비 — 생산계획 대시보드·주문별 생애주기와 같은 기준(서버 ProductionRules).
+ */
+const TAIL: ColDef[] = [en('doneYn', '진행', 70, 'center'), en('pressCloseYn', '대수마감', 80, 'center'), en('resultStatusName', '실적상태', 100, 'center'), tx('resultDate', '실적일자', 100)];
 /** 인쇄판 색 수·판수. */
 const PLATES: ColDef[] = [amt('generalFront', '일반 앞'), amt('generalBack', '일반 뒤'), amt('spotFront', '별색 앞'), amt('spotBack', '별색 뒤'), amt('plateCount', '판수')];
 const GROUP: ColDef[] = [en('groupParentYn', '합대모품목', 90, 'center'), en('groupChildYn', '합대자품목', 90, 'center'), { ...amt('groupSq', '합대기준순번', 100), align: 'center' }];
@@ -87,7 +90,7 @@ const COLS: Record<ProductionPlanTab, ColDef[]> = {
     en('configName', '구성명', 90), en('processName', '공정명', 90), en('seriesName', '계열명', 70), en('workName', '작업명', 110),
     amt('fullPressCount', '전체대수', 80), amt('fullPageCount', '전체페이지수', 100), amt('totalPages', '전체면수', 80),
     en('equipmentName', '설비명', 120), amt('orderQty', '작업수량', 90), en('orderUnitCd', '작업단위', 80, 'center'),
-    ...MONEY, en('pressCloseYn', '대수마감', 80, 'center'), en('resultStatusName', '실적상태', 100, 'center'),
+    ...MONEY, en('doneYn', '진행', 70, 'center'), en('pressCloseYn', '대수마감', 80, 'center'), en('resultStatusName', '실적상태', 100, 'center'),
     en('lastYn', '제품여부', 80, 'center'), tx('resultDate', '실적일자', 100),
   ],
 };
@@ -169,7 +172,11 @@ const PlanTab: React.FC<{ tab: ProductionPlanTab; dateRange: [Dayjs, Dayjs] }> =
         align: c.align,
         fixed: c.fixed,
         ellipsis: true,
-        render: c.id === 'resultStatusName'
+        render: c.id === 'doneYn'
+          ? (v: string, r: ProductionPlanRow) => (v === 'Y'
+            ? <Tooltip title={r.extYn === 'Y' && r.pressCloseYn !== 'Y' ? '외부입고 — 대수마감 없이 완료로 봄' : '대수마감'}><Tag color="green" style={{ marginInlineEnd: 0 }}>완료</Tag></Tooltip>
+            : <Tag style={{ marginInlineEnd: 0 }}>대기</Tag>)
+          : c.id === 'resultStatusName'
           ? (v: string) => (v ? <Tag color={v === '실적없음' ? 'default' : 'blue'} style={{ marginInlineEnd: 0 }}>{v}</Tag> : '')
           : NUMERIC.has(c.id) ? (v: number) => num(v) : undefined,
       })),
@@ -182,6 +189,7 @@ const PlanTab: React.FC<{ tab: ProductionPlanTab; dateRange: [Dayjs, Dayjs] }> =
     qty: rows.reduce((s, r) => s + Number(r[meta.qtyField] ?? 0), 0),
     amount: rows.reduce((s, r) => s + Number(r.workAmount ?? 0), 0),
     noResult: rows.filter((r) => r.resultStatusName === '실적없음').length,
+    done: rows.filter((r) => r.doneYn === 'Y').length,
   }), [rows, meta.qtyField]);
 
   const excelColumns = cols.map((c) => ({ header: c.label, key: c.id }));
@@ -218,6 +226,7 @@ const PlanTab: React.FC<{ tab: ProductionPlanTab; dateRange: [Dayjs, Dayjs] }> =
       <div className="tabular-nums" style={{ display: 'flex', justifyContent: 'flex-end', gap: 18, padding: '4px 8px', marginTop: 4,
                     fontSize: 12, color: T.t3 }}>
         <span>총 <b style={{ color: T.t2, fontWeight: 600 }}>{num(rows.length)}</b>건</span>
+        <span>완료 <b style={{ color: T.t2, fontWeight: 600 }}>{num(totals.done)}</b>건</span>
         <span>실적없음 <b style={{ color: T.t2, fontWeight: 600 }}>{num(totals.noResult)}</b>건</span>
         <span>{meta.qtyLabel} <b style={{ color: T.t2, fontWeight: 600 }}>{num(totals.qty)}</b></span>
         <span>사내금액 <b style={{ color: T.t2, fontWeight: 600 }}>{num(totals.amount)}</b> 원</span>

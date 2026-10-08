@@ -43,6 +43,7 @@ const OrderProgressPage = lazy(() => import('@/pages/production/OrderProgressPag
 const PlanRegisterPage = lazy(() => import('@/pages/production/PlanRegisterPage'));
 const WorkOrderPage = lazy(() => import('@/pages/production/WorkOrderPage'));
 const ProductionSchedulePage = lazy(() => import('@/pages/production/ProductionSchedulePage'));
+const LifecyclePage = lazy(() => import('@/pages/production/LifecyclePage'));
 
 // 모바일 앱(PWA, /m) — 폰에서 쓰는 네 화면만. PC 메뉴 전체를 옮기지 않는다.
 const MobileLayout = lazy(() => import('@/pages/mobile/MobileLayout'));
@@ -51,6 +52,7 @@ const MobilePartnerPage = lazy(() => import('@/pages/mobile/MobilePartnerPage'))
 const MobileAttentionPage = lazy(() => import('@/pages/mobile/MobileAttentionPage'));
 const MobileSalesPage = lazy(() => import('@/pages/mobile/MobileSalesPage'));
 const MobileOrdersPage = lazy(() => import('@/pages/mobile/MobileOrdersPage'));
+const MobileLifecyclePage = lazy(() => import('@/pages/mobile/MobileLifecyclePage'));
 const MobileProductionPage = lazy(() => import('@/pages/mobile/MobileProductionPage'));
 const MobileEquipmentPage = lazy(() => import('@/pages/mobile/MobileEquipmentPage'));
 const MobileSchedulePage = lazy(() => import('@/pages/mobile/MobileSchedulePage'));
@@ -154,6 +156,7 @@ const router = createBrowserRouter([
       { path: 'activity', element: <MobileActivityPage /> },
       { path: 'partner', element: <MobilePartnerPage /> },
       { path: 'orders', element: <MobileOrdersPage /> },
+      { path: 'lifecycle', element: <MobileLifecyclePage /> },
       { path: 'production', element: <MobileProductionPage /> },
       { path: 'production/equipment', element: <MobileEquipmentPage /> },
       { path: 'production/schedule', element: <MobileSchedulePage /> },
@@ -268,6 +271,10 @@ const router = createBrowserRouter([
   {
     path: '/production/schedule',
     element: <Protected><ProductionSchedulePage /></Protected>,
+  },
+  {
+    path: '/production/lifecycle',
+    element: <Protected><LifecyclePage /></Protected>,
   },
   {
     // 작업지시서 — 생산계획조회에서 새 탭으로 여는 인쇄용 단독 화면(메뉴 키 /production/plan-register 를 따른다)

@@ -326,7 +326,7 @@ export default function SalesStatusPage() {
           <StatTile label={`계획 (${periodLabel})`} value={fmtEok1(planTotal)} sub={`${fmtNum(planTotal)}원 · ${data?.rows.length ?? 0}개 거래처`} />
         </Col>
         <Col xs={12} md={6}>
-          <StatTile label={`실적 (${periodLabel})`} value={fmtEok1(actualTotal)} color={C_ACTUAL} sub={`${fmtNum(actualTotal)}원 · ERP 매출전표`} />
+          <StatTile label={`실적 (${periodLabel})`} value={fmtEok1(actualTotal)} color={C_ACTUAL} sub={`${fmtNum(actualTotal)}원`} />
         </Col>
         <Col xs={12} md={6}>
           <StatTile label="달성률" value={totalRate == null ? '-' : `${totalRate}%`} color={rateColor(totalRate)}

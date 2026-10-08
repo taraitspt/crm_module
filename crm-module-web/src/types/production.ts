@@ -34,7 +34,14 @@ export interface ProductionPlanRow {
   seriesName?: string;
   workName?: string;
   pressSq?: number;
+  /** 설비명 — 외주 발주가 있으면 발주 업체명으로 바꿔 내려준다(getProductionPlan). 원래 설비명은 equipmentRawName. */
   equipmentName?: string;
+  /** ERP 설비명 그대로(외주면 "외주(톰슨)" 같은 자리표시). */
+  equipmentRawName?: string;
+  /** 외주 발주 업체 — 발주 없으면 없음. */
+  vendorName?: string;
+  /** 외주 발주 납기요청일(= 입고요청일) yyyy-MM-dd. */
+  poReqDate?: string;
   cutSize?: string;
   imposition?: string;
   pages?: number;
@@ -44,6 +51,10 @@ export interface ProductionPlanRow {
   stdUnitPrice?: number;
   stdAmount?: number;
   pressCloseYn?: string;
+  /** 완료 = 대수마감 Y 또는 외부입고 설비 (서버 ProductionRules — 주문별 생애주기와 같은 기준) */
+  doneYn?: 'Y' | 'N';
+  /** 설비가 외부입고(…) */
+  extYn?: 'Y' | 'N';
   resultStatusCd?: string;
   resultStatusName?: string;
   resultDate?: string;

@@ -5,13 +5,31 @@ import type { EquipmentPerfRow } from '@/types/equipmentPerf';
 import type { OrderProgressRow } from '@/types/orderProgress';
 import type { PlanMode, PlanRow, PlanTab, WorkOrderData } from '@/types/planRegister';
 import type { ScheduleRow, ScheduleTab } from '@/types/productionSchedule';
+import type { LifecycleLine, LifecycleStageRow } from '@/types/lifecycle';
+
+/** 주문별 생애주기 목록 — 계획일 기간(최대 31일)에 걸린 주문 순번과 공정별 대수마감 집계. */
+export const getLifecycleLines = (params: { startDate: string; endDate: string }) =>
+  apiClient.get<ApiResponse<LifecycleLine[]>>('/production/lifecycle', { params, timeout: 120_000 });
+
+/** 주문별 생애주기 상세 — 순번 하나의 다섯 공정 계획 행. */
+export const getLifecycleStages = (orderNo: string, orderSq: number) =>
+  apiClient.get<ApiResponse<LifecycleStageRow[]>>(`/production/lifecycle/${encodeURIComponent(orderNo)}/${orderSq}`, { timeout: 120_000 });
 
 /**
  * 생산계획현황 — 탭별 행 (TPS, 계획일 기준, 최대 31일).
  * 한 달치는 ERP 응답이 수 초~십수 초라 기본 타임아웃(30초)보다 넉넉히 둔다.
  */
+/**
+ * 외주 공정은 ERP 설비명이 "외주(톰슨)" 같은 자리표시라 발주 업체가 있으면 설비명 자리에 업체를 넣는다(사용자 요청 2026-10-08).
+ * 표·필터·엑셀·대시보드 설비별 집계가 모두 equipmentName 을 보므로 여기서 한 번 바꾼다. 원래 이름은 equipmentRawName.
+ */
 export const getProductionPlan = (tab: ProductionPlanTab, params: { startDate: string; endDate: string }) =>
-  apiClient.get<ApiResponse<ProductionPlanRow[]>>(`/production/plan/${tab}`, { params, timeout: 120_000 });
+  apiClient.get<ApiResponse<ProductionPlanRow[]>>(`/production/plan/${tab}`, { params, timeout: 120_000 }).then((res) => {
+    res.data.data = (res.data.data ?? []).map((r) => ({
+      ...r, equipmentRawName: r.equipmentName, equipmentName: r.vendorName || r.equipmentName,
+    }));
+    return res;
+  });
 
 /** 설비별 작업실적 — 작업일 기준, 작업장(WC20 인쇄), 최대 31일. 행은 컬럼명(camelCase) → 값. */
 export const getEquipmentPerf = (params: { startDate: string; endDate: string; workCenter?: string }) =>
