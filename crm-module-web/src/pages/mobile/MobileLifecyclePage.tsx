@@ -83,7 +83,7 @@ const StageDetail: React.FC<{ line: LifecycleLine }> = ({ line }) => {
               {s.label}<span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 600 }}>{done}/{list.length}</span>
             </div>
             {list.map((r) => {
-              const head = [r.configNm, r.prpcntSq ? `${r.prpcntSq}대` : '', s.key === 'BIND' ? (r.lastYn === 'Y' ? '완성품' : '보충') : ''].filter(Boolean).join(' ');
+              const head = [r.configNm, r.prpcntSq ? `${r.prpcntSq}대` : '', s.key === 'BIND' && r.lastYn !== 'Y' ? '보충' : ''].filter(Boolean).join(' ');
               const work = r.wrkNm && r.wrkNm !== r.opNm ? `${r.opNm ?? ''} · ${r.wrkNm}` : r.opNm;
               return (
                 <div key={`${r.planLowSq}-${r.procsSq ?? 0}`} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12, padding: '4px 0', borderTop: `1px dashed ${s.head}` }}>

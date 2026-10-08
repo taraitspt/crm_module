@@ -189,7 +189,7 @@ const finishGroup = (finish: LifecycleStageRow | undefined, rowCount: number): C
     render: () => (finish ? render(finish) : ''),
   });
   return {
-    title: '제본 (완성품)', onHeaderCell: bindHead,
+    title: '제본', onHeaderCell: bindHead,
     children: [
       col('공정', 90, (r) => <div><div>{r.opNm}</div>{r.wrkNm && r.wrkNm !== r.opNm && <div style={{ fontSize: 11, color: T.t3, fontWeight: 400 }}>{r.wrkNm}</div>}</div>),
       col('수량', 70, (r) => num(r.qty), 'right'),
