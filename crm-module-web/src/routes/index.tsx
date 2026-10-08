@@ -51,7 +51,7 @@ const MobileActivityPage = lazy(() => import('@/pages/mobile/MobileActivityPage'
 const MobilePartnerPage = lazy(() => import('@/pages/mobile/MobilePartnerPage'));
 const MobileAttentionPage = lazy(() => import('@/pages/mobile/MobileAttentionPage'));
 const MobileSalesPage = lazy(() => import('@/pages/mobile/MobileSalesPage'));
-const MobileOrdersPage = lazy(() => import('@/pages/mobile/MobileOrdersPage'));
+// const MobileOrdersPage = lazy(() => import('@/pages/mobile/MobileOrdersPage'));
 const MobileLifecyclePage = lazy(() => import('@/pages/mobile/MobileLifecyclePage'));
 const MobileProductionPage = lazy(() => import('@/pages/mobile/MobileProductionPage'));
 const MobileEquipmentPage = lazy(() => import('@/pages/mobile/MobileEquipmentPage'));
@@ -155,7 +155,8 @@ const router = createBrowserRouter([
       { index: true, element: <Navigate to="/m/activity" replace /> },
       { path: 'activity', element: <MobileActivityPage /> },
       { path: 'partner', element: <MobilePartnerPage /> },
-      { path: 'orders', element: <MobileOrdersPage /> },
+      // { path: 'orders', element: <MobileOrdersPage /> }, — 주문 탭을 생애주기로 바꿈(2026-10-08). 옛 주소는 생애주기로 보낸다.
+      { path: 'orders', element: <Navigate to="/m/lifecycle" replace /> },
       { path: 'lifecycle', element: <MobileLifecyclePage /> },
       { path: 'production', element: <MobileProductionPage /> },
       { path: 'production/equipment', element: <MobileEquipmentPage /> },

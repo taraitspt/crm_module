@@ -3,7 +3,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { App, Avatar, Button, Dropdown, Spin } from 'antd';
 import {
   AlertOutlined, BarChartOutlined, BellOutlined, CalendarOutlined, CloseOutlined,
-  DownloadOutlined, FileDoneOutlined, LogoutOutlined, NodeIndexOutlined, ShopOutlined, ToolOutlined, UserOutlined,
+  DownloadOutlined, FileDoneOutlined, LogoutOutlined, ShopOutlined, ToolOutlined, UserOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/store/authStore';
 import { logout as logoutApi } from '@/api/auth.api';
@@ -31,9 +31,10 @@ const INSTALL_DISMISS_KEY = 'm-install-dismissed';
 export const MOBILE_TABS = [
   { key: 'activity', path: '/m/activity', label: '활동', icon: <CalendarOutlined />, menuKeys: ['/activity/calendar'] },
   { key: 'partner', path: '/m/partner', label: '거래처', icon: <ShopOutlined />, menuKeys: ['/activity/partner'] },
-  { key: 'orders', path: '/m/orders', label: '주문', icon: <FileDoneOutlined />, menuKeys: ['/production/order-progress'] },
-  // 주문별 생애주기 — 주문 탭과 비교해 둘 중 하나를 남길 예정(사용자 2026-10-08). 고르면 나머지 탭을 뺀다.
-  { key: 'lifecycle', path: '/m/lifecycle', label: '생애주기', icon: <NodeIndexOutlined />, menuKeys: ['/production/lifecycle'] },
+  // 주문진행현황 카드 탭 — 2026-10-08 생애주기로 바꾸며 주석(사용자 결정). 되살리면 routes 의 orders 경로도 함께 푼다.
+  // { key: 'orders', path: '/m/orders', label: '주문', icon: <FileDoneOutlined />, menuKeys: ['/production/order-progress'] },
+  // "주문" 탭 = 주문별 생애주기(2026-10-08 사용자 결정 — 주문진행현황 카드 대신).
+  { key: 'lifecycle', path: '/m/lifecycle', label: '주문', icon: <FileDoneOutlined />, menuKeys: ['/production/lifecycle'] },
   { key: 'production', path: '/m/production', label: '생산', icon: <ToolOutlined />, menuKeys: ['/production/equipment-board', '/production/schedule'] },
   { key: 'attention', path: '/m/attention', label: '관리필요', icon: <AlertOutlined />, menuKeys: ['/activity/attention'] },
   { key: 'sales', path: '/m/sales', label: '매출', icon: <BarChartOutlined />, menuKeys: ['/'] },
