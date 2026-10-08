@@ -79,7 +79,7 @@ public class OracleProductionPlanRepository {
             LEFT OUTER JOIN PP_PREORD_MST_X20329 PPRMX  ON  PPRMX.COMPANY_CD = M.COMPANY_CD
                                                         AND PPRMX.PLAN_ORD_NO = M.ORDDOC_NO
                                                         AND PPRMX.PLANT_CD = M.PLANT_CD
-            -- 거래처 = 주문(TOR) 또는 의뢰(PQE). ERP 정본은 주문 거래처만 봐서 의뢰 건이 비었다 — 주문별 생애주기와 같게 둘 다 본다(2026-10-08).
+            -- 거래처 = 주문(TOR) 또는 의뢰(PQE). ERP 정본은 주문 거래처만 봐서 의뢰 건이 비었다 — 주문 타임라인와 같게 둘 다 본다(2026-10-08).
             LEFT OUTER JOIN CI_PARTNER_MST CPM          ON  CPM.PARTNER_CD = NVL(SOMX.PARTNER_CD, PPRMX.PARTNER_CD)
             LEFT OUTER JOIN PM_EQ_SDTL PES  ON  PES.COMPANY_CD = M.COMPANY_CD
                                             AND PES.EQP_CD = M.EQP_CD

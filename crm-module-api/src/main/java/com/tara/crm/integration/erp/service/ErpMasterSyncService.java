@@ -220,7 +220,7 @@ public class ErpMasterSyncService {
                     .password(passwordEncoder.encode(randomSecret()))   // 아무도 모르는 값 — 첫 로그인은 Teams 1회용 비밀번호로만(C1)
                     .initialLoginPending(true)
                     .mustChangePassword(true)
-                    .role(com.tara.crm.auth.entity.Role.MANAGER)
+                    .role(roleForNewUser(erp.getDeptCd() != null ? safeParseInt(erp.getDeptCd()) : null))
                     .deptCd(erp.getDeptCd() != null ? safeParseInt(erp.getDeptCd()) : null)
                     .ccCd(erp.getCcCd())
                     .email(erp.getEmail())
@@ -229,6 +229,23 @@ public class ErpMasterSyncService {
                     .build();
             userRepository.save(newUser);
         }
+    }
+
+    /** 생산본부 — 이 부서 아래(하위 전부) 새 계정은 생산지원(PROD_SPT)으로 만든다(사용자 결정 2026-10-08, V163). */
+    private static final int PRODUCTION_HQ_DEPT_CD = 1300;
+
+    /**
+     * 새 계정의 역할 — 부서가 생산본부 아래면 생산지원, 아니면 일반매니저.
+     * 기존 계정은 부서가 바뀌어도 역할을 건드리지 않는다(관리자가 사용자 관리에서 바꾼 값 우선).
+     */
+    private com.tara.crm.auth.entity.Role roleForNewUser(Integer deptCd) {
+        Integer cd = deptCd;
+        for (int depth = 0; cd != null && depth < 20; depth++) {   // 상위 사슬이 꼬여 있어도 끝나게
+            if (cd == PRODUCTION_HQ_DEPT_CD) return com.tara.crm.auth.entity.Role.PROD_SPT;
+            cd = departmentRepository.findById(new com.tara.crm.common.id.DepartmentId(DEFAULT_COMPANY_CD, cd))
+                    .map(d -> d.getUpDeptCd()).orElse(null);
+        }
+        return com.tara.crm.auth.entity.Role.MANAGER;
     }
 
     private static final java.security.SecureRandom SECRET_RNG = new java.security.SecureRandom();

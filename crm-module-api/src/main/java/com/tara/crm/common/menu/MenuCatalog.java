@@ -41,7 +41,7 @@ public final class MenuCatalog {
             new Entry("/production/order-progress", "생산현황", "주문진행현황", false),
             new Entry("/production/plan-register", "생산현황", "생산계획조회", false),
             new Entry("/production/schedule", "생산현황", "생산일정현황", false),
-            new Entry("/production/lifecycle", "생산현황", "주문별 생애주기", false),
+            new Entry("/production/lifecycle", "생산현황", "주문 타임라인", false),
             new Entry("/tools/pdf", "도구", "PDF 변환", false),
             new Entry("/admin/active-users", "관리자", "실시간 접속 현황", true),
             new Entry("/admin/erp-sync", "관리자", "ERP 동기화", true),
@@ -54,7 +54,7 @@ public final class MenuCatalog {
 
     /** 권한 매트릭스에 표시할 역할 순서 — users.role enum 과 같은 값. */
     public static final List<String> ROLES = List.of(
-            "ADMIN", "TEAM_LEADER", "MANAGER", "SALES_SPT",
+            "ADMIN", "TEAM_LEADER", "MANAGER", "SALES_SPT", "PROD_SPT",
             "PART_LEADER", "EXECUTIVE", "CENTER_LEADER", "FINANCE", "STAFF"
     );
 

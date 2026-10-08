@@ -51,7 +51,7 @@ export interface ProductionPlanRow {
   stdUnitPrice?: number;
   stdAmount?: number;
   pressCloseYn?: string;
-  /** 완료 = 대수마감 Y 또는 외부입고 설비 (서버 ProductionRules — 주문별 생애주기와 같은 기준) */
+  /** 완료 = 대수마감 Y 또는 외부입고 설비 (서버 ProductionRules — 주문 타임라인와 같은 기준) */
   doneYn?: 'Y' | 'N';
   /** 설비가 외부입고(…) */
   extYn?: 'Y' | 'N';

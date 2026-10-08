@@ -3,6 +3,8 @@ import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import ProtectedRoute from '@/components/common/ProtectedRoute';
 import BrandedLoader from '@/components/common/BrandedLoader';
 import type { Role } from '@/types/auth';
+import { useMenuAccess } from '@/hooks/useMenuAccess';
+import type { AppMenuItem } from '@/components/layout/menuItems';
 
 // Lazy 로딩 컴포넌트
 const LoginPage = lazy(() => import('@/pages/auth/LoginPage'));
@@ -115,6 +117,27 @@ const StandaloneRedirect = ({ children }: { children: React.ReactNode }) => {
   return standalone ? <Navigate to="/m" replace /> : <>{children}</>;
 };
 
+/** 메뉴 트리에서 처음 나오는 화면 경로. */
+const firstLeaf = (items: AppMenuItem[]): string | undefined => {
+  for (const it of items) {
+    if (it.children) { const k = firstLeaf(it.children); if (k) return k; } else if (it.key.startsWith('/')) return it.key;
+  }
+  return undefined;
+};
+
+/**
+ * 홈(매출현황) 메뉴 권한이 없는 역할(예: 생산지원 PROD_SPT — 생산현황만)은 볼 수 있는 첫 메뉴로 보낸다(2026-10-08).
+ * 서버 메뉴 권한을 아직 못 받았으면(menuKeys null) 그대로 둔다.
+ */
+const HomeGate = ({ children }: { children: React.ReactNode }) => {
+  const { items, menuKeys } = useMenuAccess();
+  if (menuKeys && !menuKeys.has('/')) {
+    const to = firstLeaf(items);
+    if (to && to !== '/') return <Navigate to={to} replace />;
+  }
+  return <>{children}</>;
+};
+
 const router = createBrowserRouter([
   // 인증 불필요
   {
@@ -145,7 +168,7 @@ const router = createBrowserRouter([
   // 인증 필수 — 첫 화면은 매출현황(계획 대비). 설치형 앱으로 열면 /m 으로.
   {
     path: '/',
-    element: <Protected><StandaloneRedirect><SalesStatusPage /></StandaloneRedirect></Protected>,
+    element: <Protected><StandaloneRedirect><HomeGate><SalesStatusPage /></HomeGate></StandaloneRedirect></Protected>,
   },
   // 모바일 앱(PWA) — 하단 탭 네 개. 레이아웃 안의 Outlet 이 자체 Suspense 를 가진다.
   {
@@ -155,7 +178,7 @@ const router = createBrowserRouter([
       { index: true, element: <Navigate to="/m/activity" replace /> },
       { path: 'activity', element: <MobileActivityPage /> },
       { path: 'partner', element: <MobilePartnerPage /> },
-      // { path: 'orders', element: <MobileOrdersPage /> }, — 주문 탭을 생애주기로 바꿈(2026-10-08). 옛 주소는 생애주기로 보낸다.
+      // { path: 'orders', element: <MobileOrdersPage /> }, — 주문 탭을 타임라인로 바꿈(2026-10-08). 옛 주소는 타임라인로 보낸다.
       { path: 'orders', element: <Navigate to="/m/lifecycle" replace /> },
       { path: 'lifecycle', element: <MobileLifecyclePage /> },
       { path: 'production', element: <MobileProductionPage /> },

@@ -2,12 +2,14 @@
 
 export type DataScope = 'NONE' | 'SELF' | 'DEPT' | 'ALL';
 
-/** 실제 운용할 4개 역할을 앞에 두고, 나머지는 기존 데이터 호환용으로 남긴다. */
+/** 실제 운용할 역할(생산지원 포함, 2026-10-08)을 앞에 두고, 나머지는 기존 데이터 호환용으로 남긴다. */
 export const ROLE_META: { value: string; label: string; primary: boolean }[] = [
   { value: 'ADMIN', label: '관리자', primary: true },
   { value: 'TEAM_LEADER', label: '팀장', primary: true },
   { value: 'MANAGER', label: '일반매니저', primary: true },
   { value: 'SALES_SPT', label: '영업지원', primary: true },
+  // 생산팀 — 기본은 생산현황 메뉴만, 영업 데이터 범위 없음(V161)
+  { value: 'PROD_SPT', label: '생산지원', primary: true },
   { value: 'PART_LEADER', label: '파트장', primary: false },
   { value: 'EXECUTIVE', label: '임원', primary: false },
   { value: 'CENTER_LEADER', label: '센터장', primary: false },

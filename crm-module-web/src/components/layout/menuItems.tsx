@@ -76,7 +76,7 @@ export const MENU_ITEMS: AppMenuItem[] = [
       { key: '/production/order-progress', label: '주문진행현황' },
       { key: '/production/plan-register', label: '생산계획조회' },
       { key: '/production/schedule', label: '생산일정현황' },
-      { key: '/production/lifecycle', label: '주문별 생애주기' },
+      { key: '/production/lifecycle', label: '주문 타임라인' },
     ],
   },
   // 2026-09-18 '데이터 분석' 탭 전체 미사용 — 매출현황은 홈('/')으로 올라갔고,

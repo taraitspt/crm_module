@@ -19,6 +19,7 @@ const ROLE_COLOR: Record<string, string> = {
   TEAM_LEADER: '#B45309',
   MANAGER: '#0096A2',
   SALES_SPT: '#1E40AF',
+  PROD_SPT: '#047857',
 };
 
 /** 리소스별 범위 목록 — 목록 열과 수정 모달에서 같이 쓴다. */

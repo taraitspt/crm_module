@@ -1,5 +1,5 @@
 /** 사용자 역할 */
-export type Role = 'ADMIN' | 'EXECUTIVE' | 'MANAGER' | 'TEAM_LEADER' | 'PART_LEADER' | 'FINANCE' | 'SALES_SPT' | 'CENTER_LEADER' | 'STAFF';
+export type Role = 'ADMIN' | 'EXECUTIVE' | 'MANAGER' | 'TEAM_LEADER' | 'PART_LEADER' | 'FINANCE' | 'SALES_SPT' | 'CENTER_LEADER' | 'STAFF' | 'PROD_SPT';
 
 /** 사용자 상태 */
 export type UserStatus = 'ACTIVE' | 'INACTIVE';

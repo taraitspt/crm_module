@@ -15,6 +15,7 @@ const ROLE_LABEL: Record<string, string> = {
   PART_LEADER: '파트장',
   CENTER_LEADER: '센터장',
   SALES_SPT: '영업지원',
+  PROD_SPT: '생산지원',
   STAFF: '사원',
 };
 

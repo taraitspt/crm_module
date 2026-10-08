@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * 생산현황 > 주문별 생애주기 (TPS). ERP 생산계획 조회 전용, 데이터 범위는 걸지 않는다(생산 메뉴 공통).
+ * 생산현황 > 주문 타임라인 (TPS). ERP 생산계획 조회 전용, 데이터 범위는 걸지 않는다(생산 메뉴 공통).
  * 목록은 계획일 기간(최대 31일), 상세는 주문(또는 의뢰)번호·순번 하나.
  */
 @RestController
@@ -32,7 +32,7 @@ public class LifecycleController {
     private final Optional<OracleLifecycleRepository> repository;
 
     @GetMapping
-    @Operation(summary = "주문별 생애주기 목록 — 계획일 기간에 걸린 주문 순번별 공정 진행(대수마감) 집계")
+    @Operation(summary = "주문 타임라인 목록 — 계획일 기간에 걸린 주문 순번별 공정 진행(대수마감) 집계")
     public ApiResponse<List<Map<String, Object>>> lines(@RequestParam String startDate, @RequestParam String endDate) {
         LocalDate start = LocalDate.parse(startDate);
         LocalDate end = LocalDate.parse(endDate);
@@ -46,7 +46,7 @@ public class LifecycleController {
     }
 
     @GetMapping("/{orderNo}/{orderSq}")
-    @Operation(summary = "주문별 생애주기 상세 — 순번 하나의 제판·인쇄·후가공·접지·제본 계획 행과 대수마감·실적일")
+    @Operation(summary = "주문 타임라인 상세 — 순번 하나의 제판·인쇄·후가공·접지·제본 계획 행과 대수마감·실적일")
     public ApiResponse<List<Map<String, Object>>> stages(@PathVariable String orderNo, @PathVariable int orderSq) {
         return ApiResponse.ok(oracle().findStages(orderNo.trim(), orderSq));
     }

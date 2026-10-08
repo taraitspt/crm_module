@@ -110,7 +110,7 @@ const StageDetail: React.FC<{ line: LifecycleLine }> = ({ line }) => {
 };
 
 /**
- * 주문별 생애주기(모바일) — PC 주문별 생애주기와 같은 API. 순번(제품 하나)마다 제판→인쇄→후가공→접지→제본 진행을 카드로.
+ * 주문 타임라인(모바일) — PC 주문 타임라인와 같은 API. 순번(제품 하나)마다 제판→인쇄→후가공→접지→제본 진행을 카드로.
  * 주문 탭(주문진행현황)과 나란히 두고 어느 쪽을 쓸지 비교 중(사용자 2026-10-08). 기간 = 계획일 기준 한 달(서버 한도 31일).
  * 완료 기준은 PC 와 같다 — 대수마감 Y 또는 외부입고 설비(ProductionRules). 외주 공정은 설비 대신 발주 업체.
  */
@@ -187,7 +187,7 @@ const MobileLifecyclePage: React.FC = () => {
         })}
       </div>
 
-      {!!error && <Alert type="error" showIcon message="주문별 생애주기를 가져오지 못했습니다." />}
+      {!!error && <Alert type="error" showIcon message="주문 타임라인를 가져오지 못했습니다." />}
       {isFetching && !data && <div style={{ textAlign: 'center', padding: 30 }}><Spin /></div>}
       {data && (
         <div style={{ fontSize: 13, color: T.t3 }}>

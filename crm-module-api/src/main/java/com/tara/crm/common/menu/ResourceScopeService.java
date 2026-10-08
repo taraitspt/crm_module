@@ -104,6 +104,8 @@ public class ResourceScopeService {
 
     /** resource_scope 에 행이 없을 때 쓰는 기본값 — V142 시드와 같은 규칙. */
     private static DataScope defaultScope(CrmResource resource, String role) {
+        // 생산지원은 영업 데이터를 안 본다(V161) — 매출 통계 포함.
+        if ("PROD_SPT".equals(role)) return DataScope.NONE;
         if (resource == CrmResource.SALES_STATS) return DataScope.ALL;
         return switch (role) {
             case "ADMIN", "SALES_SPT", "EXECUTIVE", "CENTER_LEADER", "FINANCE" -> DataScope.ALL;

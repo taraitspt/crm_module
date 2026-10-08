@@ -1,5 +1,5 @@
 /**
- * 주문별 생애주기 — 주문 순번(제품 하나)이 제판 → 인쇄 → 후가공 → 접지 → 제본으로 가는 과정.
+ * 주문 타임라인 — 주문 순번(제품 하나)이 제판 → 인쇄 → 후가공 → 접지 → 제본으로 가는 과정.
  * 백엔드 OracleLifecycleRepository (ERP 생산계획 다섯 테이블). 진행상태 = 대수마감(closeYn).
  */
 export type LifecycleStage = 'PLATE' | 'PRINT' | 'PROC' | 'FOLD' | 'BIND';

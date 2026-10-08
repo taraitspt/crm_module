@@ -236,7 +236,7 @@ const LifecycleDetail: React.FC<{ line: LifecycleLine }> = ({ line }) => {
     { title: '진행', width: 90, align: 'center', render: (_, r) => <StatusCell r={r} /> },
   ];
 
-  if (isError) return <Alert type="error" showIcon message="생애주기를 불러오지 못했습니다. ERP 연결을 확인하세요." />;
+  if (isError) return <Alert type="error" showIcon message="타임라인를 불러오지 못했습니다. ERP 연결을 확인하세요." />;
   return (
     <Spin spinning={isFetching}>
       {/* 공정 흐름 요약 — 공정마다 마감 수와 계획 기간 */}
@@ -373,7 +373,7 @@ const LifecyclePage: React.FC = () => {
 
   return (
     <PageLayout>
-      <PageHeader title="주문별 생애주기" sub="주문 순번(제품 하나)의 제판 → 인쇄 → 후가공 → 접지 → 제본 진행 · 진행상태 = 대수마감" />
+      <PageHeader title="주문 타임라인" sub="주문 순번(제품 하나)의 제판 → 인쇄 → 후가공 → 접지 → 제본 진행 · 진행상태 = 대수마감" />
       <Card size="small" style={{ marginBottom: 10 }}>
         <Space wrap size={8}>
           <span style={{ fontWeight: 600 }}>계획일</span>
@@ -381,10 +381,10 @@ const LifecyclePage: React.FC = () => {
           <Input.Search allowClear placeholder="주문번호·주문명·거래처·세부품목" onSearch={setKeyword}
             onChange={(e) => { if (!e.target.value) setKeyword(''); }} style={{ width: 280 }} />
           <ExcelDownloadBtn data={filtered.map((l) => ({ ...l }) as Record<string, unknown>)} columns={excelColumns}
-            fileName={`주문별생애주기_${dateRange[0].format('YYYYMMDD')}_${dateRange[1].format('YYYYMMDD')}`} />
+            fileName={`주문타임라인_${dateRange[0].format('YYYYMMDD')}_${dateRange[1].format('YYYYMMDD')}`} />
         </Space>
       </Card>
-      {isError && <Alert type="error" showIcon style={{ marginBottom: 10 }} message="생애주기 목록을 불러오지 못했습니다. ERP 연결을 확인하세요." />}
+      {isError && <Alert type="error" showIcon style={{ marginBottom: 10 }} message="타임라인 목록을 불러오지 못했습니다. ERP 연결을 확인하세요." />}
 
       <Spin spinning={isFetching}>
         <Row gutter={[10, 10]} style={{ marginBottom: 10 }}>
@@ -411,7 +411,7 @@ const LifecyclePage: React.FC = () => {
           </Col>
         </Row>
 
-        <Card size="small" title={<Space>순번 <Text type="secondary" style={{ fontWeight: 400 }}>{filtered.length.toLocaleString()}건 · 행을 누르면 생애주기</Text></Space>}
+        <Card size="small" title={<Space>순번 <Text type="secondary" style={{ fontWeight: 400 }}>{filtered.length.toLocaleString()}건 · 행을 누르면 타임라인</Text></Space>}
           extra={<Segmented<Filter> size="small" value={filter} onChange={setFilter}
             options={[{ label: '전체', value: 'all' }, { label: '진행 중', value: 'progress' }, { label: '완성', value: 'done' }, { label: '지연', value: 'late' }]} />}>
           <Table<LifecycleLine> size="small" rowKey={(l) => `${l.orderNo}-${l.orderSq}`} columns={columns} dataSource={filtered}

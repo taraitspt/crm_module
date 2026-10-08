@@ -31,9 +31,9 @@ const INSTALL_DISMISS_KEY = 'm-install-dismissed';
 export const MOBILE_TABS = [
   { key: 'activity', path: '/m/activity', label: '활동', icon: <CalendarOutlined />, menuKeys: ['/activity/calendar'] },
   { key: 'partner', path: '/m/partner', label: '거래처', icon: <ShopOutlined />, menuKeys: ['/activity/partner'] },
-  // 주문진행현황 카드 탭 — 2026-10-08 생애주기로 바꾸며 주석(사용자 결정). 되살리면 routes 의 orders 경로도 함께 푼다.
+  // 주문진행현황 카드 탭 — 2026-10-08 타임라인로 바꾸며 주석(사용자 결정). 되살리면 routes 의 orders 경로도 함께 푼다.
   // { key: 'orders', path: '/m/orders', label: '주문', icon: <FileDoneOutlined />, menuKeys: ['/production/order-progress'] },
-  // "주문" 탭 = 주문별 생애주기(2026-10-08 사용자 결정 — 주문진행현황 카드 대신).
+  // "주문" 탭 = 주문 타임라인(2026-10-08 사용자 결정 — 주문진행현황 카드 대신).
   { key: 'lifecycle', path: '/m/lifecycle', label: '주문', icon: <FileDoneOutlined />, menuKeys: ['/production/lifecycle'] },
   { key: 'production', path: '/m/production', label: '생산', icon: <ToolOutlined />, menuKeys: ['/production/equipment-board', '/production/schedule'] },
   { key: 'attention', path: '/m/attention', label: '관리필요', icon: <AlertOutlined />, menuKeys: ['/activity/attention'] },
@@ -104,6 +104,8 @@ const MobileLayout: React.FC = () => {
   // 기록에 기대지 않고 규칙으로: 탭 아래 화면이면 이전 화면(없으면 그 탭)으로, 활동 이외 탭이면 활동 탭으로, 활동 탭에서만 종료 확인.
   // 리스너를 달면 Capacitor 기본 동작(뒤로/종료)이 꺼지므로 모든 경우를 여기서 처리한다.
   const pathRef = React.useRef(location.pathname);
+  // 뒤로가기의 "홈" = 볼 수 있는 첫 탭(아래 tabs 계산 뒤 채운다)
+  const homeRef = React.useRef(MOBILE_TABS[0].path);
   pathRef.current = location.pathname;
   useEffect(() => {
     if (!isNativeApp()) return;
@@ -111,7 +113,7 @@ const MobileLayout: React.FC = () => {
     const sub = CapApp.addListener('backButton', ({ canGoBack }) => {
       const path = pathRef.current;
       const tab = MOBILE_TABS.find((t) => path === t.path || path.startsWith(t.path + '/'));
-      const home = MOBILE_TABS[0].path;
+      const home = homeRef.current;
       if (tab && path !== tab.path) {            // 탭 아래 화면(예: /m/production/equipment, /m/partner/…)
         if (canGoBack) window.history.back(); else navigate(tab.path, { replace: true });
         return;
@@ -143,6 +145,14 @@ const MobileLayout: React.FC = () => {
 
   const allowed = useMemo(() => flattenKeys(items), [items]);
   const tabs = useMemo(() => MOBILE_TABS.filter((t) => t.menuKeys.some((k) => allowed.has(k))), [allowed]);
+  // 권한 없는 탭으로 들어오면(예: 생산지원은 활동 탭이 없음 — /m 기본이 활동) 볼 수 있는 첫 탭으로.
+  useEffect(() => {
+    if (!tabs.length) return;
+    const inAllowed = tabs.some((t) => location.pathname === t.path || location.pathname.startsWith(t.path + '/'));
+    const known = MOBILE_TABS.some((t) => location.pathname === t.path || location.pathname.startsWith(t.path + '/'));
+    if (known && !inAllowed) navigate(tabs[0].path, { replace: true });
+  }, [tabs, location.pathname, navigate]);
+  homeRef.current = tabs[0]?.path ?? MOBILE_TABS[0].path;
   const active = tabs.find((t) => location.pathname.startsWith(t.path)) ?? MOBILE_TABS.find((t) => location.pathname.startsWith(t.path));
 
   const logoutNow = async () => {

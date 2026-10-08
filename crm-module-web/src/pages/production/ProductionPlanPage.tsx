@@ -43,7 +43,7 @@ const SHEET: ColDef[] = [tx('cutSize', '재단규격', 90), amt('pages', '면수
 const MONEY: ColDef[] = [amt('workUnitPrice', '사내단가', 90), amt('workAmount', '사내금액', 105), amt('stdUnitPrice', '표준단가', 90), amt('stdAmount', '표준금액', 105)];
 /**
  * 진행·대수마감·실적상태·실적일자 — 모든 탭 꼬리.
- * 진행(doneYn) = 대수마감 Y 또는 외부입고 설비 — 생산계획 대시보드·주문별 생애주기와 같은 기준(서버 ProductionRules).
+ * 진행(doneYn) = 대수마감 Y 또는 외부입고 설비 — 생산계획 대시보드·주문 타임라인와 같은 기준(서버 ProductionRules).
  */
 const TAIL: ColDef[] = [en('doneYn', '진행', 70, 'center'), en('pressCloseYn', '대수마감', 80, 'center'), en('resultStatusName', '실적상태', 100, 'center'), tx('resultDate', '실적일자', 100)];
 /** 인쇄판 색 수·판수. */

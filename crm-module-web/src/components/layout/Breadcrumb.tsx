@@ -22,7 +22,7 @@ const pathLabels: Record<string, string> = {
   '/production/order-progress': '주문진행현황',
   '/production/plan-register': '생산계획조회',
   '/production/schedule': '생산일정현황',
-  '/production/lifecycle': '주문별 생애주기',
+  '/production/lifecycle': '주문 타임라인',
   '/production/work-order': '작업지시서',
   '/tools/pdf': 'PDF 변환',
   '/admin/users': '사용자 관리',

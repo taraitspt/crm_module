@@ -7,11 +7,11 @@ import type { PlanMode, PlanRow, PlanTab, WorkOrderData } from '@/types/planRegi
 import type { ScheduleRow, ScheduleTab } from '@/types/productionSchedule';
 import type { LifecycleLine, LifecycleStageRow } from '@/types/lifecycle';
 
-/** 주문별 생애주기 목록 — 계획일 기간(최대 31일)에 걸린 주문 순번과 공정별 대수마감 집계. */
+/** 주문 타임라인 목록 — 계획일 기간(최대 31일)에 걸린 주문 순번과 공정별 대수마감 집계. */
 export const getLifecycleLines = (params: { startDate: string; endDate: string }) =>
   apiClient.get<ApiResponse<LifecycleLine[]>>('/production/lifecycle', { params, timeout: 120_000 });
 
-/** 주문별 생애주기 상세 — 순번 하나의 다섯 공정 계획 행. */
+/** 주문 타임라인 상세 — 순번 하나의 다섯 공정 계획 행. */
 export const getLifecycleStages = (orderNo: string, orderSq: number) =>
   apiClient.get<ApiResponse<LifecycleStageRow[]>>(`/production/lifecycle/${encodeURIComponent(orderNo)}/${orderSq}`, { timeout: 120_000 });
 
