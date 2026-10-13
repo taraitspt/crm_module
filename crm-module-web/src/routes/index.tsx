@@ -1,6 +1,7 @@
 import React, { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
 import ProtectedRoute from '@/components/common/ProtectedRoute';
+import ShellGate from '@/components/common/ShellGate';
 import BrandedLoader from '@/components/common/BrandedLoader';
 import type { Role } from '@/types/auth';
 import { useMenuAccess } from '@/hooks/useMenuAccess';
@@ -99,23 +100,19 @@ const DesignSalesPage = lazy(() => import('@/pages/stats/DesignSalesPage'));
 const Loading = () => <BrandedLoader />;
 
 
-/** 인증 필수 라우트 래퍼 */
+/** 인증 필수 라우트 래퍼. ShellGate 가 앱(APK·홈 화면 앱)에선 /m 만, PC 브라우저에선 PC 화면만 보이게 가른다(2026-10-13). */
 const Protected = ({ children, allowedRoles, allowedDeptCds, skipPasswordGate }: { children: React.ReactNode; allowedRoles?: Role[]; allowedDeptCds?: number[]; skipPasswordGate?: boolean }) => (
   <ProtectedRoute allowedRoles={allowedRoles} allowedDeptCds={allowedDeptCds} skipPasswordGate={skipPasswordGate}>
-    <Suspense fallback={<Loading />}>
-      {children}
-    </Suspense>
+    <ShellGate>
+      <Suspense fallback={<Loading />}>
+        {children}
+      </Suspense>
+    </ShellGate>
   </ProtectedRoute>
 );
 
 const NotFoundPage = lazy(() => import('@/pages/common/NotFoundPage'));
 
-/** 홈 화면에 설치한 앱(standalone)으로 열었으면 PC 홈 대신 모바일 앱으로 보낸다. */
-const StandaloneRedirect = ({ children }: { children: React.ReactNode }) => {
-  const standalone = typeof window !== 'undefined'
-    && (window.matchMedia('(display-mode: standalone)').matches || (navigator as { standalone?: boolean }).standalone === true);
-  return standalone ? <Navigate to="/m" replace /> : <>{children}</>;
-};
 
 /** 메뉴 트리에서 처음 나오는 화면 경로. */
 const firstLeaf = (items: AppMenuItem[]): string | undefined => {
@@ -168,7 +165,7 @@ const router = createBrowserRouter([
   // 인증 필수 — 첫 화면은 매출현황(계획 대비). 설치형 앱으로 열면 /m 으로.
   {
     path: '/',
-    element: <Protected><StandaloneRedirect><HomeGate><SalesStatusPage /></HomeGate></StandaloneRedirect></Protected>,
+    element: <Protected><HomeGate><SalesStatusPage /></HomeGate></Protected>,
   },
   // 모바일 앱(PWA) — 하단 탭 네 개. 레이아웃 안의 Outlet 이 자체 Suspense 를 가진다.
   {

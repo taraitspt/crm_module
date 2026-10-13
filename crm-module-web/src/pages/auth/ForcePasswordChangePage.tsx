@@ -4,6 +4,7 @@ import { LockOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { changeMyPassword, logout as logoutApi } from '@/api/auth.api';
 import { useAuthStore } from '@/store/authStore';
+import { homePath } from '@/utils/shell';
 import Logo from '@/components/common/Logo';
 
 const { Title, Text } = Typography;
@@ -44,7 +45,8 @@ const ForcePasswordChangePage: React.FC = () => {
       if (fresh?.accessToken) setTokens(fresh.accessToken);   // 임시 비밀번호 토큰 → 정상 토큰
       setPasswordResetRequired(false);
       message.success('비밀번호가 변경됐습니다.');
-      navigate('/');
+      navigate(homePath());   // 앱이면 /m
+
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
       message.error(e?.response?.data?.message || '비밀번호 변경에 실패했습니다. 임시 비밀번호를 확인하세요.');

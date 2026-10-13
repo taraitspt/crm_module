@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { isMobileShell } from '@/utils/shell';
 import { Empty } from 'antd';
 import { T } from '@/theme/designTokens';
 
@@ -84,11 +85,7 @@ interface BeforeInstallPromptEvent extends Event {
 export function useInstallPrompt() {
   const [evt, setEvt] = useState<BeforeInstallPromptEvent | null>(null);
   // 홈 화면 앱(standalone) 이거나 Capacitor 네이티브 앱(APK/iOS) 안이면 이미 "설치된" 상태다.
-  const cap = typeof window !== 'undefined' ? (window as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor : undefined;
-  const isStandalone = typeof window !== 'undefined'
-    && (window.matchMedia('(display-mode: standalone)').matches
-      || (navigator as { standalone?: boolean }).standalone === true
-      || cap?.isNativePlatform?.() === true);
+  const isStandalone = isMobileShell();
   const isIOS = typeof navigator !== 'undefined' && /iphone|ipad|ipod/i.test(navigator.userAgent);
 
   useEffect(() => {

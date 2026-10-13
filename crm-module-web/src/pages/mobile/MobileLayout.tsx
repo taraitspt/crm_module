@@ -1,4 +1,5 @@
 import React, { Suspense, useEffect, useMemo, useState } from 'react';
+import { rememberMobileMode } from '@/utils/shell';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { App, Avatar, Button, Dropdown, Spin } from 'antd';
 import {
@@ -49,6 +50,8 @@ function flattenKeys(items: AppMenuItem[], out = new Set<string>()): Set<string>
 
 /** 모바일 셸 — 상단바(로고·제목·알림·사용자) + 본문 + 하단 탭. */
 const MobileLayout: React.FC = () => {
+  // 이 기기는 모바일 모드 — 이후 로그인·로그아웃·주소 입력 무엇을 해도 /m 만 보인다(ShellGate, 2026-10-13).
+  useEffect(() => { rememberMobileMode(); }, []);
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout: logoutStore } = useAuthStore();

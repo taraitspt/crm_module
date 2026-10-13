@@ -3,6 +3,7 @@ import { Form, Input, Button, Checkbox, Typography, message, Row, Col } from 'an
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
+import { homePath } from '@/utils/shell';
 import { login as loginApi, getMe, verifyMfa as verifyMfaApi } from '@/api/auth.api';
 import type { TokenResponse } from '@/types/auth';
 import Logo from '@/components/common/Logo';
@@ -40,9 +41,10 @@ const LoginPage: React.FC = () => {
       navigate('/force-password-change');
     } else {
       setPasswordResetRequired(false);
-      // 보호 라우트가 보낸 원래 목적지(/m 모바일 앱 등)가 있으면 거기로, 없으면 홈.
+      // 보호 라우트가 보낸 원래 목적지(/m 모바일 앱 등)가 있으면 거기로, 없으면 홈 — 앱(APK·홈 화면 앱)이면 /m, PC 면 매출현황.
+      // 예전엔 무조건 '/' 라서 앱에서 재로그인하면 PC 화면이 떴다(2026-10-13).
       const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
-      navigate(from && from !== '/login' ? from : '/', { replace: true });
+      navigate(from && from !== '/login' ? from : homePath(), { replace: true });
     }
   };
 

@@ -1,4 +1,5 @@
 import React from 'react';
+import { homePath } from '@/utils/shell';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import type { Role } from '@/types/auth';
@@ -33,7 +34,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles,
   const roleAllowed = !allowedRoles || (user?.role != null && allowedRoles.includes(user.role));
   const deptAllowed = user?.deptCd != null && allowedDeptCds?.includes(user.deptCd);
   if (!roleAllowed && !deptAllowed) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={homePath()} replace />;   // 앱이면 /m
   }
 
   return <>{children}</>;

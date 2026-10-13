@@ -61,6 +61,8 @@ sudo mysql -e "SELECT MAX(version) FROM crm_module.flyway_schema_history"   # 14
 
 ## 2. 매 배포
 
+한 번에 하려면(2026-10-13): 저장소 루트에서 `powershell -ExecutionPolicy Bypass -File .deployelease.ps1` — 빌드 → scp → 서버 교체 → 재시작 → health 확인까지. `-Web`(화면만, 무중단) / `-Api`(백엔드만) / `-Key <pem>`(기본 `CRM_SSH_KEY` 환경변수 또는 홈의 `al_sm.pem`). 아래는 손으로 할 때의 순서다.
+
 ```bash
 # 로컬 → 서버 복사 (예: scp)
 scp crm-module-api/build/libs/crm-module-api-0.0.1-SNAPSHOT.jar ubuntu@52.78.211.240:/tmp/crm-module-api.jar

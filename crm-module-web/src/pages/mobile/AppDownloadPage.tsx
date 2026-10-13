@@ -1,4 +1,5 @@
 import React from 'react';
+import { forgetMobileMode } from '@/utils/shell';
 import { Link } from 'react-router-dom';
 import { Button } from 'antd';
 import { AndroidOutlined, AppleOutlined, DownloadOutlined, GlobalOutlined } from '@ant-design/icons';
@@ -70,7 +71,7 @@ const AppDownloadPage: React.FC = () => (
       </Card>
 
       <div style={{ textAlign: 'center', fontSize: 13, color: T.t3, marginTop: 6 }}>
-        설치하지 않고 쓰려면 <Link to="/m" style={{ color: T.primary700, fontWeight: 600 }}>브라우저에서 열기</Link> · PC는 <Link to="/" style={{ color: T.primary700, fontWeight: 600 }}>PC 화면</Link>
+        설치하지 않고 쓰려면 <Link to="/m" style={{ color: T.primary700, fontWeight: 600 }}>브라우저에서 열기</Link> · PC는 <Link to="/" onClick={forgetMobileMode} style={{ color: T.primary700, fontWeight: 600 }}>PC 화면</Link>
       </div>
     </div>
   </div>
