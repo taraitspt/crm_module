@@ -51,7 +51,8 @@ if ($doApi) { & scp @sshOpt $jar "${Server}:/tmp/crm-release/crm-module-api.jar"
 if ($doWeb) {
   # dist 를 tar 로 묶어 한 번에 (파일이 수백 개라 scp -r 보다 빠르다)
   $tar = Join-Path $env:TEMP 'crm-dist.tgz'
-  Push-Location $dist; try { & tar -czf $tar . } finally { Pop-Location }
+  # downloads/ 는 빼고 묶는다 — 로컬 public/downloads 의 APK 는 테스트용(옛 터널 주소)이라 운영 APK 를 덮어쓰면 안 된다
+  Push-Location $dist; try { & tar --exclude=./downloads -czf $tar . } finally { Pop-Location }
   & scp @sshOpt $tar "${Server}:/tmp/crm-release/dist.tgz"; if ($LASTEXITCODE -ne 0) { throw 'dist 복사 실패' }
   Remove-Item $tar -ErrorAction SilentlyContinue
 }
@@ -60,7 +61,7 @@ if ($doWeb) {
 $remote = @()
 if ($doWeb) {
   $remote += 'tar -xzf /tmp/crm-release/dist.tgz -C /tmp/crm-release/dist'
-  $remote += 'sudo rsync -a --delete /tmp/crm-release/dist/ /var/www/crm/'
+  $remote += 'sudo rsync -a --delete --exclude downloads/ /tmp/crm-release/dist/ /var/www/crm/   # downloads/(운영 APK)는 지우지 않는다'
   $remote += 'sudo chown -R www-data:www-data /var/www/crm'
   $remote += 'echo "[web] 교체 완료"'
 }

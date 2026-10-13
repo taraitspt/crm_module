@@ -71,7 +71,7 @@ scp -r crm-module-web/dist/* ubuntu@52.78.211.240:/tmp/crm-dist/
 # 서버
 sudo install -o crm -g crm -m 644 /tmp/crm-module-api.jar /opt/crm/crm-module-api.jar
 sudo systemctl restart crm-api && journalctl -u crm-api -f      # "Started CrmModuleApplication" 확인
-sudo rsync -a --delete /tmp/crm-dist/ /var/www/crm/
+sudo rsync -a --delete --exclude downloads/ /tmp/crm-dist/ /var/www/crm/   # downloads/ 의 운영 APK 를 지우지 않게
 ```
 
 첫 기동 때 Flyway 가 빈 `crm_module` 에 마이그레이션 전체를 적용한다.
