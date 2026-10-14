@@ -47,9 +47,6 @@ spring:
             enable: true
         from: ${SMTP_FROM:taraitspt@gmail.com}
 
-# 비밀번호 분실 시 임시 비밀번호를 Teams DM 으로 보내기 위한 MS Graph 서비스계정.
-# 운영에서 ENV(MS_TENANT_ID/MS_CLIENT_ID/MS_USERNAME/MS_PASSWORD) 로 주입.
-# 비우면 Teams 전송 불가 → 비밀번호 분실 발급이 실패(안내 메시지) 한다.
 # 웹 푸시(VAPID) — 활동 알림(아침 8시)을 아이폰 홈 화면 웹앱·브라우저로. 키는 env 로만(한 번 만든 키를 계속 써야 구독이 살아 있다).
 # 생성: npx web-push generate-vapid-keys. 비우면 웹 푸시만 꺼지고 앱은 뜬다(안드로이드 APK 로컬 알림은 영향 없음).
 webpush:
@@ -60,11 +57,13 @@ webpush:
     enabled: ${WEBPUSH_REMINDER_ENABLED:true}
     cron: "${WEBPUSH_REMINDER_CRON:0 0 8 * * *}"   # Asia/Seoul
 
-msgraph:
-  tenant-id: ${MS_TENANT_ID:}
-  client-id: ${MS_CLIENT_ID:}
-  username: ${MS_USERNAME:}
-  password: ${MS_PASSWORD:}
+# Teams DM — IT지원팀 공용 알림 API(tara-common-api). 키는 env 로만(커밋 금지), 등록된 서버 IP 에서만 동작.
+# 예전 MS Graph 직접 호출(msgraph.* / MS_*)은 2026-10-14 이걸로 바꿨다.
+tara:
+  notify:
+    base-url: ${TARA_NOTIFY_BASE_URL:https://api.taratps.com}
+    api-key: ${TARA_NOTIFY_API_KEY:}
+    app-url: ${CRM_PUBLIC_URL:https://crm.taratps.com}   # 임시 비밀번호 메시지의 "바로가기"(로그인 화면)
 
 server:
   port: 8080

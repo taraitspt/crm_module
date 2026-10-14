@@ -64,12 +64,12 @@ npm run test:e2e  # e2e/00-full-server-test.spec.ts 스모크
 
 | Package | Responsibility |
 |---|---|
-| `auth` | 로그인/JWT/MFA, 비밀번호 변경·분실(Teams DM 으로 임시 비밀번호 — `integration/teams/TeamsGraphClient`, `msgraph.*` env), 부서 |
+| `auth` | 로그인/JWT/MFA, 비밀번호 변경·분실(Teams DM 으로 임시 비밀번호 — `integration/teams/TeamsNotifyClient`, `tara.notify.*` env), 부서 |
 | `common` | DataSource/Security/CORS/Swagger/QueryDSL 설정, `BaseEntity`+JPA Auditing, 공통코드(`code/`), 실시간 접속 모니터(`monitor/`), 월마감(`ClosingPeriod`), 파일 업로드, 컬럼필터 프리셋, `ExcelService`, 예외/에러코드 |
 | `info` | **월매출계획(SalesPlan)** — 담당자(users.id)·거래처(ERP 코드)·월별 공임/용지 계획, `sales_plan` 테이블(V135). `/api/info/sales-plan` (조회/저장/담당자옵션/`status`=계획 대비 ERP 실적). 그 외 사업자(BizOwner)·고객담당자·영업담당자·구 목표(GoalMst)는 코드만 남고 화면은 주석처리 |
 | `stats` | 데이터분석·수익성분석. **주의: `StatsService` 대부분은 로컬 `sales_mst`/`order_mst` 를 읽는데, 그 테이블을 채우던 ERP 매출/주문 동기화는 포크 시 제거됐으므로 CRM 에서는 비어 있다.** ERP 를 직접 읽는 건 `OracleStatsRepository.getCustomerYearlySales`(거래처별 월매출) 뿐이고, 매출현황(`SalesPlanService.getStatus`)도 이걸 쓴다 |
 | `integration/erp` | 마스터 동기화(`ErpMasterSyncService`/Scheduler — 거래처·사원·부서·공통코드), Oracle 조회 repo, 관리자용 `/api/erp/sync*` 엔드포인트 |
-| `integration/teams` | MS Graph 로 Teams DM 발송 (`TeamsGraphClient` 만 남음) |
+| `integration/teams` | Teams DM 발송 — **IT지원팀 공용 알림 API**(tara-common-api `POST /api/notify/teams`, 헤더 `X-Api-Key` = env `TARA_NOTIFY_API_KEY`, `TARA_NOTIFY_BASE_URL` 기본 `https://api.taratps.com`(2026-10-14 HTTPS 도메인 개통, 그 전엔 http://3.38.126.136)) `TeamsNotifyClient`. 2026-10-14 MS Graph 직접 호출(`TeamsGraphClient`, `MS_*` env)에서 전환. 키는 **등록된 서버 IP 에서만** 동작(운영 52.78.211.240 — 로컬 시험은 그 PC 공인 IP 도 등록), 본문은 일반 텍스트(HTML 안 됨), 받는 사람은 **@taratps.com 만**(그 외 도메인은 403 `NOTIFY_FORBIDDEN` — 2026-10-14 재직 408명 중 taratps.com 196, taragrp.co.kr 169 등) |
 
 레이어링은 `controller/ service/ repository/ entity/ dto/`. `@EnableJpaAuditing`, `@EnableScheduling` 은 `CrmModuleApplication` 에 있다.
 

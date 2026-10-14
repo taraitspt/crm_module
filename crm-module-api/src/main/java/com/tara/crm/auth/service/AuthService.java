@@ -12,7 +12,7 @@ import com.tara.crm.common.exception.BusinessException;
 import com.tara.crm.common.exception.ErrorCode;
 import com.tara.crm.common.id.DepartmentId;
 import com.tara.crm.common.id.UserId;
-import com.tara.crm.integration.teams.TeamsGraphClient;
+import com.tara.crm.integration.teams.TeamsNotifyClient;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,7 +40,11 @@ public class AuthService {
     private final MfaService mfaService;
     private final AuthHistoryService authHistoryService;
     private final ObjectProvider<JavaMailSender> mailSenderProvider;
-    private final TeamsGraphClient teamsGraphClient;
+    private final TeamsNotifyClient teamsNotifyClient;
+
+    /** Teams 임시 비밀번호 메시지의 "바로가기" — CRM 로그인 화면. */
+    @org.springframework.beans.factory.annotation.Value("${tara.notify.app-url:https://crm.taratps.com}")
+    private String appUrl;
 
     @Value("${spring.mail.username:noreply@tara.local}")
     private String mailFrom;
@@ -272,28 +276,24 @@ public class AuthService {
 
         // 1) 먼저 Teams 로 보낸다. 실패하면 비밀번호를 건드리지 않고 끝낸다.
         try {
-            teamsGraphClient.sendToUser(user.getEmail(),
-                    "<h3>🔑 TARA TPS CRM 임시 비밀번호</h3>"
-                    + "<p>" + escapeHtml(user.getName()) + "님, 요청하신 임시 비밀번호입니다.</p>"
-                    + "<p style=\"font-size:18px\"><b>" + tempPassword + "</b></p>"
-                    + "<p>이 비밀번호로 로그인하면 <b>새 비밀번호를 바로 설정</b>하게 됩니다.</p>"
-                    + "<p>본인이 요청하지 않았다면 IT지원팀으로 알려주세요.</p>");
-        } catch (Exception e) {
-            log.error("임시 비밀번호 Teams 전송 실패 — loginId={}, email={}: {}", id, user.getEmail(), e.getMessage());
+            // 공용 알림 API 는 일반 텍스트 — 줄바꿈만 유지되고 HTML 은 글자 그대로 보인다.
+            teamsNotifyClient.sendToUser(user.getEmail(),
+                    "TARA TPS CRM 임시 비밀번호",
+                    (user.getName() != null ? user.getName() : "") + "님, 요청하신 임시 비밀번호입니다.\n\n"
+                    + tempPassword + "\n\n"
+                    + "이 비밀번호로 로그인하면 새 비밀번호를 바로 설정하게 됩니다.\n"
+                    + "본인이 요청하지 않았다면 IT지원팀으로 알려주세요.",
+                    appUrl.replaceAll("/+$", "") + "/login");
+        } catch (TeamsNotifyClient.TeamsNotifyException e) {
+            log.error("임시 비밀번호 Teams 전송 실패 — loginId={}: {}", id, e.getMessage());
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR,
-                    "Teams 메시지를 보내지 못했습니다. IT지원팀으로 문의해주세요.");
+                    e.getMessage() + " IT지원팀으로 문의해주세요.");
         }
 
         // 2) 전송이 확인된 뒤에 저장 + 강제 변경 플래그 ON.
         user.applyTempPassword(passwordEncoder.encode(tempPassword));
         lastResetAtByLoginId.put(id, now);
         log.info("임시 비밀번호 Teams 발송 완료 — loginId={}, empNo={}", id, user.getEmployeeNo());
-    }
-
-    /** Teams HTML 본문에 이름 삽입 시 최소 이스케이프. */
-    private static String escapeHtml(String s) {
-        if (s == null) return "";
-        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     }
 
     private String generateTempPassword() {
