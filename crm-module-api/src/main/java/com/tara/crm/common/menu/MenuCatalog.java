@@ -49,7 +49,7 @@ public final class MenuCatalog {
             new Entry("/admin/users", "관리자", "사용자 관리", true),
             new Entry("/admin/departments", "관리자", "부서 관리 (조직도)", true),
             new Entry("/admin/menu-permissions", "관리자", "권한 관리", true),
-            new Entry("/admin/receivable-aging", "관리자", "채권연령분석", true)
+            new Entry("/admin/receivable-aging", "정보관리", "채권연령분석", false)   // 2026-10-15 정보관리로 이동(경로·키 그대로)
     );
 
     /** 권한 매트릭스에 표시할 역할 순서 — users.role enum 과 같은 값. */

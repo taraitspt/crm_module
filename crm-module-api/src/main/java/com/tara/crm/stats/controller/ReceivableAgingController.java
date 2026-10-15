@@ -33,7 +33,7 @@ public class ReceivableAgingController {
 
     @GetMapping
     @Operation(summary = "채권연령분석 — 기준일 시점 잔액·연령버킷, 전년 같은 날 잔액 (채권율·회수기한은 산식 미정이라 미제공)")
-    @PreAuthorize("hasAnyRole('ADMIN','FINANCE')")
+    @PreAuthorize("isAuthenticated()")   // 2026-10-15 정보관리 메뉴로 — 역할 제한은 메뉴 권한(menu_permission)으로만
     public ApiResponse<ReceivableAgingDto> rows(@RequestParam(required = false) String baseDate) {
         OracleReceivableAgingRepository oracle = repository.orElseThrow(
                 () -> new IllegalStateException("Oracle ERP 연동이 비활성화되어 있습니다."));

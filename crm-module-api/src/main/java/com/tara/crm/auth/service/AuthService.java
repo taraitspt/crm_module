@@ -276,14 +276,15 @@ public class AuthService {
 
         // 1) 먼저 Teams 로 보낸다. 실패하면 비밀번호를 건드리지 않고 끝낸다.
         try {
-            // 공용 알림 API 는 일반 텍스트 — 줄바꿈만 유지되고 HTML 은 글자 그대로 보인다.
+            // 공용 알림 API 표준 틀 — 🔑 제목 → 인사 → 비밀번호(크게) → 안내문(작게) → [CRM 로그인] 버튼.
             teamsNotifyClient.sendToUser(user.getEmail(),
-                    "TARA TPS CRM 임시 비밀번호",
-                    (user.getName() != null ? user.getName() : "") + "님, 요청하신 임시 비밀번호입니다.\n\n"
-                    + tempPassword + "\n\n"
-                    + "이 비밀번호로 로그인하면 새 비밀번호를 바로 설정하게 됩니다.\n"
-                    + "본인이 요청하지 않았다면 IT지원팀으로 알려주세요.",
-                    appUrl.replaceAll("/+$", "") + "/login");
+                    TeamsNotifyClient.Message.of("TARA TPS CRM 임시 비밀번호",
+                                    (user.getName() != null ? user.getName() : "") + "님, 요청하신 임시 비밀번호입니다.")
+                            .icon("🔑")
+                            .highlight(tempPassword)
+                            .note("이 비밀번호로 로그인하면 새 비밀번호를 바로 설정하게 됩니다.\n"
+                                    + "본인이 요청하지 않았다면 IT지원팀으로 알려주세요.")
+                            .link(appUrl.replaceAll("/+$", "") + "/login", "CRM 로그인"));
         } catch (TeamsNotifyClient.TeamsNotifyException e) {
             log.error("임시 비밀번호 Teams 전송 실패 — loginId={}: {}", id, e.getMessage());
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR,

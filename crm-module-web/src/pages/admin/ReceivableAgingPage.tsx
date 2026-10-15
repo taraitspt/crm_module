@@ -30,6 +30,8 @@ const DIVISIONS = [
   { key: 'GRP', acct: '10805' },
   { key: 'PM', acct: '10804' },
 ] as const;
+/** 화면에 보이는 사업부 — 2026-10-15 사용자 결정으로 당분간 TPS 만(GRP·PM 은 8월부터 ERP 매출모듈을 안 써 채권도 따로 본다). 늘리면 전사·선택이 다시 나온다. */
+const VISIBLE_DIVISIONS = DIVISIONS.filter((d) => d.key === 'TPS');
 type DivKey = ReceivableDivision;
 type Scope = 'ALL' | DivKey;
 type View = 'dashboard' | 'detail';
@@ -109,7 +111,8 @@ const BarValueLabel = (props: { x?: number | string; y?: number | string; width?
 const ReceivableAgingPage = () => {
   // 기본 = 지난달(마감된 달) 말일 기준. 이번 달은 아직 안 끝나 말일 잔액이 확정되지 않는다.
   const [month, setMonth] = useState<Dayjs>(() => dayjs().subtract(1, 'month'));
-  const [scope, setScope] = useState<Scope>('ALL');
+  // 2026-10-15 사용자 결정: 당분간 TPS 만 본다 — 전사·GRP·PM 패널과 선택을 숨긴다(코드는 그대로, VISIBLE_DIVISIONS 만 늘리면 복귀).
+  const [scope, setScope] = useState<Scope>(VISIBLE_DIVISIONS.length === 1 ? VISIBLE_DIVISIONS[0].key : 'ALL');
   const [view, setView] = useState<View>('dashboard');
   const [partnerKeyword, setPartnerKeyword] = useState('');
   const baseDate = month.endOf('month').format('YYYY-MM-DD');
@@ -228,16 +231,18 @@ const ReceivableAgingPage = () => {
   const monthLabel = `${month.format('M')}월말 잔액`;
   const prevBaseDate = data?.prevBaseDate ?? month.subtract(1, 'year').endOf('month').format('YYYY-MM-DD');
 
-  // 사업부별 채권잔액 — 올해/전년 같은 날 막대 2개씩, 전사가 맨 앞.
+  // 사업부별 채권잔액 — 올해/전년 같은 날 막대 2개씩, 사업부가 둘 이상일 때만 전사를 맨 앞에.
+  const multiDiv = VISIBLE_DIVISIONS.length > 1;
   const balanceData = [
-    { name: '전사', cur: baekman(allTotal.amHjan), prev: baekman(prevOf('ALL') ?? 0) },
-    ...DIVISIONS.map((d) => ({ name: d.key, cur: baekman(byDiv[d.key].amHjan), prev: baekman(prevOf(d.key) ?? 0) })),
+    ...(multiDiv ? [{ name: '전사', cur: baekman(allTotal.amHjan), prev: baekman(prevOf('ALL') ?? 0) }] : []),
+    ...VISIBLE_DIVISIONS.map((d) => ({ name: d.key, cur: baekman(byDiv[d.key].amHjan), prev: baekman(prevOf(d.key) ?? 0) })),
   ];
-  // 사업부별 연령분석 패널 — 전사 + 사업부 셋.
+  // 사업부별 연령분석 패널 — (전사 +) 보이는 사업부.
   const agingPanels: { key: Scope; title: string; t: Totals }[] = [
-    { key: 'ALL', title: '전사', t: allTotal },
-    ...DIVISIONS.map((d) => ({ key: d.key as Scope, title: d.key, t: byDiv[d.key] })),
+    ...(multiDiv ? [{ key: 'ALL' as Scope, title: '전사', t: allTotal }] : []),
+    ...VISIBLE_DIVISIONS.map((d) => ({ key: d.key as Scope, title: d.key, t: byDiv[d.key] })),
   ];
+  const sectionLabel = multiDiv ? '사업부별' : VISIBLE_DIVISIONS[0]?.key ?? '';
   const scopeLabel = scope === 'ALL' ? '전사' : scope;
   const scopeAmount = scopeTotal.amHjan;
 
@@ -286,11 +291,13 @@ const ReceivableAgingPage = () => {
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               <DatePicker picker="month" value={month} allowClear={false} onChange={(v) => v && setMonth(v)} format="YYYY년 M월"
                 disabledDate={(d) => !d.isBefore(dayjs(), 'month')} />
-              <Segmented<Scope>
-                value={scope}
-                onChange={(v) => setScope(v)}
-                options={[{ label: '전사', value: 'ALL' }, ...DIVISIONS.map((d) => ({ label: d.key, value: d.key }))]}
-              />
+              {multiDiv && (
+                <Segmented<Scope>
+                  value={scope}
+                  onChange={(v) => setScope(v)}
+                  options={[{ label: '전사', value: 'ALL' }, ...VISIBLE_DIVISIONS.map((d) => ({ label: d.key, value: d.key }))]}
+                />
+              )}
             </div>
           )}
         />
@@ -373,14 +380,14 @@ const ReceivableAgingPage = () => {
 
           {/* ── 사업부별 채권연령분석 ── */}
           <Col xs={24} lg={18}>
-            <Card size="small" title="▶ 사업부별 채권연령분석" extra={<Text type="secondary">단위: 만원</Text>} style={{ height: '100%' }}>
+            <Card size="small" title={`▶ ${sectionLabel} 채권연령분석`} extra={<Text type="secondary">단위: 만원</Text>} style={{ height: '100%' }}>
               <Row gutter={8}>
                 {agingPanels.map((d) => {
                   const t = d.t;
                   const chart = BUCKETS.map((b) => ({ name: b.label, value: manwon(t[b.key as BucketKey]), color: b.color })).reverse();
                   const active = scope === 'ALL' || scope === d.key;
                   return (
-                    <Col xs={24} md={12} xl={6} key={d.key}>
+                    <Col xs={24} md={multiDiv ? 12 : 24} xl={multiDiv ? 6 : 24} key={d.key}>
                       <div style={{ border: `1px solid ${active ? '#0096A2' : '#eee'}`, borderRadius: 6, padding: 8, opacity: active ? 1 : 0.55 }}>
                         <div style={{ textAlign: 'center', fontWeight: 800, fontSize: 16 }}>{d.title}</div>
                         <div style={{ textAlign: 'center', fontSize: 12, ...TABULAR }}>잔액 {eok(t.amHjan)}</div>
@@ -407,7 +414,7 @@ const ReceivableAgingPage = () => {
 
           {/* ── 사업부별 채권잔액 ── */}
           <Col xs={24} lg={12}>
-            <Card size="small" title={`▶ 사업부별 채권잔액 (${baseDate} vs ${prevBaseDate})`} extra={<Text type="secondary">단위: 백만</Text>}>
+            <Card size="small" title={`▶ ${sectionLabel} 채권잔액 (${baseDate} vs ${prevBaseDate})`} extra={<Text type="secondary">단위: 백만</Text>}>
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={balanceData} margin={{ top: 16, right: 16, bottom: 0, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />

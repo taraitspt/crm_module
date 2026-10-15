@@ -345,7 +345,8 @@ const router = createBrowserRouter([
   // },
   {
     path: '/admin/receivable-aging',
-    element: <Protected allowedRoles={['ADMIN', 'FINANCE']}><ReceivableAgingPage /></Protected>,
+    // 2026-10-15 정보관리 메뉴로 옮기며 역할 제한 해제 — 노출은 권한 관리(menu_permission)가 정한다(V164 로 월매출계획과 같은 역할에 켬).
+    element: <Protected><ReceivableAgingPage /></Protected>,
   },
   // 2026-09-18 당분간 미사용 (통합 실적 / 매출목표및실적 / 파트별 전년대비 / AM별 실적 / 품목별 실적)
   // {

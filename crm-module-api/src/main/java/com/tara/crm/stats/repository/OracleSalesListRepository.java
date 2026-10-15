@@ -262,7 +262,8 @@ public class OracleSalesListRepository {
                 LEFT OUTER JOIN MA_DEPT_MST MDM
                   ON MDM.COMPANY_CD = SBD.COMPANY_CD
                  AND MDM.DEPT_CD    = COALESCE(H02.TARGET_DEPT_CD, H02_FIRST.FIRST_DEPT_CD, HEM.DEPT_CD)
-                 AND SBD.BILL_DT BETWEEN MDM.DEPT_START_DT AND MDM.DEPT_END_DT
+                 /* SBD.BILL_DT 는 DATE, DEPT_*_DT 는 VARCHAR(YYYYMMDD) — 암묵 변환은 세션 NLS 에 따라 깨진다(운영 영문 로케일에서 ORA-01847, 2026-10-15). 명시 변환. */
+                 AND SBD.BILL_DT BETWEEN TO_DATE(MDM.DEPT_START_DT, 'YYYYMMDD') AND TO_DATE(NVL(MDM.DEPT_END_DT, '99991231'), 'YYYYMMDD')
             )
             SELECT
                   A.PLANT_CD

@@ -46,6 +46,8 @@ export const MENU_ITEMS: AppMenuItem[] = [
       // { key: '/info/customers', label: '고객관리' },
       // { key: '/info/sales-persons', label: '영업담당자관리' },
       { key: '/info/sales-plan', label: '월매출계획' },
+      // 2026-10-15 관리자 → 정보관리로 이동(사용자 요청). 경로·권한 키는 그대로.
+      { key: '/admin/receivable-aging', label: '채권연령분석' },
       // 2026-09-18 부서/AM 목표입력(goal_mst)은 월매출계획으로 대체 — 필요 시 주석 해제
       // { key: '/info/goal', label: '목표입력' },
     ],
@@ -120,8 +122,6 @@ export const MENU_ITEMS: AppMenuItem[] = [
       { key: '/admin/users', label: '사용자 관리', roles: ['ADMIN'] },
       { key: '/admin/departments', label: '부서 관리', roles: ['ADMIN'] },
       { key: '/admin/menu-permissions', label: '권한 관리', roles: ['ADMIN'] },
-      // 채권연령분석 — 더존 채권원장 기준 사업부별(파주/그래픽스/PM/전사) 채권 대시보드. 2026-09-28 sm_module 에서 이관.
-      { key: '/admin/receivable-aging', label: '채권연령분석', roles: ['ADMIN', 'FINANCE'] },
     ],
   },
 ];
@@ -176,6 +176,7 @@ export function getActiveTopKey(pathname: string): string {
   if (pathname.startsWith('/stats/vendor-margin')) return 'profit';
   if (pathname.startsWith('/info')) return 'info';
   if (pathname.startsWith('/stats')) return 'stats';
+  if (pathname.startsWith('/admin/receivable-aging')) return 'info';   // 메뉴는 정보관리 아래(2026-10-15)
   if (pathname.startsWith('/admin')) return 'admin';
   return '';
 }
