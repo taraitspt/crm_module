@@ -25,11 +25,13 @@ const { Text } = Typography;
  *    잔액·연령버킷·전년 잔액은 원장 사실이라 그대로 보여준다(부가세 포함 금액).
  */
 
+/** 화면 이름 — TPS 는 "파주사업장"으로 부른다(사용자 결정 2026-10-16). key 는 서버 값(TPS/GRP/PM) 그대로. */
 const DIVISIONS = [
-  { key: 'TPS', acct: '10801' },
-  { key: 'GRP', acct: '10805' },
-  { key: 'PM', acct: '10804' },
+  { key: 'TPS', acct: '10801', label: '파주사업장' },
+  { key: 'GRP', acct: '10805', label: 'GRP' },
+  { key: 'PM', acct: '10804', label: 'PM' },
 ] as const;
+const divLabel = (k: string) => DIVISIONS.find((d) => d.key === k)?.label ?? k;
 /** 화면에 보이는 사업부 — 2026-10-15 사용자 결정으로 당분간 TPS 만(GRP·PM 은 8월부터 ERP 매출모듈을 안 써 채권도 따로 본다). 늘리면 전사·선택이 다시 나온다. */
 const VISIBLE_DIVISIONS = DIVISIONS.filter((d) => d.key === 'TPS');
 type DivKey = ReceivableDivision;
@@ -44,11 +46,13 @@ interface DeptRow extends Totals { key: string; deptNm: string; divisions: strin
 /** 거래처별 집계 행 — 사업부+거래처 단위(같은 거래처가 두 사업부에 있으면 따로) */
 interface PartnerRow extends Totals { key: string; division: DivKey; partnerCd: string; partnerNm: string; bizrNo: string; deptNm: string; signal: Signal }
 
+// 더존 채권원장 칸(IN_DAY30·60·90·120·OUT_DAY121)은 겹치지 않는 구간이다 — "60일 이내"가 아니라 31~60일.
+// 누적처럼 읽혀 헷갈려서(사용자 지적 2026-10-16) 구간으로 이름을 붙인다. 다섯 칸의 합 = 잔액.
 const BUCKETS = [
-  { key: 'inDay30', label: '30일 이내', color: '#8FDC9A' },
-  { key: 'inDay60', label: '60일 이내', color: '#2E7D32' },
-  { key: 'inDay90', label: '90일 이내', color: '#F5A623' },
-  { key: 'inDay120', label: '120일 이내', color: '#EF6C00' },
+  { key: 'inDay30', label: '0~30일', color: '#8FDC9A' },
+  { key: 'inDay60', label: '31~60일', color: '#2E7D32' },
+  { key: 'inDay90', label: '61~90일', color: '#F5A623' },
+  { key: 'inDay120', label: '91~120일', color: '#EF6C00' },
   { key: 'outDay121', label: '121일 이상', color: '#D32F2F' },
 ] as const;
 type BucketKey = typeof BUCKETS[number]['key'];
@@ -65,13 +69,14 @@ const addTotals = (t: Totals, r: Partial<Totals>): Totals => ({
 });
 const sumRows = (rows: ReceivableAgingRow[]): Totals => rows.reduce(addTotals, { ...ZERO });
 
-// 신호등(임시 기준) — 거래처 단위로 합산한 뒤: 121일 이상 잔액 있으면 위험, 91~120일 잔액 있으면 주의, 나머지 정상.
-//   거래처별 여신기한(결제조건)을 반영한 기준은 산식 확정 후 교체.
+// 신호등(임시 기준) — 오른쪽 막대와 같은 구간으로 잔액을 나눈다(2026-10-16 사용자 요청: 왼쪽·오른쪽 숫자가 맞게).
+//   위험 = 121일 이상 · 주의 = 91~120일 · 정상 = 0~90일 잔액. 거래처 수는 그 구간에 잔액이 있는 거래처(한 거래처가 여러 구간에 셀 수 있음).
+//   아래 거래처 표의 "상태"는 거래처마다 가장 오래된 잔액으로 하나만 정한다(classify). 여신기한(결제조건) 반영 기준은 산식 확정 후 교체.
 type Signal = 'danger' | 'warn' | 'ok';
-const SIGNALS: { key: Signal; label: string; sub: string; color: string }[] = [
-  { key: 'danger', label: '위험', sub: '121일 이상 잔액 있음', color: '#D32F2F' },
-  { key: 'warn', label: '주의', sub: '91~120일 잔액 있음', color: '#F5A623' },
-  { key: 'ok', label: '정상', sub: '90일 이내만', color: '#2E7D32' },
+const SIGNALS: { key: Signal; label: string; sub: string; color: string; buckets: BucketKey[] }[] = [
+  { key: 'danger', label: '위험', sub: '121일 이상', color: '#D32F2F', buckets: ['outDay121'] },
+  { key: 'warn', label: '주의', sub: '91~120일', color: '#EF6C00', buckets: ['inDay120'] },
+  { key: 'ok', label: '정상', sub: '0~90일', color: '#2E7D32', buckets: ['inDay30', 'inDay60', 'inDay90'] },
 ];
 const classify = (t: Totals): Signal => (t.outDay121 > 0 ? 'danger' : t.inDay120 > 0 ? 'warn' : 'ok');
 
@@ -152,11 +157,13 @@ const ReceivableAgingPage = () => {
       perPartner.set(k, addTotals(perPartner.get(k) ?? { ...ZERO }, r));
     }
     const out: Record<Signal, { count: number; amount: number }> = { danger: { count: 0, amount: 0 }, warn: { count: 0, amount: 0 }, ok: { count: 0, amount: 0 } };
+    // 금액 = 그 구간 잔액의 합(오른쪽 막대와 같은 값), 거래처 수 = 그 구간에 잔액이 남아 있는 거래처
     perPartner.forEach((t) => {
-      if (t.amHjan === 0 && t.inDay30 === 0 && t.inDay60 === 0 && t.inDay90 === 0 && t.inDay120 === 0 && t.outDay121 === 0) return;
-      const s = classify(t);
-      out[s].count += 1;
-      out[s].amount += t.amHjan;
+      for (const s of SIGNALS) {
+        const amt = s.buckets.reduce((sum, b) => sum + t[b], 0);
+        out[s.key].amount += amt;
+        if (amt > 0) out[s.key].count += 1;
+      }
     });
     return out;
   }, [scopeRows]);
@@ -192,7 +199,7 @@ const ReceivableAgingPage = () => {
       const k = r.wrtDeptCd || '(없음)';
       const e = map.get(k) ?? { t: { ...ZERO }, nm: r.wrtDeptNm || r.wrtDeptCd || '(부서없음)', divs: new Set<string>(), partners: new Set<string>(), danger: new Set<string>() };
       e.t = addTotals(e.t, r);
-      e.divs.add(r.division);
+      e.divs.add(divLabel(r.division));
       map.set(k, e);
     }
     // 부서별 거래처/위험 거래처 수 — 거래처별 합산 결과(partnerRows) 기준이 아니라 부서 안에서의 거래처 합산으로 센다.
@@ -235,15 +242,15 @@ const ReceivableAgingPage = () => {
   const multiDiv = VISIBLE_DIVISIONS.length > 1;
   const balanceData = [
     ...(multiDiv ? [{ name: '전사', cur: baekman(allTotal.amHjan), prev: baekman(prevOf('ALL') ?? 0) }] : []),
-    ...VISIBLE_DIVISIONS.map((d) => ({ name: d.key, cur: baekman(byDiv[d.key].amHjan), prev: baekman(prevOf(d.key) ?? 0) })),
+    ...VISIBLE_DIVISIONS.map((d) => ({ name: d.label, cur: baekman(byDiv[d.key].amHjan), prev: baekman(prevOf(d.key) ?? 0) })),
   ];
   // 사업부별 연령분석 패널 — (전사 +) 보이는 사업부.
   const agingPanels: { key: Scope; title: string; t: Totals }[] = [
     ...(multiDiv ? [{ key: 'ALL' as Scope, title: '전사', t: allTotal }] : []),
-    ...VISIBLE_DIVISIONS.map((d) => ({ key: d.key as Scope, title: d.key, t: byDiv[d.key] })),
+    ...VISIBLE_DIVISIONS.map((d) => ({ key: d.key as Scope, title: d.label, t: byDiv[d.key] })),
   ];
-  const sectionLabel = multiDiv ? '사업부별' : VISIBLE_DIVISIONS[0]?.key ?? '';
-  const scopeLabel = scope === 'ALL' ? '전사' : scope;
+  const sectionLabel = multiDiv ? '사업부별' : VISIBLE_DIVISIONS[0]?.label ?? '';
+  const scopeLabel = scope === 'ALL' ? '전사' : divLabel(scope);
   const scopeAmount = scopeTotal.amHjan;
 
   const deptColumns: ColumnsType<DeptRow> = [
@@ -264,7 +271,7 @@ const ReceivableAgingPage = () => {
     { title: '순위', width: 60, align: 'center', render: (_, __, i) => i + 1 },
     { title: '거래처', dataIndex: 'partnerNm', ellipsis: true, render: (v: string, r) => <span title={`${r.partnerCd} ${r.bizrNo}`}>{v}</span> },
     { title: '작성부서', dataIndex: 'deptNm', width: 170, ellipsis: true },
-    ...(scope === 'ALL' ? [{ title: '사업부', dataIndex: 'division', width: 70, align: 'center' as const }] : []),
+    ...(scope === 'ALL' ? [{ title: '사업부', dataIndex: 'division', width: 90, align: 'center' as const, render: (v: string) => divLabel(v) }] : []),
     { title: '채권잔액(만원)', dataIndex: 'amHjan', width: 130, align: 'right', sorter: (a, b) => a.amHjan - b.amHjan,
       render: (v: number) => <b style={TABULAR}>{num(manwon(v))}</b> },
     ...BUCKETS.map((b) => ({
@@ -295,7 +302,7 @@ const ReceivableAgingPage = () => {
                 <Segmented<Scope>
                   value={scope}
                   onChange={(v) => setScope(v)}
-                  options={[{ label: '전사', value: 'ALL' }, ...VISIBLE_DIVISIONS.map((d) => ({ label: d.key, value: d.key }))]}
+                  options={[{ label: '전사', value: 'ALL' }, ...VISIBLE_DIVISIONS.map((d) => ({ label: d.label, value: d.key }))]}
                 />
               )}
             </div>
@@ -362,7 +369,7 @@ const ReceivableAgingPage = () => {
             <Card
               size="small"
               title={(
-                <span>위험지표 신호등 <Tooltip title="임시 기준: 거래처별 합산 잔액에서 121일 이상이 있으면 위험, 91~120일이 있으면 주의, 90일 이내만 있으면 정상. 결제조건(여신기한) 반영 기준은 산식 확정 후 교체."><InfoCircleOutlined style={{ color: '#999' }} /></Tooltip></span>
+                <span>위험지표 신호등 <Tooltip title="오른쪽 막대와 같은 구간의 잔액입니다 — 위험 121일 이상, 주의 91~120일, 정상 0~90일(세 막대의 합). 거래처 수는 그 구간에 잔액이 있는 거래처라 한 거래처가 여러 줄에 셀 수 있습니다. 임시 기준이며 결제조건(여신기한) 반영 기준은 산식 확정 후 교체."><InfoCircleOutlined style={{ color: '#999' }} /></Tooltip></span>
               )}
               style={{ height: '100%' }}
             >
@@ -371,7 +378,7 @@ const ReceivableAgingPage = () => {
                   <span style={{ width: 34, height: 34, borderRadius: '50%', background: s.color, flex: 'none', boxShadow: 'inset 0 -3px 6px rgba(0,0,0,.18)' }} />
                   <div>
                     <div style={{ fontWeight: 700, color: s.color }}>{s.label} <Text type="secondary" style={{ fontWeight: 400, fontSize: 12 }}>({s.sub})</Text></div>
-                    <div style={{ fontWeight: 600, ...TABULAR }}>{num(signals[s.key].count)} 개 · {(signals[s.key].amount / 1e8).toFixed(1)} 억</div>
+                    <div style={{ fontWeight: 600, ...TABULAR }}>{num(signals[s.key].count)} 곳 · {(signals[s.key].amount / 1e8).toFixed(1)} 억</div>
                   </div>
                 </div>
               ))}
