@@ -24,6 +24,7 @@ const pathLabels: Record<string, string> = {
   '/production/schedule': '생산일정현황',
   '/production/lifecycle': '주문 타임라인',
   '/production/work-order': '작업지시서',
+  '/notices': '공지사항',
   '/tools/pdf': 'PDF 변환',
   '/admin/users': '사용자 관리',
   '/admin/departments': '부서 관리',

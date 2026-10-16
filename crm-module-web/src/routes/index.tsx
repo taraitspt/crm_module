@@ -64,6 +64,7 @@ const AppDownloadPage = lazy(() => import('@/pages/mobile/AppDownloadPage'));
 
 // 도구
 const PdfConverterPage = lazy(() => import('@/pages/tools/PdfConverterPage'));
+const NoticePage = lazy(() => import('@/pages/notice/NoticePage'));
 
 // 권한
 const UserAdminPage = lazy(() => import('@/pages/admin/UserAdminPage'));
@@ -305,6 +306,11 @@ const router = createBrowserRouter([
   {
     path: '/production/work-order/:orderNo/:sq',
     element: <Protected><WorkOrderPage /></Protected>,
+  },
+  // 공지사항 — 읽기 전원, 쓰기 ADMIN(서버에서 막음)
+  {
+    path: '/notices',
+    element: <Protected><NoticePage /></Protected>,
   },
   // 도구 — 파일 PDF 변환 (전 직원)
   {

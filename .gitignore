@@ -170,3 +170,6 @@ deploy/secret/
 !crm-module-web/android/app/src/main/res/**/*.png
 !crm-module-web/assets/*.png
 !crm-module-web/android/gradle/wrapper/gradle-wrapper.jar
+
+# 첨부파일 저장소(공지 첨부 등) — 로컬·서버 데이터, 커밋하지 않는다
+crm-module-api/uploads/

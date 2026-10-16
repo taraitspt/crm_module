@@ -11,6 +11,7 @@ import { logout as logoutApi } from '@/api/auth.api';
 import { useMenuAccess } from '@/hooks/useMenuAccess';
 import type { AppMenuItem } from '@/components/layout/menuItems';
 import FollowUpBell from '@/components/layout/FollowUpBell';
+import NoticePopup from '@/components/notice/NoticePopup';
 import Logo from '@/components/common/Logo';
 import { T } from '@/theme/designTokens';
 import { useInstallPrompt } from './mobileKit';
@@ -257,6 +258,8 @@ const MobileLayout: React.FC = () => {
           </Suspense>
         )}
       </main>
+      {/* 공지 팝업 — PC 와 같은 컴포넌트, 팝업 기간 안인 공지를 접속마다 한 번 */}
+      <NoticePopup />
 
       {/* 하단 탭 */}
       <nav style={{

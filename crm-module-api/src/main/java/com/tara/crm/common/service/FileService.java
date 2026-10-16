@@ -60,13 +60,13 @@ public class FileService {
         return saveFile(file, "untact", b -> b.untactNo(untactNo));
     }
 
-    /** 공지사항(notices.id) 첨부 업로드 — 최대 500MB. 권한(ADMIN/지정부서) 체크는 NoticeService 에서. */
+    /** CRM 공지사항(notice.notice_id, V165) 첨부 업로드 — file_category='NOTICE' 로 표시해 옛 SM 공지 첨부와 섞이지 않게. 권한·형식 검사는 NoticeService 에서. */
     @Transactional
     public FileInfo uploadForNotice(MultipartFile file, Long noticeId) throws IOException {
         if (file == null || file.isEmpty()) {
             throw new BusinessException(ErrorCode.INVALID_INPUT, "첨부파일이 비어 있습니다.");
         }
-        return saveFile(file, "notice", b -> b.noticeId(noticeId));
+        return saveFile(file, "notice", b -> b.noticeId(noticeId).fileCategory("NOTICE"));
     }
 
     /** 공지사항 첨부 목록. */

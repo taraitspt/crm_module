@@ -3,6 +3,7 @@ import { Layout, Drawer, Grid } from 'antd';
 import AppHeader from './AppHeader';
 import { SidebarContent } from './AppSidebar';
 import AppBreadcrumb from './Breadcrumb';
+import NoticePopup from '@/components/notice/NoticePopup';
 import { useUiStore } from '@/store/uiStore';
 import { T } from '@/theme/designTokens';
 
@@ -53,6 +54,8 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children }) => {
         }}
       >
         <AppHeader />
+        {/* 공지 팝업 — 팝업 기간 안인 공지를 접속마다 한 번 */}
+        <NoticePopup />
         <Content style={{
           padding: isDesktop ? '22px 20px' : '16px 12px',
           width: '100%',

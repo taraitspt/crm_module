@@ -7,6 +7,7 @@ import {
   FilePdfOutlined,
   BuildOutlined,
   FundOutlined,
+  NotificationOutlined,
 } from '@ant-design/icons';
 import type { Role } from '@/types/auth';
 
@@ -107,6 +108,8 @@ export const MENU_ITEMS: AppMenuItem[] = [
   //     { key: '/stats/vendor-margin', label: '거래처별 외주 마진율' },
   //   ],
   // },
+  // 공지사항 게시판(2026-10-16) — 업데이트 안내. 팝업 기간을 정하면 로그인 후 팝업(NoticePopup). 쓰기는 ADMIN.
+  { key: '/notices', icon: <NotificationOutlined />, label: '공지사항' },
   { key: '/tools/pdf', icon: <FilePdfOutlined />, label: 'PDF 변환' },
   {
     key: 'admin',
