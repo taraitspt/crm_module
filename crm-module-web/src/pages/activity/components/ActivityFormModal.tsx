@@ -9,6 +9,7 @@ import { dealApi } from '@/api/deal.api';
 import { stageMeta } from '@/types/deal';
 import { ACTIVITY_TYPES } from '@/types/activity';
 import type { ActivityItem, ActivitySaveRequest, ActivityType } from '@/types/activity';
+import { useAuthStore } from '@/store/authStore';
 
 interface Props {
   open: boolean;
@@ -20,7 +21,7 @@ interface Props {
   defaultPartner?: { partnerCd: string; partnerNm?: string | null };
   /** 신규 등록 시 기본 수주 추진 (파이프라인에서 '활동' 버튼으로 등록) */
   defaultDealId?: number | null;
-  /** 신규 등록 시 기본 담당자 (모바일 앱은 로그인 사용자) */
+  /** 신규 등록 시 기본 담당자 — 없으면 로그인 사용자(PC·모바일 공통, 2026-10-16). 다른 사람 것을 넣을 땐 바꾸면 된다 */
   defaultSalesEmpId?: string;
   onClose: () => void;
   onSaved: () => void;
@@ -44,6 +45,7 @@ export default function ActivityFormModal({
   open, editing, defaultDate, defaultPartner, defaultDealId, defaultSalesEmpId, onClose, onSaved,
 }: Props) {
   const [form] = Form.useForm<FormValues>();
+  const loginUserId = useAuthStore((st) => st.user?.id);
   const [saving, setSaving] = useState(false);
   const [partnerKeyword, setPartnerKeyword] = useState('');
   // 선택된 거래처의 수주 추진만 후보로 보여준다 — 딜과 활동이 따로 놀지 않게.
@@ -109,13 +111,13 @@ export default function ActivityFormModal({
       form.setFieldsValue({
         activityDt: defaultDate ? dayjs(defaultDate) : dayjs(),
         activityType: 'VISIT',
-        salesEmpId: defaultSalesEmpId,
+        salesEmpId: defaultSalesEmpId ?? loginUserId,
         partnerCd: defaultPartner?.partnerCd,
         dealId: defaultDealId ?? null,
       });
     }
     setPartnerKeyword('');
-  }, [open, editing, defaultDate, defaultPartner, defaultDealId, defaultSalesEmpId, form]);
+  }, [open, editing, defaultDate, defaultPartner, defaultDealId, defaultSalesEmpId, loginUserId, form]);
 
   const handleOk = async () => {
     let v: FormValues;

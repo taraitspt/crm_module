@@ -61,7 +61,8 @@ if ($doWeb) {
 $remote = @()
 if ($doWeb) {
   $remote += 'tar -xzf /tmp/crm-release/dist.tgz -C /tmp/crm-release/dist'
-  $remote += 'sudo rsync -a --delete --exclude downloads/ /tmp/crm-release/dist/ /var/www/crm/   # downloads/(운영 APK)는 지우지 않는다'
+  # downloads/(운영 APK)는 지우지 않는다. 설명은 서버 명령 안이 아니라 여기처럼 PowerShell 주석으로 단다.
+  $remote += 'sudo rsync -a --delete --exclude downloads/ /tmp/crm-release/dist/ /var/www/crm/'
   $remote += 'sudo chown -R www-data:www-data /var/www/crm'
   $remote += 'echo "[web] 교체 완료"'
 }
@@ -73,7 +74,15 @@ if ($doApi) {
 }
 $remote += 'rm -rf /tmp/crm-release'
 Step '서버에서 교체'
-& ssh @sshOpt $Server ($remote -join ' && ')
+# 서버 명령은 스크립트 파일로 올려 bash 로 돌린다 — ssh 인자로 한 줄을 넘기면 Windows PowerShell 5.1 이 큰따옴표를 벗겨 버리고
+# ("[api] UP (약 ..초)" 의 괄호에서 bash 문법 오류, 2026-10-16), ' && ' 로 이으면 줄 안의 # 가 뒤를 전부 주석으로 만든다.
+# set -e 로 한 줄이라도 실패하면 거기서 멈춘다. 줄바꿈은 LF, BOM 없는 UTF-8 로 쓴다.
+$sh = Join-Path $env:TEMP 'crm-remote.sh'
+$body = (@('set -e') + $remote) -join "`n"
+[System.IO.File]::WriteAllText($sh, $body + "`n", (New-Object System.Text.UTF8Encoding($false)))
+& scp @sshOpt $sh "${Server}:/tmp/crm-release/remote.sh"; if ($LASTEXITCODE -ne 0) { throw '서버 스크립트 복사 실패' }
+Remove-Item $sh -ErrorAction SilentlyContinue
+& ssh @sshOpt $Server 'bash /tmp/crm-release/remote.sh'
 if ($LASTEXITCODE -ne 0) { throw '서버 교체 단계 실패' }
 
 Step '확인'

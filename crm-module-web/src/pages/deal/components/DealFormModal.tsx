@@ -7,6 +7,7 @@ import { salesPlanApi } from '@/api/salesPlan.api';
 import { dealApi } from '@/api/deal.api';
 import { STAGES, stageMeta } from '@/types/deal';
 import type { DealItem, DealSaveRequest, DealStage } from '@/types/deal';
+import { useAuthStore } from '@/store/authStore';
 
 interface Props {
   open: boolean;
@@ -31,6 +32,7 @@ interface FormValues {
 /** 추진 건 등록·수정 모달. 단계를 바꾸면 확률이 그 단계 기본값으로 따라간다. */
 export default function DealFormModal({ open, editing, defaultPartner, onClose, onSaved }: Props) {
   const [form] = Form.useForm<FormValues>();
+  const loginUserId = useAuthStore((st) => st.user?.id);
   const [saving, setSaving] = useState(false);
   const [partnerKeyword, setPartnerKeyword] = useState('');
   const stage = Form.useWatch('stage', form);
@@ -76,11 +78,13 @@ export default function DealFormModal({ open, editing, defaultPartner, onClose, 
         stage: 'LEAD',
         probability: stageMeta('LEAD').probability,
         partnerCd: defaultPartner?.partnerCd,
+        // 담당자 기본 = 로그인 사용자(2026-10-16) — 다른 사람 건이면 바꾼다
+        salesEmpId: loginUserId,
         expectedAmt: 0,
       });
     }
     setPartnerKeyword('');
-  }, [open, editing, defaultPartner, form]);
+  }, [open, editing, defaultPartner, loginUserId, form]);
 
   const handleOk = async () => {
     let v: FormValues;
