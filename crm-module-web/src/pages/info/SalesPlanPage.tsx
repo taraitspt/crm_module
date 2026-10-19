@@ -44,6 +44,10 @@ export default function SalesPlanPage() {
   /** 조회 조건 — 부서·담당자 여러 개(사용자 2026-10-19). 선택지는 이 해 계획이 있는 부서·담당자만. 비우면 전체 */
   const [deptCds, setDeptCds] = useState<number[]>([]);
   const [empIds, setEmpIds] = useState<string[]>([]);
+  /** 볼 월 — 비우면 1~12월 전체(기본). 고르면 그 월 열만, 그 월에 계획이 있는 거래처만(새로 추가한 행은 항상) */
+  const [pickMonths, setPickMonths] = useState<MonthCd[]>([]);
+  const shownMonths = useMemo<MonthCd[]>(() => (pickMonths.length ? MONTHS.filter((m) => pickMonths.includes(m)) : [...MONTHS]), [pickMonths]);
+  const allMonths = shownMonths.length === MONTHS.length;
   const [rows, setRows] = useState<SalesPlanRow[]>([]);
   /** 로드 시점에 존재하던 담당자 — 행을 전부 지워도 저장 시 교체 대상에 포함시키기 위해 기억 */
   const [loadedEmpIds, setLoadedEmpIds] = useState<string[]>([]);
@@ -89,7 +93,7 @@ export default function SalesPlanPage() {
     setDirty(true);
   };
 
-  /** 증감사유(월 메모) — 금액처럼 화면에서 고치고 [저장]으로 같이 저장된다 */
+  /** 매출 이월/증감 사유(월 메모) — 금액처럼 화면에서 고치고 [저장]으로 같이 저장된다 */
   const updateMemo = (key: string, mm: MonthCd, memo: string) => {
     setRows((prev) => prev.map((r) => (rowKey(r) !== key ? r
       : { ...r, months: r.months.map((m) => (m.planMm === mm ? { ...m, memo: memo || null } : m)) })));
@@ -100,13 +104,26 @@ export default function SalesPlanPage() {
     const m = r.months.find((x) => x.planMm === mm);
     return (m?.laborAmt ?? 0) + (m?.paperAmt ?? 0);
   };
+  /** 행 합계 — 보이는 월(shownMonths)만 더한다 */
   const rowTotal = (r: SalesPlanRow, field?: AmtField) =>
-    r.months.reduce((s, m) => s + (field ? (m[field] ?? 0) : (m.laborAmt ?? 0) + (m.paperAmt ?? 0)), 0);
+    r.months.filter((m) => shownMonths.includes(m.planMm as MonthCd))
+      .reduce((s, m) => s + (field ? (m[field] ?? 0) : (m.laborAmt ?? 0) + (m.paperAmt ?? 0)), 0);
 
   const passes = (r: SalesPlanRow) =>
     (!deptCds.length || (r.deptCd != null && deptCds.includes(r.deptCd)))
     && (!empIds.length || empIds.includes(r.salesEmpId));
-  const visibleRows = useMemo(() => rows.filter(passes), [rows, deptCds, empIds]);
+  // 월을 고르면 "조회해 온 값" 기준으로 그 월 계획이 0원인 거래처를 뺀다. 입력 중인 값으로 판단하면
+  // 금액을 지우거나 0으로 고치는 순간 줄이 사라져서(사용자 확인 2026-10-19), 조회 시점 값으로만 거른다. 새로 추가한 행은 항상 보인다.
+  const hiddenByMonth = useMemo(() => {
+    const set = new Set<string>();
+    if (allMonths) return set;
+    (data ?? []).forEach((r) => {
+      if (!shownMonths.some((mm) => monthTotal(r, mm) > 0)) set.add(rowKey(r));
+    });
+    return set;
+  }, [data, shownMonths, allMonths]);
+  const visibleRows = useMemo(() => rows.filter((r) => passes(r) && !hiddenByMonth.has(rowKey(r))),
+    [rows, deptCds, empIds, hiddenByMonth]);
   // 선택지 — 지금 화면의 행(새로 추가한 행 포함)에 있는 부서·담당자만. 담당자는 고른 부서 안에서
   const deptOptions = useMemo(() => {
     const m = new Map<number, string>();
@@ -129,7 +146,7 @@ export default function SalesPlanPage() {
 
   /** 하단 합계 — 전체 행의 월별 공임/용지/합계와 연합계. */
   const totals = useMemo(() => {
-    const byMonth = MONTHS.map((mm) => {
+    const byMonth = shownMonths.map((mm) => {
       const labor = visibleRows.reduce((s, r) => s + (r.months.find((x) => x.planMm === mm)?.laborAmt ?? 0), 0);
       const paper = visibleRows.reduce((s, r) => s + (r.months.find((x) => x.planMm === mm)?.paperAmt ?? 0), 0);
       return { mm, labor, paper, sum: labor + paper };
@@ -137,7 +154,7 @@ export default function SalesPlanPage() {
     const labor = byMonth.reduce((s, m) => s + m.labor, 0);
     const paper = byMonth.reduce((s, m) => s + m.paper, 0);
     return { byMonth, labor, paper, sum: labor + paper };
-  }, [visibleRows]);
+  }, [visibleRows, shownMonths]);
 
   const searchPartners = async (kw: string) => {
     setSearching(true);
@@ -219,16 +236,16 @@ export default function SalesPlanPage() {
   const handleDownloadExcel = () => {
     const header1: (string | number)[] = ['부서', '담당자', '거래처코드', '거래처명'];
     const header2: (string | number)[] = ['', '', '', ''];
-    MONTHS.forEach((mm) => {
+    shownMonths.forEach((mm) => {
       header1.push(`${parseInt(mm, 10)}월`, '', '');
       header2.push('공임', '용지', '합계');
     });
-    header1.push('연합계', '', '');
+    header1.push(allMonths ? '연합계' : '선택 월 합계', '', '');
     header2.push('공임', '용지', '합계');
     const aoa: (string | number)[][] = [header1, header2];
     visibleRows.forEach((r) => {
       const line: (string | number)[] = [r.deptNm ?? '', r.empNm, r.partnerCd, r.partnerNm ?? ''];
-      MONTHS.forEach((mm) => {
+      shownMonths.forEach((mm) => {
         const m = r.months.find((x) => x.planMm === mm);
         line.push(m?.laborAmt ?? 0, m?.paperAmt ?? 0, monthTotal(r, mm));
       });
@@ -245,16 +262,16 @@ export default function SalesPlanPage() {
     const ws = XLSX.utils.aoa_to_sheet(aoa);
     const merges: XLSX.Range[] = [];
     for (let i = 0; i < 4; i += 1) merges.push({ s: { r: 0, c: i }, e: { r: 1, c: i } });
-    for (let i = 0; i < 13; i += 1) merges.push({ s: { r: 0, c: 4 + i * 3 }, e: { r: 0, c: 6 + i * 3 } });
+    for (let i = 0; i < shownMonths.length + 1; i += 1) merges.push({ s: { r: 0, c: 4 + i * 3 }, e: { r: 0, c: 6 + i * 3 } });
     ws['!merges'] = merges;
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, '월매출계획');
-    // 증감사유(월 메모)는 별도 시트
-    const memoAoa: (string | number)[][] = [['부서', '담당자', '거래처코드', '거래처명', '월', '증감사유']];
+    // 매출 이월/증감 사유(월 메모)는 별도 시트
+    const memoAoa: (string | number)[][] = [['부서', '담당자', '거래처코드', '거래처명', '월', '매출 이월/증감 사유']];
     visibleRows.forEach((r) => r.months.forEach((m) => {
-      if (m.memo) memoAoa.push([r.deptNm ?? '', r.empNm, r.partnerCd, r.partnerNm ?? '', `${parseInt(m.planMm, 10)}월`, m.memo]);
+      if (m.memo && shownMonths.includes(m.planMm as MonthCd)) memoAoa.push([r.deptNm ?? '', r.empNm, r.partnerCd, r.partnerNm ?? '', `${parseInt(m.planMm, 10)}월`, m.memo]);
     }));
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(memoAoa), '증감사유');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(memoAoa), '매출 이월·증감 사유');
     XLSX.writeFile(wb, `월매출계획_${year}년.xlsx`);
   };
 
@@ -278,7 +295,7 @@ export default function SalesPlanPage() {
       render: (_, r) => (isVirtual(r.partnerCd) ? <Tag color="gold" style={{ marginInlineEnd: 0 }}>신규</Tag> : <Text type="secondary">{r.partnerCd}</Text>) },
     { title: '거래처명', key: 'partnerNm', width: 160, fixed: 'left', ellipsis: true,
       render: (_, r) => r.partnerNm ?? '-' },
-    ...MONTHS.map((mm) => ({
+    ...shownMonths.map((mm) => ({
       title: `${parseInt(mm, 10)}월`,
       key: `m${mm}`,
       children: [
@@ -288,7 +305,6 @@ export default function SalesPlanPage() {
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
             <MemoButton
               memo={r.months.find((x) => x.planMm === mm)?.memo}
-              title={`${r.partnerNm ?? r.partnerCd} · ${parseInt(mm, 10)}월 증감사유`}
               onSave={(m) => updateMemo(rowKey(r), mm, m)}
             />
             <Text className="tabular-nums">{fmtNum(monthTotal(r, mm))}</Text>
@@ -297,7 +313,7 @@ export default function SalesPlanPage() {
       ],
     })),
     {
-      title: '연합계',
+      title: allMonths ? '연합계' : '선택 월 합계',
       key: 'total',
       fixed: 'right',
       children: [
@@ -339,6 +355,11 @@ export default function SalesPlanPage() {
               onChange={(v: string[]) => setEmpIds(v)}
               filterOption={(input, opt) => ((opt?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())} />
           </Col>
+          <Col>
+            <Select mode="multiple" allowClear maxTagCount="responsive" placeholder="1~12월 전체" value={pickMonths} style={{ width: 200 }}
+              options={MONTHS.map((m) => ({ value: m, label: `${parseInt(m, 10)}월` }))}
+              onChange={(v: MonthCd[]) => setPickMonths(v)} />
+          </Col>
           <Col style={{ marginLeft: 'auto' }}>
             <Space>
               {dirty && <Text type="warning" style={{ fontSize: 12 }}>저장되지 않은 변경이 있습니다</Text>}
@@ -359,11 +380,12 @@ export default function SalesPlanPage() {
         pagination={false}
         size="small"
         bordered
-        scroll={{ x: 4400, y: 'calc(100vh - 300px)' }}
+        // 가로 폭 = 보이는 열 합(왼쪽 4열 430 + 월마다 300 + 합계 340 + 삭제 44). 고정값(4400)이면 월을 골랐을 때 남는 폭이 합계 열로 몰려 담당자·월 열이 밀려났다
+        scroll={{ x: 430 + shownMonths.length * 300 + 340 + 44, y: 'calc(100vh - 300px)' }}
         locale={{ emptyText: '“거래처 추가” 버튼으로 담당자와 거래처를 골라 행을 만드세요.' }}
         summary={() => {
           if (visibleRows.length === 0) return null;
-          // 합계 셀은 leaf 컬럼 순서대로: [부서·담당자·거래처·거래처명](4) → 월 36 → 연합계 3 → 삭제 1
+          // 합계 셀은 leaf 컬럼 순서대로: [부서·담당자·거래처·거래처명](4) → 보이는 월 × 3 → 연합계 3 → 삭제 1
           const cells = [
             <Table.Summary.Cell key="label" index={0} colSpan={4}>
               <Text strong>합계 ({visibleRows.length}건)</Text>

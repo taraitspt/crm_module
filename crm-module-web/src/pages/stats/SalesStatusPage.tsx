@@ -170,13 +170,13 @@ export default function SalesStatusPage() {
   });
   const allRows = useMemo(() => data?.rows ?? [], [data]);
 
-  // 증감사유(월 메모) 저장 — 저장 뒤 화면 데이터만 고쳐 다시 조회하지 않는다(ERP 실적 조회가 느려서)
+  // 매출 이월/증감 사유(월 메모) 저장 — 저장 뒤 화면 데이터만 고쳐 다시 조회하지 않는다(ERP 실적 조회가 느려서)
   const qc = useQueryClient();
   const saveMemo = async (r: SalesStatusRow, mm: string, memo: string) => {
     try {
       await salesPlanApi.saveMemo({ planYy: String(year), planMm: mm, salesEmpId: r.salesEmpId, partnerCd: r.partnerCd, memo });
     } catch (e) {
-      message.error('증감사유를 저장하지 못했습니다. 월매출계획 수정 권한이 있는지 확인해 주세요.');
+      message.error('매출 이월/증감 사유를 저장하지 못했습니다. 월매출계획 수정 권한이 있는지 확인해 주세요.');
       throw e;
     }
     qc.setQueryData(['sales-status', year, plantCd], (old: typeof data) => (old == null ? old : {
@@ -186,7 +186,7 @@ export default function SalesStatusPage() {
         : x)),
     }));
     void qc.invalidateQueries({ queryKey: ['sales-plan'] });
-    message.success('증감사유를 저장했습니다.');
+    message.success('매출 이월/증감 사유를 저장했습니다.');
   };
 
   // 부서 선택지 = 월매출계획에 실제로 나오는 부서만(사용자 2026-10-19) — 계획은 담당자의 소속(팀)으로 잡히므로
@@ -263,23 +263,22 @@ export default function SalesStatusPage() {
     [rows, visibleMonths, year, thisYear, thisMonth],
   );
 
-  /** 부서별 / 담당자별 집계 — order 가 있으면 그 값 오름차순, 없으면 계획 큰 순. */
-  const groupBy = (pick: (r: FlatRow) => string, order?: (r: FlatRow) => number): Agg[] => {
-    const map = new Map<string, { plan: number; actual: number; ord: number }>();
+  /** 부서별 / 담당자별 집계 — byName 이면 이름 순, 아니면 계획 큰 순. */
+  const groupBy = (pick: (r: FlatRow) => string, byName = false): Agg[] => {
+    const map = new Map<string, { plan: number; actual: number }>();
     flatRows.filter((f) => f.line === 'plan').forEach((f) => {
       const k = pick(f) || '-';
-      const cur = map.get(k) ?? { plan: 0, actual: 0, ord: Number.MAX_SAFE_INTEGER };
+      const cur = map.get(k) ?? { plan: 0, actual: 0 };
       cur.plan += f.plan;
       cur.actual += f.actual;
-      if (order) cur.ord = Math.min(cur.ord, order(f));
       map.set(k, cur);
     });
     return [...map.entries()]
-      .sort((a, b) => (order ? a[1].ord - b[1].ord : b[1].plan - a[1].plan))
+      .sort((a, b) => (byName ? a[0].localeCompare(b[0], 'ko', { numeric: true }) : b[1].plan - a[1].plan))
       .map(([name, v]) => ({ name, plan: v.plan, actual: v.actual, rate: rate(v.actual, v.plan) }));
   };
-  // 부서는 부서코드 순(수주1팀·2팀·3팀이 차례대로 — 사용자 2026-10-19). 코드 없는 행은 맨 뒤
-  const byDept = useMemo(() => groupBy((f) => f.src.deptNm ?? '-', (f) => f.src.deptCd ?? Number.MAX_SAFE_INTEGER), [flatRows]);
+  // 부서는 이름 순 = 수주1·2·3팀 → 해외영업1·2팀(사용자 2026-10-19). 부서코드 순은 수주3팀(4710)이 2팀(4720)보다 앞이라 안 맞음
+  const byDept = useMemo(() => groupBy((f) => f.src.deptNm ?? '-', true), [flatRows]);
   const byEmp = useMemo(() => groupBy((f) => f.src.empNm), [flatRows]);
 
   /** 거래처 순위 — 계획이 있는 행만(달성률 정의가 되는 행). */
@@ -352,7 +351,7 @@ export default function SalesStatusPage() {
         const under = p > 0 && v < p;
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-            <MemoButton memo={mo?.memo} title={`${f.src.partnerNm ?? f.src.partnerCd} · ${parseInt(mm, 10)}월 증감사유`} onSave={(m) => saveMemo(f.src, mm, m)} />
+            <MemoButton memo={mo?.memo} onSave={(m) => saveMemo(f.src, mm, m)} />
             <Text className="tabular-nums" style={{ color: under ? T.er : undefined }}>{fmtNum(v)}</Text>
           </span>
         );
@@ -499,6 +498,43 @@ export default function SalesStatusPage() {
         </Col>
       </Row>
     </>
+  );
+
+  /** 매출 이월/증감 사유 한눈에 — 조회 조건(부서·담당자·기간) 안에서 메모가 있는 거래처 × 월 */
+  interface MemoLine { key: string; mm: string; src: SalesStatusRow; plan: number; actual: number; memo: string }
+  const memoLines = useMemo<MemoLine[]>(() => {
+    const list: MemoLine[] = [];
+    visibleMonths.forEach((mm) => rows.forEach((r) => {
+      const m = r.months.find((x) => x.planMm === mm);
+      if (m?.memo) list.push({ key: `${r.salesEmpId}|${r.partnerCd}|${mm}`, mm, src: r, plan: m.planAmt ?? 0, actual: m.actualAmt ?? 0, memo: m.memo });
+    }));
+    return list;
+  }, [rows, visibleMonths]);
+  const memoTable = (
+    <Table<MemoLine>
+      size="small"
+      rowKey="key"
+      dataSource={memoLines}
+      pagination={false}
+      locale={{ emptyText: '이 기간에 적힌 매출 이월/증감 사유가 없습니다. 상세 탭 실적 칸의 말풍선 아이콘으로 적을 수 있습니다.' }}
+      columns={[
+        { title: '월', key: 'mm', width: 60, render: (_, l) => `${parseInt(l.mm, 10)}월` },
+        { title: '부서', key: 'dept', width: 110, render: (_, l) => l.src.deptNm ?? '-' },
+        { title: '담당자', key: 'emp', width: 90, render: (_, l) => l.src.empNm },
+        { title: '거래처', key: 'partner', width: 220, ellipsis: true, render: (_, l) => l.src.partnerNm ?? l.src.partnerCd },
+        { title: '계획', key: 'plan', width: 120, align: 'right', render: (_, l) => <Text className="tabular-nums">{fmtNum(l.plan)}</Text> },
+        { title: '실적', key: 'actual', width: 120, align: 'right', render: (_, l) => <Text className="tabular-nums">{fmtNum(l.actual)}</Text> },
+        { title: '차이', key: 'gap', width: 120, align: 'right',
+          render: (_, l) => { const g = l.actual - l.plan; return <Text className="tabular-nums" style={{ color: g < 0 ? T.er : '#1e40af' }}>{g > 0 ? '+' : ''}{fmtNum(g)}</Text>; } },
+        { title: '매출 이월/증감 사유', key: 'memo',
+          render: (_, l) => (
+            <span style={{ display: 'inline-flex', alignItems: 'flex-start', gap: 6 }}>
+              <MemoButton memo={l.memo} onSave={(m) => saveMemo(l.src, l.mm, m)} />
+              <span style={{ whiteSpace: 'pre-wrap' }}>{l.memo}</span>
+            </span>
+          ) },
+      ]}
+    />
   );
 
   const detailTable = (
@@ -670,6 +706,7 @@ export default function SalesStatusPage() {
               : dashboard,
           },
           { key: 'detail', label: '상세', children: detailTable },
+          { key: 'memo', label: `매출 이월/증감 사유${memoLines.length ? ` (${memoLines.length})` : ''}`, children: memoTable },
         ]}
       />
 

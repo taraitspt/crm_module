@@ -28,7 +28,7 @@ export const salesPlanApi = {
     await apiClient.put(BASE, payload);
   },
 
-  /** 증감사유(월 메모) 한 칸 저장 — 금액은 그대로 */
+  /** 매출 이월/증감 사유(월 메모) 한 칸 저장 — 금액은 그대로 */
   saveMemo: async (payload: { planYy: string; planMm: string; salesEmpId: string; partnerCd: string; memo: string }) => {
     await apiClient.put(`${BASE}/memo`, payload);
   },

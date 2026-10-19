@@ -4,7 +4,7 @@ export interface SalesPlanMonth {
   planMm: string;
   laborAmt: number;
   paperAmt: number;
-  /** 증감사유(월 메모) */
+  /** 매출 이월/증감 사유(월 메모) */
   memo?: string | null;
 }
 
@@ -40,7 +40,7 @@ export interface SalesStatusMonth {
   planPaperAmt: number;
   /** ERP 매출전표에는 공임/용지 구분이 없어 합계만 내려온다. */
   actualAmt: number;
-  /** 증감사유(월 메모) */
+  /** 매출 이월/증감 사유(월 메모) */
   memo?: string | null;
 }
 

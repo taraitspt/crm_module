@@ -1,22 +1,18 @@
 import { useState } from 'react';
-import { Button, Input, Popover, Space, Tooltip, Typography } from 'antd';
+import { Button, Input, Popover, Space, Tooltip } from 'antd';
 import { MessageFilled, MessageOutlined } from '@ant-design/icons';
-
-const { Text } = Typography;
 
 interface Props {
   memo?: string | null;
-  /** 창 제목 — 예: "DNP · 3월 증감사유" */
-  title: string;
   /** 없으면 읽기 전용(메모가 있을 때만 아이콘, 마우스 올리면 내용) */
   onSave?: (memo: string) => Promise<void> | void;
 }
 
 /**
- * 거래처 × 월 증감사유(월 메모) 아이콘. 메모가 있으면 채운 아이콘 + 마우스 올리면 내용,
+ * 거래처 × 월 매출 이월/증감 사유(월 메모) 아이콘. 메모가 있으면 채운 아이콘 + 마우스 올리면 내용,
  * 누르면 입력 창(onSave 가 있을 때). 월매출계획·매출현황(계획 대비) 공용.
  */
-export default function MemoButton({ memo, title, onSave }: Props) {
+export default function MemoButton({ memo, onSave }: Props) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState('');
   const [saving, setSaving] = useState(false);
@@ -52,7 +48,6 @@ export default function MemoButton({ memo, title, onSave }: Props) {
       trigger="click"
       open={open}
       onOpenChange={(v) => { if (v) setDraft(memo ?? ''); setOpen(v); }}
-      title={title}
       content={(
         <div style={{ width: 280 }}>
           <Input.TextArea
@@ -73,7 +68,7 @@ export default function MemoButton({ memo, title, onSave }: Props) {
     >
       {has
         ? <Tooltip title={open ? undefined : <span style={{ whiteSpace: 'pre-wrap' }}>{memo}</span>}><span style={{ cursor: 'pointer' }}>{icon}</span></Tooltip>
-        : <Tooltip title={open ? undefined : <Text style={{ color: '#fff', fontSize: 12 }}>증감사유 메모</Text>}><span style={{ cursor: 'pointer' }}>{icon}</span></Tooltip>}
+        : <span style={{ cursor: 'pointer' }}>{icon}</span>}
     </Popover>
   );
 }
