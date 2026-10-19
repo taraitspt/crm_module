@@ -152,6 +152,8 @@ export default function SalesStatusPage() {
   const [year, setYear] = useState(thisYear);
   /** 부서·담당자 — 여러 개 고를 수 있다(사용자 2026-10-19). 비우면 전체. */
   const [deptCds, setDeptCds] = useState<number[]>([]);
+  /** 본부 — 여러 개, 비우면 전체(사용자 2026-10-19). 부서 선택지는 고른 본부 안에서 */
+  const [hqCds, setHqCds] = useState<number[]>([]);
   const [empIds, setEmpIds] = useState<string[]>([]);
   const [fromMm, setFromMm] = useState(1);
   // 기본은 연초~당월. 연중에 12월까지 잡으면 아직 안 지난 달이 실적 0 으로 섞여 달성률이 낮게 보인다.
@@ -191,22 +193,35 @@ export default function SalesStatusPage() {
 
   // 부서 선택지 = 월매출계획에 실제로 나오는 부서만(사용자 2026-10-19) — 계획은 담당자의 소속(팀)으로 잡히므로
   // 본부·임원 같은 상위 부서는 안 나온다. 담당자 선택지 = 고른 부서 안의 계획 담당자.
-  const deptOptions = useMemo(() => {
-    const m = new Map<number, string>();
-    allRows.forEach((r) => { if (r.deptCd != null) m.set(r.deptCd, r.deptNm || String(r.deptCd)); });
-    return [...m.entries()].sort((x, y) => x[1].localeCompare(y[1], 'ko')).map(([value, label]) => ({ value, label }));
+  const inHq = (r: SalesStatusRow) => !hqCds.length || (r.hqCd != null && hqCds.includes(r.hqCd));
+  const hqOptions = useMemo(() => {
+    const m = new Map<number, { label: string; sort: number }>();
+    allRows.forEach((r) => { if (r.hqCd != null) m.set(r.hqCd, { label: r.hqNm || String(r.hqCd), sort: r.hqSort ?? r.hqCd }); });
+    return [...m.entries()].sort((x, y) => x[1].sort - y[1].sort).map(([value, v]) => ({ value, label: v.label }));
   }, [allRows]);
+  /** 부서 → 본부 순서(본부별로 묶어 보여 줄 때) */
+  const deptHqSort = useMemo(() => {
+    const m = new Map<string, number>();
+    allRows.forEach((r) => { if (r.deptNm) m.set(r.deptNm, r.hqSort ?? r.hqCd ?? 1e9); });
+    return m;
+  }, [allRows]);
+  const deptOptions = useMemo(() => {
+    const m = new Map<number, { label: string; sort: number }>();
+    allRows.forEach((r) => { if (r.deptCd != null && inHq(r)) m.set(r.deptCd, { label: r.deptNm || String(r.deptCd), sort: r.hqSort ?? r.hqCd ?? 1e9 }); });
+    return [...m.entries()].sort((x, y) => (x[1].sort - y[1].sort) || x[1].label.localeCompare(y[1].label, 'ko', { numeric: true }))
+      .map(([value, v]) => ({ value, label: v.label }));
+  }, [allRows, hqCds]);
   const userOptions = useMemo(() => {
     const m = new Map<string, string>();
     allRows.forEach((r) => {
-      if (!r.salesEmpId || (deptCds.length && (r.deptCd == null || !deptCds.includes(r.deptCd)))) return;
+      if (!r.salesEmpId || !inHq(r) || (deptCds.length && (r.deptCd == null || !deptCds.includes(r.deptCd)))) return;
       m.set(r.salesEmpId, r.empNm || r.salesEmpId);
     });
     return [...m.entries()].sort((x, y) => x[1].localeCompare(y[1], 'ko')).map(([value, label]) => ({ value, label }));
-  }, [allRows, deptCds]);
-  const rows = useMemo(() => allRows.filter((r) =>
-    (!deptCds.length || (r.deptCd != null && deptCds.includes(r.deptCd)))
-    && (!empIds.length || empIds.includes(r.salesEmpId))), [allRows, deptCds, empIds]);
+  }, [allRows, hqCds, deptCds]);
+  const rows = useMemo(() => allRows.filter((r) => inHq(r)
+    && (!deptCds.length || (r.deptCd != null && deptCds.includes(r.deptCd)))
+    && (!empIds.length || empIds.includes(r.salesEmpId))), [allRows, hqCds, deptCds, empIds]);
 
   /** 시작월이 종료월보다 뒤면 한 달짜리로 본다(선택 도중 역전 방지). */
   const [lo, hi] = fromMm <= toMm ? [fromMm, toMm] : [toMm, toMm];
@@ -277,8 +292,16 @@ export default function SalesStatusPage() {
       .sort((a, b) => (byName ? a[0].localeCompare(b[0], 'ko', { numeric: true }) : b[1].plan - a[1].plan))
       .map(([name, v]) => ({ name, plan: v.plan, actual: v.actual, rate: rate(v.actual, v.plan) }));
   };
-  // 부서는 이름 순 = 수주1·2·3팀 → 해외영업1·2팀(사용자 2026-10-19). 부서코드 순은 수주3팀(4710)이 2팀(4720)보다 앞이라 안 맞음
-  const byDept = useMemo(() => groupBy((f) => f.src.deptNm ?? '-', true), [flatRows]);
+  // 부서는 본부(조직도 순) → 그 안에서 이름 순 = 국내(수주1·2·3팀) → 전략 → 해외(해외영업1·2팀)(사용자 2026-10-19).
+  // 부서코드 순은 수주3팀(4710)이 2팀(4720)보다 앞이라 안 맞음
+  const byDept = useMemo(() => groupBy((f) => f.src.deptNm ?? '-', true)
+    .sort((a, b) => (deptHqSort.get(a.name) ?? 1e9) - (deptHqSort.get(b.name) ?? 1e9)), [flatRows, deptHqSort]);
+  // 본부별 — 조직도 순서
+  const byHq = useMemo(() => {
+    const sort = new Map<string, number>();
+    flatRows.forEach((f) => { if (f.src.hqNm) sort.set(f.src.hqNm, f.src.hqSort ?? f.src.hqCd ?? 1e9); });
+    return groupBy((f) => f.src.hqNm ?? '(본부 없음)').sort((a, b) => (sort.get(a.name) ?? 1e9) - (sort.get(b.name) ?? 1e9));
+  }, [flatRows]);
   const byEmp = useMemo(() => groupBy((f) => f.src.empNm), [flatRows]);
 
   /** 거래처 순위 — 계획이 있는 행만(달성률 정의가 되는 행). */
@@ -294,8 +317,7 @@ export default function SalesStatusPage() {
         rate: rate(f.actual, f.plan) ?? 0,
       }));
     return {
-      top: [...list].sort((a, b) => b.rate - a.rate).slice(0, 6),
-      bottom: [...list].sort((a, b) => a.rate - b.rate).slice(0, 6),
+      top: [...list].sort((a, b) => b.rate - a.rate).slice(0, 10),
     };
   }, [flatRows]);
 
@@ -443,9 +465,26 @@ export default function SalesStatusPage() {
         </Col>
       </Row>
 
+      {/* 대시보드 배치(사용자 2026-10-19): 본부별·부서별 나란히 → 담당자별 달성률 · 달성률 상위 거래처(하위 거래처는 뺌) */}
       <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
-        <Col xs={24} lg={10}>
-          <ChartCard title="부서별 계획 대비 실적" height={Math.max(160, byDept.length * 56)}>
+        <Col xs={24} lg={12}>
+          <ChartCard title="본부별 계획 대비 실적" height={Math.max(120, byHq.length * 56)}>
+            <BarChart data={byHq} layout="vertical" margin={{ top: 4, right: 56, left: 8, bottom: 0 }} barGap={2}>
+              <CartesianGrid stroke={T.border2} horizontal={false} />
+              <XAxis type="number" tickFormatter={fmtEok} tick={{ fontSize: 11, fill: T.t3 }} axisLine={false} tickLine={false} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: T.t2 }} axisLine={false} tickLine={false} width={90} />
+              <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
+              <Bar dataKey="plan" name="계획" fill={C_PLAN} radius={[0, 4, 4, 0]} maxBarSize={14} />
+              <Bar dataKey="actual" name="실적" fill={C_ACTUAL} radius={[0, 4, 4, 0]} maxBarSize={14}>
+                <LabelList dataKey="rate" position="right" offset={8}
+                  formatter={(v: number | null) => (v == null ? '' : `${v}%`)}
+                  style={{ fontSize: 11, fill: T.t2, fontWeight: 600 }} />
+              </Bar>
+            </BarChart>
+          </ChartCard>
+        </Col>
+        <Col xs={24} lg={12}>
+          <ChartCard title="부서별 계획 대비 실적" extra="본부 순서로 묶음" height={Math.max(160, byDept.length * 56)}>
             <BarChart data={byDept} layout="vertical" margin={{ top: 4, right: 56, left: 8, bottom: 0 }} barGap={2}>
               <CartesianGrid stroke={T.border2} horizontal={false} />
               <XAxis type="number" tickFormatter={fmtEok} tick={{ fontSize: 11, fill: T.t3 }} axisLine={false} tickLine={false} />
@@ -461,7 +500,10 @@ export default function SalesStatusPage() {
             </BarChart>
           </ChartCard>
         </Col>
-        <Col xs={24} lg={14}>
+      </Row>
+
+      <Row gutter={[12, 12]}>
+        <Col xs={24} lg={12}>
           <ChartCard title="담당자별 달성률" extra="막대 = 실적, 숫자 = 달성률" height={Math.max(180, byEmp.length * 30)}>
             <BarChart data={byEmp} layout="vertical" margin={{ top: 4, right: 56, left: 8, bottom: 0 }}>
               <CartesianGrid stroke={T.border2} horizontal={false} />
@@ -479,21 +521,11 @@ export default function SalesStatusPage() {
             </BarChart>
           </ChartCard>
         </Col>
-      </Row>
-
-      <Row gutter={[12, 12]}>
         <Col xs={24} lg={12}>
           <Card variant="borderless" title={<Text style={{ fontSize: 13, fontWeight: 600 }}>달성률 상위 거래처</Text>}
             styles={{ body: { padding: '4px 16px 12px' }, header: { minHeight: 40, borderBottom: `1px solid ${T.border2}` } }}
             style={{ borderRadius: 12, border: `1px solid ${T.border2}` }}>
             {rankList(partnerRank.top, '계획이 입력된 거래처가 없습니다.')}
-          </Card>
-        </Col>
-        <Col xs={24} lg={12}>
-          <Card variant="borderless" title={<Text style={{ fontSize: 13, fontWeight: 600 }}>달성률 하위 거래처</Text>}
-            styles={{ body: { padding: '4px 16px 12px' }, header: { minHeight: 40, borderBottom: `1px solid ${T.border2}` } }}
-            style={{ borderRadius: 12, border: `1px solid ${T.border2}` }}>
-            {rankList(partnerRank.bottom, '계획이 입력된 거래처가 없습니다.')}
           </Card>
         </Col>
       </Row>
@@ -653,7 +685,12 @@ export default function SalesStatusPage() {
             </Space>
           </Col>
           <Col>
-            <Select mode="multiple" allowClear showSearch maxTagCount="responsive" placeholder="부서 전체" value={deptCds} options={deptOptions} style={{ width: 220 }}
+            <Select mode="multiple" allowClear showSearch maxTagCount="responsive" placeholder="본부 전체" value={hqCds} options={hqOptions} style={{ width: 180 }}
+              onChange={(v: number[]) => { setHqCds(v); setDeptCds([]); setEmpIds([]); }}
+              filterOption={(input, opt) => ((opt?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())} />
+          </Col>
+          <Col>
+            <Select mode="multiple" allowClear showSearch maxTagCount="responsive" placeholder="부서 전체" value={deptCds} options={deptOptions} style={{ width: 200 }}
               onChange={(v: number[]) => { setDeptCds(v); setEmpIds([]); }}
               filterOption={(input, opt) => ((opt?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())} />
           </Col>

@@ -10,7 +10,9 @@ public class SalesYoyDto {
      * 담당·비용센터는 매출 라인(SD_BILL_DTL)에 적힌 값 그대로라, 한 거래처가 해마다 다른 팀·담당으로 갈릴 수 있다.
      */
     public record Row(String partnerCd, String partnerNm, String ccCd, String ccNm, String empNo, String empNm,
-                      long[] cur, long[] prev) {}
+                      long[] cur, long[] prev,
+                      /** 본부 — 비용센터의 부서(없으면 영업담당의 CRM 부서) → 조직도 본부. 못 찾으면 null */
+                      Integer hqCd, String hqNm, Integer hqSort) {}
 
     /**
      * @param year          올해(조회 연도)

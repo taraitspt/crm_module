@@ -17,6 +17,10 @@ import java.util.ArrayList;
 @ConditionalOnProperty(name = "oracle.enabled", havingValue = "true", matchIfMissing = false)
 @Repository
 @RequiredArgsConstructor
+// 매출 기준(2026-10-19 사용자 결정): 저작권 매출(품목 TPSCOPYRIGHT001 "TPS해외저작권(비수불)", 우즈벡교과서)은 뺀다 —
+// GROW 월매출리스트(OracleSalesListRepository)와 같은 기준. SD_BILL_DTL 을 읽는 조회마다 COPYRIGHT 조건이 붙어 있고,
+// 전표 머리(SD_BILL_MST.SPLY_AMT)만 읽는 조회는 그 전표의 저작권 줄 금액을 뺀다(저작권 줄은 일반 줄과 한 전표에 섞여 있음).
+// 저작권 매출은 공장 1000(파주사업장)에만 있다(2026-10 확인, 58건).
 public class OracleStatsRepository {
 
     @Qualifier("oracleJdbcTemplate")
@@ -39,7 +43,7 @@ public class OracleStatsRepository {
         }
         Long result = jdbcTemplate.queryForObject(
                 """
-                SELECT COALESCE(SUM(SPLY_AMT), 0) FROM SD_BILL_MST
+                SELECT COALESCE(SUM(SPLY_AMT - (SELECT NVL(SUM(c.TRAN_AMT), 0) FROM SD_BILL_DTL c WHERE c.COMPANY_CD = SD_BILL_MST.COMPANY_CD AND c.BILLDOC_NO = SD_BILL_MST.BILLDOC_NO AND c.ITEM_CD = 'TPSCOPYRIGHT001')), 0) FROM SD_BILL_MST
                  WHERE COMPANY_CD = '1000' AND BILL_DT >= ? AND BILL_DT < ?
                 """,
                 Long.class, startDt, endDt
@@ -120,7 +124,7 @@ public class OracleStatsRepository {
         return jdbcTemplate.query(
                 """
                 SELECT SUBSTR(BILL_DT, 1, 4) || '-' || SUBSTR(BILL_DT, 5, 2) AS MONTH_KEY,
-                       SUM(SPLY_AMT) AS TOTAL
+                       SUM(SPLY_AMT - (SELECT NVL(SUM(c.TRAN_AMT), 0) FROM SD_BILL_DTL c WHERE c.COMPANY_CD = SD_BILL_MST.COMPANY_CD AND c.BILLDOC_NO = SD_BILL_MST.BILLDOC_NO AND c.ITEM_CD = 'TPSCOPYRIGHT001')) AS TOTAL
                   FROM SD_BILL_MST
                  WHERE COMPANY_CD = '1000' AND BILL_DT >= ? AND BILL_DT <= ?
                  GROUP BY SUBSTR(BILL_DT, 1, 4) || '-' || SUBSTR(BILL_DT, 5, 2)
@@ -195,7 +199,7 @@ public class OracleStatsRepository {
                        SUM(dt.TRAN_AMT) AS TOTAL_AMT
                   FROM SD_BILL_MST b
                   JOIN SD_BILL_DTL dt ON dt.COMPANY_CD = b.COMPANY_CD AND dt.BILLDOC_NO = b.BILLDOC_NO
-                 WHERE b.COMPANY_CD = '1000'
+                 WHERE b.COMPANY_CD = '1000' AND NVL(dt.ITEM_CD, ' ') <> 'TPSCOPYRIGHT001'
                    AND b.BILL_DT >= ? AND b.BILL_DT < ?
                  GROUP BY dt.SALESORGN_CD, SUBSTR(b.BILL_DT, 5, 2)
                  ORDER BY DEPT_NM, BILL_MONTH
@@ -233,7 +237,7 @@ public class OracleStatsRepository {
                           JOIN SD_BILL_DTL dt
                             ON dt.COMPANY_CD = b.COMPANY_CD
                            AND dt.BILLDOC_NO = b.BILLDOC_NO
-                         WHERE b.COMPANY_CD = '1000'
+                         WHERE b.COMPANY_CD = '1000' AND NVL(dt.ITEM_CD, ' ') <> 'TPSCOPYRIGHT001'
                            AND b.BILL_DT >= ? AND b.BILL_DT < ?
                 """);
         List<Object> params = new ArrayList<>();
@@ -289,7 +293,7 @@ public class OracleStatsRepository {
                                SUM(NVL(dt.TRAN_AMT, 0)) AS TOTAL_AMT
                           FROM SD_BILL_MST b
                           JOIN SD_BILL_DTL dt ON dt.COMPANY_CD = b.COMPANY_CD AND dt.BILLDOC_NO = b.BILLDOC_NO
-                         WHERE b.COMPANY_CD = '1000'
+                         WHERE b.COMPANY_CD = '1000' AND NVL(dt.ITEM_CD, ' ') <> 'TPSCOPYRIGHT001'
                            AND b.BILL_DT >= ? AND b.BILL_DT < ?
                 """ + (byPlant ? " AND dt.PLANT_CD = ?" : "") + """
                          GROUP BY b.SALEPRTN_CD, dt.CC_CD, dt.BIZRSPT_EMPNO_CD, SUBSTR(b.BILL_DT, 5, 2)
@@ -312,7 +316,7 @@ public class OracleStatsRepository {
                                AND ROWNUM = 1), dt.SALESORGN_CD) AS DEPT_NM
                   FROM SD_BILL_MST b
                   JOIN SD_BILL_DTL dt ON dt.COMPANY_CD = b.COMPANY_CD AND dt.BILLDOC_NO = b.BILLDOC_NO
-                 WHERE b.COMPANY_CD = '1000' AND b.BILL_DT >= ? AND b.BILL_DT < ?
+                 WHERE b.COMPANY_CD = '1000' AND NVL(dt.ITEM_CD, ' ') <> 'TPSCOPYRIGHT001' AND b.BILL_DT >= ? AND b.BILL_DT < ?
                    AND dt.SALESORGN_CD IS NOT NULL
                  ORDER BY DEPT_NM
                 """, (rs, rowNum) -> new Object[]{rs.getString("DEPT_CD"), rs.getString("DEPT_NM")},
@@ -399,7 +403,7 @@ public class OracleStatsRepository {
                           JOIN SD_BILL_DTL dt
                             ON dt.COMPANY_CD = b.COMPANY_CD
                            AND dt.BILLDOC_NO = b.BILLDOC_NO
-                         WHERE b.COMPANY_CD = '1000'
+                         WHERE b.COMPANY_CD = '1000' AND NVL(dt.ITEM_CD, ' ') <> 'TPSCOPYRIGHT001'
                            AND b.BILL_DT >= ? AND b.BILL_DT < ?
                 """
                 + (byPlant ? "           AND dt.PLANT_CD = ?\n" : "")
@@ -438,7 +442,7 @@ public class OracleStatsRepository {
                   JOIN SD_BILL_DTL dt
                     ON dt.COMPANY_CD = b.COMPANY_CD
                    AND dt.BILLDOC_NO = b.BILLDOC_NO
-                 WHERE b.COMPANY_CD = '1000'
+                 WHERE b.COMPANY_CD = '1000' AND NVL(dt.ITEM_CD, ' ') <> 'TPSCOPYRIGHT001'
                    AND b.BILL_DT >= ? AND b.BILL_DT < ?
                    AND dt.CC_CD IS NOT NULL
                 """
@@ -470,7 +474,7 @@ public class OracleStatsRepository {
                   JOIN SD_BILL_DTL dt
                     ON dt.COMPANY_CD = b.COMPANY_CD
                    AND dt.BILLDOC_NO = b.BILLDOC_NO
-                 WHERE b.COMPANY_CD = '1000'
+                 WHERE b.COMPANY_CD = '1000' AND NVL(dt.ITEM_CD, ' ') <> 'TPSCOPYRIGHT001'
                    AND b.BILL_DT < ?
                 """
                 + (byPlant ? "   AND dt.PLANT_CD = ?\n" : "")

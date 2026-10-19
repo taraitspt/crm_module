@@ -5,6 +5,10 @@ export interface SalesListRow {
   plantCd?: string;
   deptCd?: string;
   deptName?: string;
+  /** 본부 — 부서 관리 조직도 기준(HqResolver) */
+  hqCd?: number | null;
+  hqNm?: string | null;
+  hqSort?: number | null;
   salesEmpNo?: string;
   salesEmpName?: string;
   partnerCd?: string;

@@ -34,6 +34,10 @@ public class SalesListDto {
         /** 부서 — 영업담당자의 매출일 기준 발령부서(HR_HUAN), 없으면 사원 마스터 부서 */
         private String deptCd;
         private String deptName;
+        /** 본부(조직도 최상위 바로 아래 부서) — HqResolver */
+        private Integer hqCd;
+        private String hqNm;
+        private Integer hqSort;
         /** 영업담당 ERP 사번과 이름 — CRM 데이터 범위(SELF/DEPT) 판정에 쓴다 */
         private String salesEmpNo;
         private String salesEmpName;

@@ -46,6 +46,8 @@ export default function SalesPlanPage() {
   const [empIds, setEmpIds] = useState<string[]>([]);
   /** 거래처 — 여러 개, 비우면 전체. 선택지는 고른 부서·담당자 안의 계획 거래처 */
   const [partnerCds, setPartnerCds] = useState<string[]>([]);
+  /** 본부 — 여러 개, 비우면 전체(사용자 2026-10-19). 부서 선택지는 고른 본부 안에서 */
+  const [hqCds, setHqCds] = useState<number[]>([]);
   /** 볼 월 — 비우면 1~12월 전체(기본). 고르면 그 월 열만, 그 월에 계획이 있는 거래처만(새로 추가한 행은 항상) */
   const [pickMonths, setPickMonths] = useState<MonthCd[]>([]);
   const shownMonths = useMemo<MonthCd[]>(() => (pickMonths.length ? MONTHS.filter((m) => pickMonths.includes(m)) : [...MONTHS]), [pickMonths]);
@@ -111,8 +113,21 @@ export default function SalesPlanPage() {
     r.months.filter((m) => shownMonths.includes(m.planMm as MonthCd))
       .reduce((s, m) => s + (field ? (m[field] ?? 0) : (m.laborAmt ?? 0) + (m.paperAmt ?? 0)), 0);
 
+  /** 부서 → 본부 — 새로 추가한 행(서버에서 본부를 안 받은 행)도 같은 부서 행에서 본부를 찾는다 */
+  const hqOfDept = useMemo(() => {
+    const m = new Map<number, { cd: number; nm: string; sort: number }>();
+    (data ?? []).forEach((r) => { if (r.deptCd != null && r.hqCd != null) m.set(r.deptCd, { cd: r.hqCd, nm: r.hqNm ?? '', sort: r.hqSort ?? r.hqCd }); });
+    return m;
+  }, [data]);
+  const hqCdOf = (r: SalesPlanRow) => r.hqCd ?? (r.deptCd != null ? hqOfDept.get(r.deptCd)?.cd : undefined) ?? null;
+  const hqOptions = useMemo(() => {
+    const m = new Map<number, { label: string; sort: number }>();
+    hqOfDept.forEach((v) => m.set(v.cd, { label: v.nm || String(v.cd), sort: v.sort }));
+    return [...m.entries()].sort((x, y) => x[1].sort - y[1].sort).map(([value, v]) => ({ value, label: v.label }));
+  }, [hqOfDept]);
   const passes = (r: SalesPlanRow) =>
-    (!deptCds.length || (r.deptCd != null && deptCds.includes(r.deptCd)))
+    (!hqCds.length || (hqCdOf(r) != null && hqCds.includes(hqCdOf(r) as number)))
+    && (!deptCds.length || (r.deptCd != null && deptCds.includes(r.deptCd)))
     && (!empIds.length || empIds.includes(r.salesEmpId));
   // 월을 고르면 "조회해 온 값" 기준으로 그 월 계획이 0원인 거래처를 뺀다. 입력 중인 값으로 판단하면
   // 금액을 지우거나 0으로 고치는 순간 줄이 사라져서(사용자 확인 2026-10-19), 조회 시점 값으로만 거른다. 새로 추가한 행은 항상 보인다.
@@ -127,27 +142,34 @@ export default function SalesPlanPage() {
   // 거래처 조건은 화면 거르기만 — 저장 대상(담당자 단위 교체)에는 안 쓴다(passes 에 넣지 않음). 안 보이는 거래처 줄도 그대로 저장된다
   const visibleRows = useMemo(() => rows.filter((r) => passes(r) && !hiddenByMonth.has(rowKey(r))
     && (!partnerCds.length || partnerCds.includes(r.partnerCd))),
-  [rows, deptCds, empIds, hiddenByMonth, partnerCds]);
+  [rows, hqCds, hqOfDept, deptCds, empIds, hiddenByMonth, partnerCds]);
   // 선택지 — 지금 화면의 행(새로 추가한 행 포함)에 있는 부서·담당자만. 담당자는 고른 부서 안에서
   const deptOptions = useMemo(() => {
     const m = new Map<number, string>();
-    rows.forEach((r) => { if (r.deptCd != null) m.set(r.deptCd, r.deptNm || String(r.deptCd)); });
+    rows.forEach((r) => {
+      if (r.deptCd == null) return;
+      const h = hqCdOf(r);
+      if (hqCds.length && (h == null || !hqCds.includes(h))) return;
+      m.set(r.deptCd, r.deptNm || String(r.deptCd));
+    });
     return [...m.entries()].sort((a, b) => a[1].localeCompare(b[1], 'ko')).map(([value, label]) => ({ value, label }));
-  }, [rows]);
+  }, [rows, hqCds, hqOfDept]);
   const userOptions = useMemo(() => {
     const m = new Map<string, string>();
     rows.forEach((r) => {
+      const h = hqCdOf(r);
+      if (hqCds.length && (h == null || !hqCds.includes(h))) return;
       if (deptCds.length && (r.deptCd == null || !deptCds.includes(r.deptCd))) return;
       m.set(r.salesEmpId, r.deptNm ? `${r.empNm} (${r.deptNm})` : r.empNm);
     });
     return [...m.entries()].sort((a, b) => a[1].localeCompare(b[1], 'ko')).map(([value, label]) => ({ value, label }));
-  }, [rows, deptCds]);
+  }, [rows, hqCds, hqOfDept, deptCds]);
 
   const partnerOptions = useMemo(() => {
     const m = new Map<string, string>();
     rows.forEach((r) => { if (passes(r)) m.set(r.partnerCd, r.partnerNm || r.partnerCd); });
     return [...m.entries()].sort((a, b) => a[1].localeCompare(b[1], 'ko')).map(([value, label]) => ({ value, label }));
-  }, [rows, deptCds, empIds]);
+  }, [rows, hqCds, hqOfDept, deptCds, empIds]);
 
   const removeRow = (key: string) => {
     setRows((prev) => prev.filter((r) => rowKey(r) !== key));
@@ -217,6 +239,8 @@ export default function SalesPlanPage() {
       },
     ]);
     // 조회 조건에 걸려 새 행이 안 보이면 그 부서·담당자를 조건에 더한다
+    const newHq = modalUser.deptCd != null ? hqOfDept.get(modalUser.deptCd)?.cd : undefined;
+    if (hqCds.length && newHq != null && !hqCds.includes(newHq)) setHqCds([...hqCds, newHq]);
     if (deptCds.length && modalUser.deptCd != null && !deptCds.includes(modalUser.deptCd)) setDeptCds([...deptCds, modalUser.deptCd]);
     if (empIds.length && !empIds.includes(modalUser.id)) setEmpIds([...empIds, modalUser.id]);
     if (partnerCds.length && !partnerCds.includes(p.partnerCd)) setPartnerCds([...partnerCds, p.partnerCd]);
@@ -229,9 +253,9 @@ export default function SalesPlanPage() {
     try {
       // 저장은 "담당자의 그 해 계획을 통째로 교체"라, 조회 조건으로 좁혀 둔 상태면 그 담당자들만 보낸다 —
       // 화면에 안 보이는 다른 사람 계획을 (다른 사람이 동시에 고친 것까지) 덮어쓰지 않게.
-      const loadedDept = new Map((data ?? []).map((r) => [r.salesEmpId, r.deptCd] as const));
+      const loadedDept = new Map((data ?? []).map((r) => [r.salesEmpId, r] as const));
       const target = new Set<string>([
-        ...loadedEmpIds.filter((id) => passes({ salesEmpId: id, deptCd: loadedDept.get(id) ?? null } as SalesPlanRow)),
+        ...loadedEmpIds.filter((id) => passes({ salesEmpId: id, deptCd: loadedDept.get(id)?.deptCd ?? null, hqCd: loadedDept.get(id)?.hqCd ?? null } as SalesPlanRow)),
         ...visibleRows.map((r) => r.salesEmpId),
       ]);
       await salesPlanApi.save({ planYy: String(year), salesEmpIds: [...target], rows: rows.filter((r) => target.has(r.salesEmpId)) });
@@ -357,7 +381,12 @@ export default function SalesPlanPage() {
               options={[year - 2, year - 1, year, year + 1, year + 2].filter((y, i, a) => a.indexOf(y) === i).sort().map((y) => ({ value: y, label: `${y}년` }))} />
           </Col>
           <Col>
-            <Select mode="multiple" allowClear showSearch maxTagCount="responsive" placeholder="부서 전체" value={deptCds} options={deptOptions} style={{ width: 180 }}
+            <Select mode="multiple" allowClear showSearch maxTagCount="responsive" placeholder="본부 전체" value={hqCds} options={hqOptions} style={{ width: 160 }}
+              onChange={(v: number[]) => { setHqCds(v); setDeptCds([]); setEmpIds([]); }}
+              filterOption={(input, opt) => ((opt?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())} />
+          </Col>
+          <Col>
+            <Select mode="multiple" allowClear showSearch maxTagCount="responsive" placeholder="부서 전체" value={deptCds} options={deptOptions} style={{ width: 170 }}
               onChange={(v: number[]) => { setDeptCds(v); setEmpIds([]); }}
               filterOption={(input, opt) => ((opt?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())} />
           </Col>

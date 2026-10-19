@@ -26,12 +26,9 @@ import java.util.stream.Collectors;
  * 월매출계획 — 담당자(users)·거래처(ERP 코드)별 공임/용지 월 계획을 저장하고,
  * ERP 매출전표(SD_BILL_MST/DTL) 실적과 비교한 매출현황을 만든다.
  *
- * 실적은 거래처 단위로 ERP 에서 집계한다(부서 무관 합산). 같은 거래처를 두 담당자가 계획에 넣으면
- * 실적이 양쪽에 같은 값으로 표시된다 — 담당자별 실적 분리는 ERP 전표에 담당자 컬럼을 확인한 뒤 붙인다.
- *
- * 가상 거래처 "NEW…"(신규(목표))의 실적 = 그 담당자(매출 라인 영업담당 사번)가 올린 매출 중
- * 그 해 월매출계획 어디에도 없는 거래처의 매출(사용자 결정 2026-10-19 — "계획에 없는 거래처 = 신규").
- * 계획에 있는 거래처는 제 줄에 실적이 붙으므로 두 번 세지 않는다. 한 담당자에게 NEW 줄이 여러 개면 첫 줄에만 붙인다.
+ * 실적은 ERP 매출 라인(거래처 × 영업담당 × 비용센터 × 월)을 계획 줄에 배정한다(사용자 결정 2026-10-19, getStatus 주석 참고):
+ * 영업담당이 그 거래처를 계획했으면 그 줄, 계획 안 한 영업담당이면 그 사람의 신규(목표) 줄, 영업담당이 없으면 계획한 사람.
+ * 그래서 같은 매출이 두 줄에 붙지 않고, 매출리스트·전년 매출 비교(영업담당 기준)와 담당자별 금액이 맞는다.
  */
 @Slf4j
 @Service
@@ -47,6 +44,7 @@ public class SalesPlanService {
     /** oracle.enabled=false 면 빈이 없다 → 실적 없이 계획만 표시. */
     private final Optional<OracleStatsRepository> oracleStatsRepository;
     private final com.tara.crm.common.service.ScopeService scopeService;
+    private final com.tara.crm.common.org.HqResolver hqResolver;
 
     private Integer companyCd() {
         Integer c = SecurityContextUtil.getCurrentCompanyCd();
@@ -85,6 +83,7 @@ public class SalesPlanService {
         Map<Integer, String> deptNames = deptNameMap();
 
         List<SalesPlan> all = salesPlanRepository.findByYear(companyCd(), planYy);
+        com.tara.crm.common.org.HqResolver.Lookup hqs = hqResolver.lookup();
 
         // 데이터 범위 — (리소스, 역할)로 정해진다. 행마다 달라지지 않으니 루프 밖에서 한 번만 구한다.
         Set<String> allowed = scopeService.resolveFilter(resource,
@@ -106,6 +105,9 @@ public class SalesPlanService {
                     .empNm(u != null ? u.getName() : empId)
                     .deptCd(rowDeptCd)
                     .deptNm(deptNames.get(rowDeptCd))
+                    .hqCd(hqOf(hqs, rowDeptCd, com.tara.crm.common.org.HqResolver.Hq::cd))
+                    .hqNm(hqOf(hqs, rowDeptCd, com.tara.crm.common.org.HqResolver.Hq::nm))
+                    .hqSort(hqOf(hqs, rowDeptCd, com.tara.crm.common.org.HqResolver.Hq::sort))
                     .partnerCd(p.getId().getPartnerCd())
                     .partnerNm(p.getPartnerNm())
                     .months(emptyMonths())
@@ -204,44 +206,86 @@ public class SalesPlanService {
             erpMessage = "ERP(Oracle) 연결이 비활성화되어 실적을 표시할 수 없습니다.";
         }
 
-        // 신규(목표) 줄 실적 — 담당 사번별 "계획에 없는 거래처" 매출
-        Map<String, Map<Integer, Long>> newByEmp = new HashMap<>();
-        Map<String, Set<String>> newNamesByEmp = new HashMap<>();
         Map<String, User> users = userMap();
-        boolean hasNewRow = plans.stream().anyMatch(p -> isVirtualPartner(p.getPartnerCd()));
-        if (hasNewRow && erpAvailable) {
+
+        // 그해 계획 전체(데이터 범위와 무관) — 거래처별 계획 담당자·월 계획액. 공동 계획 판정과 신규 판정에 쓴다.
+        Map<String, Set<String>> plannersByPartner = new HashMap<>();
+        Map<String, Long> planAmtByKey = new HashMap<>();   // partner|empId|month → 계획(공임+용지)
+        Map<String, Long> planYearByKey = new HashMap<>();  // partner|empId → 연간 계획
+        Set<String> empsWithNew = new HashSet<>();          // 신규(목표) 줄이 있는 담당자(users.id)
+        for (SalesPlan sp : salesPlanRepository.findByYear(companyCd(), planYy)) {
+            String pc = sp.getId().getPartnerCd().trim();
+            if (isVirtualPartner(pc)) { empsWithNew.add(sp.getId().getSalesEmpId()); continue; }
+            String emp = sp.getId().getSalesEmpId();
+            long amt = nz(sp.getLaborAmt()) + nz(sp.getPaperAmt());
+            plannersByPartner.computeIfAbsent(pc, k -> new TreeSet<>()).add(emp);
+            planAmtByKey.merge(pc + "|" + emp + "|" + Integer.parseInt(sp.getId().getPlanMm()), amt, Long::sum);
+            planYearByKey.merge(pc + "|" + emp, amt, Long::sum);
+        }
+        Map<String, String> empIdByEmpNo = new HashMap<>();
+        users.values().forEach(u -> { if (u.getEmployeeNo() != null) empIdByEmpNo.putIfAbsent(u.getEmployeeNo().trim(), u.getId().getId()); });
+
+        // 실적 배정 — ERP 매출 라인(거래처·영업담당·비용센터·월) 단위로 계획 줄에 붙인다(사용자 결정 2026-10-19):
+        //   ① 영업담당(BIZRSPT_EMPNO_CD = users.employee_no)이 그 거래처를 계획한 사람 → 그 사람의 거래처 줄
+        //   ② 영업담당이 있는데 그 거래처를 계획하지 않은 사람 → 그 영업담당의 신규(목표) 줄
+        //      (예: Gooseberry 2~5월 담당 윤시원, 계획은 김기도 → 윤시원 신규(목표)). 계획에 아예 없는 거래처도 여기.
+        //   ③ 영업담당이 비었거나, ②인데 그 사람에게 신규(목표) 줄이 없으면(CRM 사용자가 아니어도) → 계획한 사람
+        //      (여럿이면 매출 라인 비용센터와 같은 팀(users.cc_cd) → 그달 계획 큰 사람 → 연간 계획 큰 사람). 계획한 사람도 없으면 버림.
+        // ERP 담당자별 조회가 실패하면 예전처럼 거래처 전체 실적을 붙인다(신규(목표)는 0).
+        Map<String, Map<Integer, Long>> newByEmp = new HashMap<>();      // empId → month → amt (신규(목표))
+        Map<String, Set<String>> newNamesByEmp = new HashMap<>();        // empId → 합친 거래처 이름
+        Map<String, Map<Integer, Long>> rowAct = new HashMap<>();        // partner|empId → month → amt
+        boolean byRep = false;
+        if (erpAvailable) {
             try {
-                Set<String> planned = salesPlanRepository.findByYear(companyCd(), planYy).stream()
-                        .map(sp -> sp.getId().getPartnerCd().trim())
-                        .collect(Collectors.toSet());
                 for (Object[] r : oracleStatsRepository.get().getYearlySalesByCcEmp(Integer.parseInt(planYy), plantCd)) {
                     String partnerCd = r[0] == null ? "" : r[0].toString().trim();
-                    String empNo = r[4] == null ? null : r[4].toString().trim();
-                    if (empNo == null || empNo.isEmpty() || planned.contains(partnerCd)) continue;
-                    newByEmp.computeIfAbsent(empNo, k -> new HashMap<>())
-                            .merge(((Number) r[6]).intValue(), ((Number) r[7]).longValue(), Long::sum);
-                    newNamesByEmp.computeIfAbsent(empNo, k -> new TreeSet<>())
-                            .add(r[1] == null ? partnerCd : r[1].toString().trim());
+                    String empNo = r[4] == null || r[4].toString().isBlank() ? null : r[4].toString().trim();
+                    int month = ((Number) r[6]).intValue();
+                    long amt = ((Number) r[7]).longValue();
+                    Set<String> planners = plannersByPartner.getOrDefault(partnerCd, Set.of());
+                    String rep = empNo == null ? null : empIdByEmpNo.get(empNo);
+                    if (rep != null && planners.contains(rep)) {
+                        rowAct.computeIfAbsent(partnerCd + "|" + rep, k -> new HashMap<>()).merge(month, amt, Long::sum);
+                    } else if (rep != null && empsWithNew.contains(rep)) {
+                        newByEmp.computeIfAbsent(rep, k -> new HashMap<>()).merge(month, amt, Long::sum);
+                        newNamesByEmp.computeIfAbsent(rep, k -> new TreeSet<>())
+                                .add(r[1] == null ? partnerCd : r[1].toString().trim());
+                    } else if (!planners.isEmpty()) {
+                        String lineCc = r[2] == null ? null : r[2].toString().trim();
+                        List<String> sameCc = planners.stream()
+                                .filter(e -> lineCc != null && users.get(e) != null && lineCc.equals(users.get(e).getCcCd()))
+                                .toList();
+                        String owner = (sameCc.isEmpty() ? planners : sameCc).stream().max(Comparator
+                                .comparingLong((String e) -> planAmtByKey.getOrDefault(partnerCd + "|" + e + "|" + month, 0L))
+                                .thenComparingLong(e -> planYearByKey.getOrDefault(partnerCd + "|" + e, 0L))).orElseThrow();
+                        rowAct.computeIfAbsent(partnerCd + "|" + owner, k -> new HashMap<>()).merge(month, amt, Long::sum);
+                    }
                 }
+                byRep = true;
             } catch (Exception e) {
-                log.warn("[sales-plan] 신규 거래처 실적 조회 실패 — 신규(목표) 실적 0 으로 표시", e);
+                log.warn("[sales-plan] 담당자별 실적 조회 실패 — 거래처 전체 실적으로 표시, 신규(목표) 실적 0", e);
+                newByEmp.clear();
+                newNamesByEmp.clear();
+                rowAct.clear();
             }
         }
+        final boolean assignByRep = byRep;
         Set<String> newRowDone = new HashSet<>();
 
         List<SalesPlanDto.StatusRow> rows = new ArrayList<>();
         long planTotal = 0, actualTotal = 0;
         for (SalesPlanDto.PlanRow p : plans) {
-            Map<Integer, Long> byMonth = actual.getOrDefault(p.getPartnerCd().trim(), Map.of());
+            Map<Integer, Long> byMonth = assignByRep
+                    ? rowAct.getOrDefault(p.getPartnerCd().trim() + "|" + p.getSalesEmpId(), Map.of())
+                    : actual.getOrDefault(p.getPartnerCd().trim(), Map.of());
             List<String> newPartners = null;
             if (isVirtualPartner(p.getPartnerCd())) {
-                User u = users.get(p.getSalesEmpId());
-                String empNo = u == null || u.getEmployeeNo() == null ? null : u.getEmployeeNo().trim();
                 byMonth = Map.of();
                 newPartners = List.of();
-                if (empNo != null && newRowDone.add(p.getSalesEmpId())) {
-                    byMonth = newByEmp.getOrDefault(empNo, Map.of());
-                    newPartners = new ArrayList<>(newNamesByEmp.getOrDefault(empNo, Set.of()));
+                if (newRowDone.add(p.getSalesEmpId())) {
+                    byMonth = newByEmp.getOrDefault(p.getSalesEmpId(), Map.of());
+                    newPartners = new ArrayList<>(newNamesByEmp.getOrDefault(p.getSalesEmpId(), Set.of()));
                 }
             }
             List<SalesPlanDto.StatusMonth> months = new ArrayList<>();
@@ -257,6 +301,7 @@ public class SalesPlanService {
             }
             rows.add(SalesPlanDto.StatusRow.builder()
                     .deptCd(p.getDeptCd()).deptNm(p.getDeptNm())
+                    .hqCd(p.getHqCd()).hqNm(p.getHqNm()).hqSort(p.getHqSort())
                     .salesEmpId(p.getSalesEmpId()).empNm(p.getEmpNm())
                     .partnerCd(p.getPartnerCd()).partnerNm(p.getPartnerNm())
                     .months(months).planTotal(rowPlan).actualTotal(rowActual)
@@ -288,6 +333,12 @@ public class SalesPlanService {
     }
 
     // ── helpers ──
+    private static <T> T hqOf(com.tara.crm.common.org.HqResolver.Lookup hqs, Integer deptCd,
+                              java.util.function.Function<com.tara.crm.common.org.HqResolver.Hq, T> f) {
+        com.tara.crm.common.org.HqResolver.Hq h = hqs.ofDept(deptCd);
+        return h == null ? null : f.apply(h);
+    }
+
     private static String trimMemo(String memo) {
         if (memo == null || memo.isBlank()) return null;
         String t = memo.trim();

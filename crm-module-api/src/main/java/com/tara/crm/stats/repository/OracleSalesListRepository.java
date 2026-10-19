@@ -374,9 +374,9 @@ public class OracleSalesListRepository {
                 .detailItemName(trim(rs.getString("SPCFCS_ITEM_NM")))
                 .qty(doubleOf(rs.getBigDecimal("BILL_QT")))
                 .salesAmt(longOf(rs.getBigDecimal("BOOK_AMT")))
-                .laborAmt(doubleOf(rs.getBigDecimal("NORMAL_LABOR_COST")))
-                .paperAmt(doubleOf(rs.getBigDecimal("NORMAL_PAPER_COST")))
-                .settleAmt(doubleOf(rs.getBigDecimal("SUM_AMT")))
+                .laborAmt(wonOf(rs.getBigDecimal("NORMAL_LABOR_COST")))
+                .paperAmt(wonOf(rs.getBigDecimal("NORMAL_PAPER_COST")))
+                .settleAmt(wonOf(rs.getBigDecimal("SUM_AMT")))
                 .soType(trim(rs.getString("SO_TP")))
                 .soTypeName(trim(rs.getString("SO_TP_NM")))
                 .soNo(trim(rs.getString("SODOC_NO")))
@@ -401,6 +401,8 @@ public class OracleSalesListRepository {
     private static long longOf(BigDecimal v) { return v == null ? 0L : v.longValue(); }
     private static Integer intOf(BigDecimal v) { return v == null ? null : v.intValue(); }
     private static Double doubleOf(BigDecimal v) { return v == null ? null : v.doubleValue(); }
+    /** 정산 금액 — ERP 정산(SD_ORDSTL_INFO_X20329.STL_PRRG_AMT)은 용지 단가×연수라 소수점까지 저장된다. ERP 화면처럼 원 단위 반올림 */
+    private static Double wonOf(BigDecimal v) { return v == null ? null : v.setScale(0, java.math.RoundingMode.HALF_UP).doubleValue(); }
     private static String ymd(String s) {
         if (s == null) return null;
         String t = s.trim();

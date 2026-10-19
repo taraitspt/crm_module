@@ -10,6 +10,10 @@ export interface SalesYoyRow {
   empNm?: string | null;
   cur: number[];
   prev: number[];
+  /** 본부 — 비용센터의 부서(없으면 영업담당 부서) → 조직도 본부 */
+  hqCd?: number | null;
+  hqNm?: string | null;
+  hqSort?: number | null;
 }
 
 export interface SalesYoyResponse {

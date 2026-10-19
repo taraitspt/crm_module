@@ -13,6 +13,10 @@ export interface SalesPlanRow {
   empNm: string;
   deptCd: number | null;
   deptNm: string | null;
+  /** 본부 — 담당자 부서 → 조직도 본부(HqResolver) */
+  hqCd?: number | null;
+  hqNm?: string | null;
+  hqSort?: number | null;
   partnerCd: string;
   partnerNm: string | null;
   months: SalesPlanMonth[];
@@ -47,6 +51,10 @@ export interface SalesStatusMonth {
 export interface SalesStatusRow {
   deptCd: number | null;
   deptNm: string | null;
+  /** 본부 — 담당자 부서 → 조직도 본부(HqResolver) */
+  hqCd?: number | null;
+  hqNm?: string | null;
+  hqSort?: number | null;
   salesEmpId: string;
   empNm: string;
   partnerCd: string;

@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +41,7 @@ public class SalesYoyService {
     private final Optional<OracleStatsRepository> oracleStatsRepository;
     private final ScopeService scopeService;
     private final UserRepository userRepository;
+    private final com.tara.crm.common.org.HqResolver hqResolver;
 
     public SalesYoyDto.Response get(int year) {
         if (oracleStatsRepository.isEmpty()) {
@@ -61,7 +63,27 @@ public class SalesYoyService {
         }
 
         List<SalesYoyDto.Row> all = new ArrayList<>(acc.size());
-        acc.values().forEach(a -> all.add(new SalesYoyDto.Row(a.partnerCd, a.partnerNm, a.ccCd, a.ccNm, a.empNo, a.empNm, a.cur, a.prev)));
+        com.tara.crm.common.org.HqResolver.Lookup hqs = hqResolver.lookup();
+        // 비용센터·영업담당으로 본부를 못 찾는 줄(대개 담당·비용센터가 빈 차감 전표)은 같은 거래처의 주된 본부(올해+작년 매출 큰 쪽)로
+        Map<Acc, com.tara.crm.common.org.HqResolver.Hq> hqOf = new HashMap<>();
+        Map<String, Map<com.tara.crm.common.org.HqResolver.Hq, Long>> partnerHq = new HashMap<>();
+        acc.values().forEach(a -> {
+            com.tara.crm.common.org.HqResolver.Hq h = hqs.ofCc(a.ccCd, a.empNo);
+            if (h == null) return;
+            hqOf.put(a, h);
+            long w = 0;
+            for (int i = 0; i < 12; i++) w += Math.abs(a.cur[i]) + Math.abs(a.prev[i]);
+            partnerHq.computeIfAbsent(a.partnerCd, k -> new HashMap<>()).merge(h, w, Long::sum);
+        });
+        acc.values().forEach(a -> {
+            com.tara.crm.common.org.HqResolver.Hq h = hqOf.get(a);
+            if (h == null) {
+                h = partnerHq.getOrDefault(a.partnerCd, Map.of()).entrySet().stream()
+                        .max(Map.Entry.comparingByValue()).map(Map.Entry::getKey).orElse(null);
+            }
+            all.add(new SalesYoyDto.Row(a.partnerCd, a.partnerNm, a.ccCd, a.ccNm, a.empNo, a.empNm, a.cur, a.prev,
+                    h == null ? null : h.cd(), h == null ? null : h.nm(), h == null ? null : h.sort()));
+        });
         if (scope == DataScope.ALL) return new SalesYoyDto.Response(year, all, true, null, 0);
 
         // 본인·부서 — 매출리스트(SalesListService)와 같은 규칙

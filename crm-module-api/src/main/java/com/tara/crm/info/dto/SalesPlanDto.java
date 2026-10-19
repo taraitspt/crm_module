@@ -29,6 +29,10 @@ public class SalesPlanDto {
         private String partnerNm;
         @Builder.Default
         private List<MonthAmt> months = new ArrayList<>();
+        /** 본부(조직도 최상위 바로 아래 부서) — HqResolver */
+        private Integer hqCd;
+        private String hqNm;
+        private Integer hqSort;
     }
 
     /**
@@ -82,6 +86,10 @@ public class SalesPlanDto {
     public static class StatusRow {
         private Integer deptCd;
         private String deptNm;
+        /** 본부(조직도 최상위 바로 아래 부서) — HqResolver */
+        private Integer hqCd;
+        private String hqNm;
+        private Integer hqSort;
         private String salesEmpId;
         private String empNm;
         private String partnerCd;

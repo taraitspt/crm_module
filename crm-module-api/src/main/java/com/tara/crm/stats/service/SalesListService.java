@@ -40,6 +40,7 @@ public class SalesListService {
     private final Optional<OracleSalesListRepository> repository;
     private final ScopeService scopeService;
     private final UserRepository userRepository;
+    private final com.tara.crm.common.org.HqResolver hqResolver;
 
     public SalesListDto.Response list(LocalDate from, LocalDate to, String plantCd) {
         if (to.isBefore(from)) {
@@ -56,6 +57,12 @@ public class SalesListService {
             return SalesListDto.Response.builder().rows(List.of()).hiddenByScope(0).build();
         }
         List<SalesListDto.Row> all = oracle.findRows(from, to, plantCd);
+        // 본부 — 부서(발령부서) → 없으면 비용센터·영업담당 사번으로
+        com.tara.crm.common.org.HqResolver.Lookup hq = hqResolver.lookup();
+        all.forEach(r -> {
+            com.tara.crm.common.org.HqResolver.Hq h = hq.ofDeptStr(r.getDeptCd(), r.getCcCd(), r.getSalesEmpNo());
+            if (h != null) { r.setHqCd(h.cd()); r.setHqNm(h.nm()); r.setHqSort(h.sort()); }
+        });
         if (scope == DataScope.ALL) {
             return SalesListDto.Response.builder().rows(all).hiddenByScope(0).build();
         }

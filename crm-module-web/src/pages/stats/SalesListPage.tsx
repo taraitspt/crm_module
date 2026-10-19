@@ -33,6 +33,7 @@ const tx = (id: keyof SalesListRow, label: string, width: number): ColDef => ({ 
 const COLS: ColDef[] = [
   { id: 'billDate', label: '매출일자', width: 100, fixed: 'left' },
   { id: 'billNo', label: '매출번호', width: 140, fixed: 'left' },
+  en('hqNm', '본부', 110),
   en('deptName', '부서', 120),
   en('salesEmpName', '영업담당자', 90),
   tx('partnerCd', '거래처코드', 100),
@@ -72,6 +73,8 @@ const SalesListPage: React.FC = () => {
   const plantCd = '1000';
   const [orderType, setOrderType] = useState<string>();
   const [dept, setDept] = useState<string>();
+  /** 본부 — 부서 관리 조직도 기준(사용자 2026-10-19). 부서 선택지는 고른 본부 안에서 */
+  const [hq, setHq] = useState<string>();
   const [emp, setEmp] = useState<string>();
   const [keyword, setKeyword] = useState('');
   const [colFilters, setColFilters] = useState<Record<string, ColFilter>>({});
@@ -102,6 +105,7 @@ const SalesListPage: React.FC = () => {
     const kw = keyword.trim().toLowerCase();
     let out = allRows.filter((r) =>
       (!orderType || r.orderType === orderType)
+      && (!hq || r.hqNm === hq)
       && (!dept || r.deptName === dept)
       && (!emp || r.salesEmpName === emp)
       && (!kw || [r.partnerName, r.partnerCd, r.itemName, r.detailItemName, r.billNo, r.soNo, r.orderNo]
@@ -118,7 +122,23 @@ const SalesListPage: React.FC = () => {
       });
     }
     return out;
-  }, [allRows, orderType, dept, emp, keyword, colFilters, sortCfg]);
+  }, [allRows, orderType, hq, dept, emp, keyword, colFilters, sortCfg]);
+  // 본부 선택지는 조직도 순서
+  // 영업 본부(조회 기간 매출의 1% 이상)를 먼저, 그 안에서 조직도 순
+  const hqOptions = useMemo(() => {
+    const org = new Map<string, number>();
+    const amt = new Map<string, number>();
+    let total = 0;
+    allRows.forEach((r) => {
+      if (!r.hqNm) return;
+      org.set(r.hqNm, r.hqSort ?? r.hqCd ?? 1e9);
+      const v = Math.abs(r.salesAmt ?? 0);
+      amt.set(r.hqNm, (amt.get(r.hqNm) ?? 0) + v);
+      total += v;
+    });
+    const key = (n: string) => ((amt.get(n) ?? 0) >= total * 0.01 ? 0 : 1e7) + (org.get(n) ?? 1e6);
+    return [...org.keys()].sort((a, b) => key(a) - key(b)).map((v) => ({ label: v, value: v }));
+  }, [allRows]);
 
   const columns = useMemo<ColumnsType<SalesListRow>>(() => {
     const hdr = (id: string, label: string) => (
@@ -187,10 +207,13 @@ const SalesListPage: React.FC = () => {
           <StatsDateRangePicker value={dateRange} onChange={onRangeChange} />
           <Select allowClear placeholder="주문구분 전체" value={orderType} onChange={setOrderType}
             options={optionsOf('orderType')} style={{ width: 130 }} />
+          <Select allowClear showSearch placeholder="본부 전체" value={hq} onChange={(v) => { setHq(v); setDept(undefined); setEmp(undefined); }}
+            options={hqOptions} style={{ width: 140 }} />
           <Select allowClear showSearch placeholder="부서 전체" value={dept} onChange={(v) => { setDept(v); setEmp(undefined); }}
-            options={optionsOf('deptName')} style={{ width: 160 }} />
+            options={Array.from(new Set(allRows.filter((r) => !hq || r.hqNm === hq).map((r) => r.deptName).filter(Boolean) as string[]))
+              .sort((a, b) => a.localeCompare(b, 'ko', { numeric: true })).map((v) => ({ label: v, value: v }))} style={{ width: 160 }} />
           <Select allowClear showSearch placeholder="영업담당자 전체" value={emp} onChange={setEmp}
-            options={Array.from(new Set(allRows.filter((r) => !dept || r.deptName === dept).map((r) => r.salesEmpName).filter(Boolean) as string[]))
+            options={Array.from(new Set(allRows.filter((r) => (!hq || r.hqNm === hq) && (!dept || r.deptName === dept)).map((r) => r.salesEmpName).filter(Boolean) as string[]))
               .sort((a, b) => a.localeCompare(b, 'ko')).map((v) => ({ label: v, value: v }))}
             style={{ width: 140 }} />
           <Input.Search allowClear placeholder="거래처·품목·매출/수주/주문번호" onSearch={setKeyword}

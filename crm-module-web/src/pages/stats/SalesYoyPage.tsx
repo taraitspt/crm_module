@@ -42,7 +42,30 @@ const rateText = (r: number | null, cur: number) => (r == null ? (cur > 0 ? '신
 const diffColor = (d: number) => (d > 0 ? T.ok : d < 0 ? T.er : T.t3);
 const sumRange = (arr: number[], lo: number, hi: number) => arr.slice(lo - 1, hi).reduce((s, v) => s + v, 0);
 
-interface AggRow { key: string; name: string; sub?: string; cur: number; prev: number; diff: number; rate: number | null }
+interface AggRow { key: string; name: string; sub?: string; cur: number; prev: number; diff: number; rate: number | null; hqNm?: string }
+
+/** 본부 키·순서 — 조직도 본부(HqResolver). 없으면 빈 키 */
+const hqKey = (r: SalesYoyRow) => (r.hqCd != null ? String(r.hqCd) : '');
+/**
+ * 본부 순서 — 영업 본부(올해+작년 매출이 전체의 1% 이상)를 먼저, 그 안에서 조직도 순(사용자 2026-10-19).
+ * 구매팀(경영지원본부)·품질개선팀(생산본부)처럼 매출이 조금 잡히는 본부는 뒤로 간다.
+ */
+const hqSortOf = (rows: SalesYoyRow[]) => {
+  const org = new Map<string, number>();
+  const amt = new Map<string, number>();
+  let total = 0;
+  rows.forEach((r) => {
+    if (r.hqCd == null) return;
+    const k = String(r.hqCd);
+    org.set(k, r.hqSort ?? r.hqCd);
+    const v = r.cur.reduce((s, x) => s + Math.abs(x), 0) + r.prev.reduce((s, x) => s + Math.abs(x), 0);
+    amt.set(k, (amt.get(k) ?? 0) + v);
+    total += v;
+  });
+  const m = new Map<string, number>();
+  org.forEach((o, k) => m.set(k, ((amt.get(k) ?? 0) >= total * 0.01 ? 0 : 1_000_000) + o));
+  return m;
+};
 
 /** 코드→이름 선택지(이름순) */
 const optionsOf = (list: SalesYoyRow[], code: (r: SalesYoyRow) => string, name: (r: SalesYoyRow) => string) => {
@@ -90,6 +113,8 @@ export default function SalesYoyPage() {
   const [toMm, setToMm] = useState(prevMonth);
   /** 부서·담당자 — 여러 개 고를 수 있다(사용자 2026-10-19). 비우면 전체. */
   const [ccs, setCcs] = useState<string[]>([]);
+  /** 본부 — 여러 개, 비우면 전체(사용자 2026-10-19). 부서 선택지는 고른 본부 안에서 */
+  const [hqs, setHqs] = useState<string[]>([]);
   const [emps, setEmps] = useState<string[]>([]);
   const [keyword, setKeyword] = useState('');
 
@@ -107,11 +132,15 @@ export default function SalesYoyPage() {
   /** 올해 중 아직 안 온 달 — 그래프에서 올해 막대를 비운다 */
   const lastClosedMonth = year === thisYear ? thisMonth : year < thisYear ? 12 : 0;
 
-  const ccOptions = useMemo(() => optionsOf(rows, (r) => r.ccCd, (r) => r.ccNm ?? ''), [rows]);
-  // 담당자 목록은 고른 부서 안에서만
-  const inCcs = (r: SalesYoyRow) => !ccs.length || ccs.includes(r.ccCd);
-  const empOptions = useMemo(() => optionsOf(rows.filter(inCcs), (r) => r.empNo, (r) => r.empNm ?? ''), [rows, ccs]);
-  const scoped = useMemo(() => rows.filter((r) => inCcs(r) && (!emps.length || emps.includes(r.empNo))), [rows, ccs, emps]);
+  const hqOrder = useMemo(() => hqSortOf(rows), [rows]);
+  const hqOptions = useMemo(() => optionsOf(rows, hqKey, (r) => r.hqNm ?? '')
+    .sort((a, b) => (hqOrder.get(a.value) ?? 0) - (hqOrder.get(b.value) ?? 0)), [rows, hqOrder]);
+  const inHqs = (r: SalesYoyRow) => !hqs.length || hqs.includes(hqKey(r));
+  const ccOptions = useMemo(() => optionsOf(rows.filter(inHqs), (r) => r.ccCd, (r) => r.ccNm ?? ''), [rows, hqs]);
+  // 담당자 목록은 고른 본부·부서 안에서만
+  const inCcs = (r: SalesYoyRow) => inHqs(r) && (!ccs.length || ccs.includes(r.ccCd));
+  const empOptions = useMemo(() => optionsOf(rows.filter(inCcs), (r) => r.empNo, (r) => r.empNm ?? ''), [rows, hqs, ccs]);
+  const scoped = useMemo(() => rows.filter((r) => inCcs(r) && (!emps.length || emps.includes(r.empNo))), [rows, hqs, ccs, emps]);
 
   // 월별(1~12) 합계 — 그래프용
   const monthly = useMemo(() => {
@@ -141,8 +170,18 @@ export default function SalesYoyPage() {
     return { cur, prev, diff: cur - prev, rate: rate(cur, prev) };
   }, [scoped, lo, hi]);
 
-  const byCc = useMemo(() => groupBy(rows, (r) => r.ccCd, (r) => r.ccNm ?? '', '(부서 없음)', lo, hi), [rows, lo, hi]);
-  const byEmp = useMemo(() => groupBy(rows.filter(inCcs), (r) => r.empNo, (r) => r.empNm ?? '', '(담당 없음)', lo, hi), [rows, ccs, lo, hi]);
+  // 본부별 — 조직도 순서
+  const byHq = useMemo(() => groupBy(rows, hqKey, (r) => r.hqNm ?? '', '(본부 없음)', lo, hi)
+    .sort((a, b) => (hqOrder.get(a.key) ?? 1e9) - (hqOrder.get(b.key) ?? 1e9)), [rows, lo, hi, hqOrder]);
+  // 부서별 — 본부로 묶어 본부 순서 → 그 안에서 올해 매출 큰 순(사용자 2026-10-19)
+  const byCc = useMemo(() => {
+    const hqOfCc = new Map<string, { nm: string; sort: number }>();
+    rows.forEach((r) => { if (r.ccCd && r.hqCd != null && !hqOfCc.has(r.ccCd)) hqOfCc.set(r.ccCd, { nm: r.hqNm ?? '', sort: hqOrder.get(String(r.hqCd)) ?? 1e9 }); });
+    return groupBy(rows.filter(inHqs), (r) => r.ccCd, (r) => r.ccNm ?? '', '(부서 없음)', lo, hi)
+      .map((a) => ({ ...a, hqNm: hqOfCc.get(a.key)?.nm ?? '' }))
+      .sort((a, b) => ((hqOfCc.get(a.key)?.sort ?? 1e9) - (hqOfCc.get(b.key)?.sort ?? 1e9)) || (b.cur - a.cur));
+  }, [rows, hqs, lo, hi, hqOrder]);
+  const byEmp = useMemo(() => groupBy(rows.filter(inCcs), (r) => r.empNo, (r) => r.empNm ?? '', '(담당 없음)', lo, hi), [rows, hqs, ccs, lo, hi]);
 
   const byPartner = useMemo<AggRow[]>(() => {
     const m = new Map<string, AggRow & { depts: Map<string, number>; emps: Map<string, number> }>();
@@ -178,7 +217,21 @@ export default function SalesYoyPage() {
   const nameCol = (title: string): ColumnsType<AggRow>[number] => ({
     title, dataIndex: 'name', ellipsis: true,
   });
-  const ccColumns: ColumnsType<AggRow> = [nameCol('부서'), ...moneyCols(curTitle, prevTitle)];
+  // 본부별은 영업 본부 → 조직도 순서 그대로(매출 큰 순 기본 정렬 없음)
+  const hqColumns: ColumnsType<AggRow> = [nameCol('본부'), ...moneyCols(curTitle, prevTitle).map((c) => ({ ...c, defaultSortOrder: undefined }))];
+  const ccColumns: ColumnsType<AggRow> = [
+    // 같은 본부 부서끼리 본부 칸을 합친다(정렬을 바꾸면 합치지 않음)
+    { title: '본부', dataIndex: 'hqNm', width: 140, ellipsis: true,
+      onCell: (r, i) => {
+        const idx = i ?? 0;
+        if (idx > 0 && byCc[idx - 1]?.hqNm === r.hqNm) return { rowSpan: 0 };
+        let n = 1;
+        while (byCc[idx + n] && byCc[idx + n].hqNm === r.hqNm) n += 1;
+        return { rowSpan: n };
+      },
+      render: (v: string) => v || <Text type="secondary">(본부 없음)</Text> },
+    nameCol('부서'), ...moneyCols(curTitle, prevTitle).map((c) => ({ ...c, sorter: undefined, defaultSortOrder: undefined })),
+  ];
   const empColumns: ColumnsType<AggRow> = [nameCol('영업담당'), ...moneyCols(curTitle, prevTitle)];
   const partnerColumns: ColumnsType<AggRow> = [
     { title: '거래처', dataIndex: 'name', ellipsis: true, render: (v: string, r) => <span>{v} <Text type="secondary" style={{ fontSize: 12 }}>{r.sub}</Text></span> },
@@ -243,7 +296,12 @@ export default function SalesYoyPage() {
             </Space>
           </Col>
           <Col>
-            <Select mode="multiple" allowClear showSearch maxTagCount="responsive" placeholder="부서 전체" value={ccs} options={ccOptions} style={{ width: 220 }}
+            <Select mode="multiple" allowClear showSearch maxTagCount="responsive" placeholder="본부 전체" value={hqs} options={hqOptions} style={{ width: 180 }}
+              onChange={(v: string[]) => { setHqs(v); setCcs([]); setEmps([]); }}
+              filterOption={(input, opt) => ((opt?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())} />
+          </Col>
+          <Col>
+            <Select mode="multiple" allowClear showSearch maxTagCount="responsive" placeholder="부서 전체" value={ccs} options={ccOptions} style={{ width: 200 }}
               onChange={(v: string[]) => { setCcs(v); setEmps([]); }}
               filterOption={(input, opt) => ((opt?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())} />
           </Col>
@@ -344,10 +402,20 @@ export default function SalesYoyPage() {
                 ),
               },
               {
+                key: 'hq',
+                label: `본부별 (${byHq.length})`,
+                children: (
+                  <Card size="small" style={{ borderRadius: 12 }} extra={<Text type="secondary" style={{ fontSize: 12 }}>부서 관리 조직도 기준 · 줄을 누르면 그 본부만(다시 누르면 해제)</Text>}>
+                    <Table<AggRow> rowKey="key" size="small" columns={hqColumns} dataSource={byHq} pagination={false} scroll={{ x: 760 }}
+                      onRow={(r) => ({ onClick: () => { setHqs(r.key === '(없음)' || (hqs.length === 1 && hqs[0] === r.key) ? [] : [r.key]); setCcs([]); setEmps([]); }, style: { cursor: 'pointer' } })} />
+                  </Card>
+                ),
+              },
+              {
                 key: 'cc',
                 label: `부서별 (${byCc.length})`,
                 children: (
-                  <Card size="small" style={{ borderRadius: 12 }} extra={<Text type="secondary" style={{ fontSize: 12 }}>전체 부서 · 줄을 누르면 그 부서만(다시 누르면 해제)</Text>}>
+                  <Card size="small" style={{ borderRadius: 12 }} extra={<Text type="secondary" style={{ fontSize: 12 }}>{hqs.length ? '고른 본부 안' : '전체 부서'} · 본부별로 묶음 · 줄을 누르면 그 부서만(다시 누르면 해제)</Text>}>
                     <Table<AggRow> rowKey="key" size="small" columns={ccColumns} dataSource={byCc} pagination={false} scroll={{ x: 760 }}
                       onRow={(r) => ({ onClick: () => { setCcs(r.key === '(없음)' || (ccs.length === 1 && ccs[0] === r.key) ? [] : [r.key]); setEmps([]); }, style: { cursor: 'pointer' } })} />
                   </Card>
