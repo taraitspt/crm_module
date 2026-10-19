@@ -44,6 +44,8 @@ export default function SalesPlanPage() {
   /** 조회 조건 — 부서·담당자 여러 개(사용자 2026-10-19). 선택지는 이 해 계획이 있는 부서·담당자만. 비우면 전체 */
   const [deptCds, setDeptCds] = useState<number[]>([]);
   const [empIds, setEmpIds] = useState<string[]>([]);
+  /** 거래처 — 여러 개, 비우면 전체. 선택지는 고른 부서·담당자 안의 계획 거래처 */
+  const [partnerCds, setPartnerCds] = useState<string[]>([]);
   /** 볼 월 — 비우면 1~12월 전체(기본). 고르면 그 월 열만, 그 월에 계획이 있는 거래처만(새로 추가한 행은 항상) */
   const [pickMonths, setPickMonths] = useState<MonthCd[]>([]);
   const shownMonths = useMemo<MonthCd[]>(() => (pickMonths.length ? MONTHS.filter((m) => pickMonths.includes(m)) : [...MONTHS]), [pickMonths]);
@@ -122,8 +124,10 @@ export default function SalesPlanPage() {
     });
     return set;
   }, [data, shownMonths, allMonths]);
-  const visibleRows = useMemo(() => rows.filter((r) => passes(r) && !hiddenByMonth.has(rowKey(r))),
-    [rows, deptCds, empIds, hiddenByMonth]);
+  // 거래처 조건은 화면 거르기만 — 저장 대상(담당자 단위 교체)에는 안 쓴다(passes 에 넣지 않음). 안 보이는 거래처 줄도 그대로 저장된다
+  const visibleRows = useMemo(() => rows.filter((r) => passes(r) && !hiddenByMonth.has(rowKey(r))
+    && (!partnerCds.length || partnerCds.includes(r.partnerCd))),
+  [rows, deptCds, empIds, hiddenByMonth, partnerCds]);
   // 선택지 — 지금 화면의 행(새로 추가한 행 포함)에 있는 부서·담당자만. 담당자는 고른 부서 안에서
   const deptOptions = useMemo(() => {
     const m = new Map<number, string>();
@@ -138,6 +142,12 @@ export default function SalesPlanPage() {
     });
     return [...m.entries()].sort((a, b) => a[1].localeCompare(b[1], 'ko')).map(([value, label]) => ({ value, label }));
   }, [rows, deptCds]);
+
+  const partnerOptions = useMemo(() => {
+    const m = new Map<string, string>();
+    rows.forEach((r) => { if (passes(r)) m.set(r.partnerCd, r.partnerNm || r.partnerCd); });
+    return [...m.entries()].sort((a, b) => a[1].localeCompare(b[1], 'ko')).map(([value, label]) => ({ value, label }));
+  }, [rows, deptCds, empIds]);
 
   const removeRow = (key: string) => {
     setRows((prev) => prev.filter((r) => rowKey(r) !== key));
@@ -209,6 +219,7 @@ export default function SalesPlanPage() {
     // 조회 조건에 걸려 새 행이 안 보이면 그 부서·담당자를 조건에 더한다
     if (deptCds.length && modalUser.deptCd != null && !deptCds.includes(modalUser.deptCd)) setDeptCds([...deptCds, modalUser.deptCd]);
     if (empIds.length && !empIds.includes(modalUser.id)) setEmpIds([...empIds, modalUser.id]);
+    if (partnerCds.length && !partnerCds.includes(p.partnerCd)) setPartnerCds([...partnerCds, p.partnerCd]);
     setDirty(true);
     message.success(`${p.partnerNm} 추가됨 — 금액 입력 후 저장하세요.`);
   };
@@ -301,8 +312,8 @@ export default function SalesPlanPage() {
       children: [
         { title: '공임', key: `m${mm}l`, width: 100, align: 'right' as const, render: (_: unknown, r: SalesPlanRow) => amtCell('laborAmt')(_, r, mm) },
         { title: '용지', key: `m${mm}p`, width: 100, align: 'right' as const, render: (_: unknown, r: SalesPlanRow) => amtCell('paperAmt')(_, r, mm) },
-        { title: '합계', key: `m${mm}t`, width: 100, align: 'right' as const, render: (_: unknown, r: SalesPlanRow) => (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+        { title: '합계', key: `m${mm}t`, width: 120, align: 'right' as const, render: (_: unknown, r: SalesPlanRow) => (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
             <MemoButton
               memo={r.months.find((x) => x.planMm === mm)?.memo}
               onSave={(m) => updateMemo(rowKey(r), mm, m)}
@@ -346,17 +357,22 @@ export default function SalesPlanPage() {
               options={[year - 2, year - 1, year, year + 1, year + 2].filter((y, i, a) => a.indexOf(y) === i).sort().map((y) => ({ value: y, label: `${y}년` }))} />
           </Col>
           <Col>
-            <Select mode="multiple" allowClear showSearch maxTagCount="responsive" placeholder="부서 전체" value={deptCds} options={deptOptions} style={{ width: 220 }}
+            <Select mode="multiple" allowClear showSearch maxTagCount="responsive" placeholder="부서 전체" value={deptCds} options={deptOptions} style={{ width: 180 }}
               onChange={(v: number[]) => { setDeptCds(v); setEmpIds([]); }}
               filterOption={(input, opt) => ((opt?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())} />
           </Col>
           <Col>
-            <Select mode="multiple" allowClear showSearch maxTagCount="responsive" placeholder="담당자 전체" value={empIds} options={userOptions} style={{ width: 240 }}
+            <Select mode="multiple" allowClear showSearch maxTagCount="responsive" placeholder="담당자 전체" value={empIds} options={userOptions} style={{ width: 200 }}
               onChange={(v: string[]) => setEmpIds(v)}
               filterOption={(input, opt) => ((opt?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())} />
           </Col>
           <Col>
-            <Select mode="multiple" allowClear maxTagCount="responsive" placeholder="1~12월 전체" value={pickMonths} style={{ width: 200 }}
+            <Select mode="multiple" allowClear showSearch maxTagCount="responsive" placeholder="거래처 전체" value={partnerCds} options={partnerOptions} style={{ width: 200 }}
+              onChange={(v: string[]) => setPartnerCds(v)}
+              filterOption={(input, opt) => `${(opt?.label as string) ?? ''} ${opt?.value ?? ''}`.toLowerCase().includes(input.toLowerCase())} />
+          </Col>
+          <Col>
+            <Select mode="multiple" allowClear maxTagCount="responsive" placeholder="1~12월 전체" value={pickMonths} style={{ width: 150 }}
               options={MONTHS.map((m) => ({ value: m, label: `${parseInt(m, 10)}월` }))}
               onChange={(v: MonthCd[]) => setPickMonths(v)} />
           </Col>
@@ -380,8 +396,8 @@ export default function SalesPlanPage() {
         pagination={false}
         size="small"
         bordered
-        // 가로 폭 = 보이는 열 합(왼쪽 4열 430 + 월마다 300 + 합계 340 + 삭제 44). 고정값(4400)이면 월을 골랐을 때 남는 폭이 합계 열로 몰려 담당자·월 열이 밀려났다
-        scroll={{ x: 430 + shownMonths.length * 300 + 340 + 44, y: 'calc(100vh - 300px)' }}
+        // 가로 폭 = 보이는 열 합(왼쪽 4열 430 + 월마다 320 + 합계 340 + 삭제 44). 고정값(4400)이면 월을 골랐을 때 남는 폭이 합계 열로 몰려 담당자·월 열이 밀려났다
+        scroll={{ x: 430 + shownMonths.length * 320 + 340 + 44, y: 'calc(100vh - 300px)' }}
         locale={{ emptyText: '“거래처 추가” 버튼으로 담당자와 거래처를 골라 행을 만드세요.' }}
         summary={() => {
           if (visibleRows.length === 0) return null;
