@@ -47,7 +47,17 @@ if ($doWeb -and -not (Test-Path (Join-Path $dist 'index.html'))) { throw "dist �
 Step "서버로 복사 ($Server)"
 & ssh @sshOpt $Server 'rm -rf /tmp/crm-release && mkdir -p /tmp/crm-release/dist'
 if ($LASTEXITCODE -ne 0) { throw 'ssh 접속 실패' }
-if ($doApi) { & scp @sshOpt $jar "${Server}:/tmp/crm-release/crm-module-api.jar"; if ($LASTEXITCODE -ne 0) { throw 'jar 복사 실패' } }
+if ($doApi) {
+  # 빌드 폴더의 jar 를 그대로 올리면, 복사 도중 다른 빌드(로컬 gradle 등)가 같은 파일을 다시 써서
+  # 깨진 jar 가 올라갈 수 있다(2026-10-19 실제 발생 — 1.1MB jar 로 API 가 안 떴다). 먼저 TEMP 로 떼어 낸 사본을
+  # 검사(크기·zip 끝)하고 체크섬을 구해 올린 뒤, 서버에서 체크섬이 같을 때만 교체한다.
+  $jarCopy = Join-Path $env:TEMP 'crm-module-api-release.jar'
+  Copy-Item $jar $jarCopy -Force
+  $jarSize = (Get-Item $jarCopy).Length
+  if ($jarSize -lt 50MB) { throw "jar 크기가 이상합니다($jarSize 바이트) — 빌드가 끝났는지 확인하세요" }
+  $jarHash = (Get-FileHash $jarCopy -Algorithm SHA256).Hash.ToLower()
+  & scp @sshOpt $jarCopy "${Server}:/tmp/crm-release/crm-module-api.jar"; if ($LASTEXITCODE -ne 0) { throw 'jar 복사 실패' }
+}
 if ($doWeb) {
   # dist 를 tar 로 묶어 한 번에 (파일이 수백 개라 scp -r 보다 빠르다)
   $tar = Join-Path $env:TEMP 'crm-dist.tgz'
@@ -67,6 +77,7 @@ if ($doWeb) {
   $remote += 'echo "[web] 교체 완료"'
 }
 if ($doApi) {
+  $remote += "echo '$jarHash  /tmp/crm-release/crm-module-api.jar' | sha256sum -c --quiet || { echo '[api] 올라간 jar 체크섬이 다릅니다 — 교체하지 않습니다'; exit 1; }"
   $remote += 'sudo install -o crm -g crm -m 644 /tmp/crm-release/crm-module-api.jar /opt/crm/crm-module-api.jar'
   $remote += 'sudo systemctl restart crm-api'
   $remote += 'for i in $(seq 1 36); do if curl -fsS http://127.0.0.1:8080/actuator/health 2>/dev/null | grep -q UP; then echo "[api] UP (약 $((i*5))초)"; break; fi; sleep 5; if [ "$i" = 36 ]; then echo "[api] 3분 안에 안 떴습니다 — sudo journalctl -u crm-api -n 200"; exit 1; fi; done'

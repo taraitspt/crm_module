@@ -73,6 +73,21 @@ const optionsOf = (list: SalesYoyRow[], code: (r: SalesYoyRow) => string, name: 
   list.forEach((r) => { const c = code(r); if (c) m.set(c, name(r) || c); });
   return [...m.entries()].sort((a, b) => a[1].localeCompare(b[1], 'ko')).map(([value, label]) => ({ value, label }));
 };
+/**
+ * 고른 기간에 올해·작년 합계가 둘 다 0원인 값은 뺀다 — 잘못 넣었다 같은 금액으로 되돌린 전표(예: 그래픽스 비용센터로 들어갔다
+ * 취소된 2025년 매출)만 있는 본부·부서·담당자가 선택 목록에 나오던 문제(사용자 2026-10-19).
+ */
+const liveRows = (list: SalesYoyRow[], code: (r: SalesYoyRow) => string, lo: number, hi: number) => {
+  const sum = new Map<string, [number, number]>();
+  list.forEach((r) => {
+    const k = code(r);
+    const v = sum.get(k) ?? [0, 0];
+    v[0] += sumRange(r.cur, lo, hi);
+    v[1] += sumRange(r.prev, lo, hi);
+    sum.set(k, v);
+  });
+  return list.filter((r) => { const v = sum.get(code(r)); return !!v && (v[0] !== 0 || v[1] !== 0); });
+};
 /** 묶어서 기간 합계 — 부서별·담당자별 표 공용. 올해 기간 매출 큰 순 */
 const groupBy = (list: SalesYoyRow[], code: (r: SalesYoyRow) => string, name: (r: SalesYoyRow) => string, empty: string, lo: number, hi: number): AggRow[] => {
   const m = new Map<string, AggRow>();
@@ -133,13 +148,13 @@ export default function SalesYoyPage() {
   const lastClosedMonth = year === thisYear ? thisMonth : year < thisYear ? 12 : 0;
 
   const hqOrder = useMemo(() => hqSortOf(rows), [rows]);
-  const hqOptions = useMemo(() => optionsOf(rows, hqKey, (r) => r.hqNm ?? '')
-    .sort((a, b) => (hqOrder.get(a.value) ?? 0) - (hqOrder.get(b.value) ?? 0)), [rows, hqOrder]);
+  const hqOptions = useMemo(() => optionsOf(liveRows(rows, hqKey, lo, hi), hqKey, (r) => r.hqNm ?? '')
+    .sort((a, b) => (hqOrder.get(a.value) ?? 0) - (hqOrder.get(b.value) ?? 0)), [rows, hqOrder, lo, hi]);
   const inHqs = (r: SalesYoyRow) => !hqs.length || hqs.includes(hqKey(r));
-  const ccOptions = useMemo(() => optionsOf(rows.filter(inHqs), (r) => r.ccCd, (r) => r.ccNm ?? ''), [rows, hqs]);
+  const ccOptions = useMemo(() => optionsOf(liveRows(rows.filter(inHqs), (r) => r.ccCd, lo, hi), (r) => r.ccCd, (r) => r.ccNm ?? ''), [rows, hqs, lo, hi]);
   // 담당자 목록은 고른 본부·부서 안에서만
   const inCcs = (r: SalesYoyRow) => inHqs(r) && (!ccs.length || ccs.includes(r.ccCd));
-  const empOptions = useMemo(() => optionsOf(rows.filter(inCcs), (r) => r.empNo, (r) => r.empNm ?? ''), [rows, hqs, ccs]);
+  const empOptions = useMemo(() => optionsOf(liveRows(rows.filter(inCcs), (r) => r.empNo, lo, hi), (r) => r.empNo, (r) => r.empNm ?? ''), [rows, hqs, ccs, lo, hi]);
   const scoped = useMemo(() => rows.filter((r) => inCcs(r) && (!emps.length || emps.includes(r.empNo))), [rows, hqs, ccs, emps]);
 
   // 월별(1~12) 합계 — 그래프용
