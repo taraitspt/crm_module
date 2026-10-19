@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Button, Card, Col, Input, InputNumber, Modal, Popconfirm, Row, Select, Space, Table, Typography, message,
+  Button, Card, Col, Input, InputNumber, Modal, Popconfirm, Row, Select, Space, Table, Tag, Typography, message,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { DeleteOutlined, DownloadOutlined, PlusOutlined, SaveOutlined, SearchOutlined } from '@ant-design/icons';
@@ -12,6 +12,7 @@ import PageHeader from '@/components/layout/PageHeader';
 import { lookupApi } from '@/api/info.api';
 import { salesPlanApi } from '@/api/salesPlan.api';
 import type { SalesPlanRow } from '@/types/salesPlan';
+import MemoButton from '@/components/common/MemoButton';
 
 const { Text } = Typography;
 
@@ -24,6 +25,8 @@ const fmtNum = (v: number | undefined | null) =>
 const parseNum = (v: string | undefined) => Number(v?.replace(/,/g, '') ?? 0);
 
 const rowKey = (r: SalesPlanRow) => `${r.salesEmpId}|${r.partnerCd}`;
+/** 신규 목표용 가상 거래처(NEW, NEW2 …) — ERP 에 없는 자리표시 코드. 서버 SalesPlanService.isVirtualPartner 와 같은 규칙 */
+const isVirtual = (cd: string) => cd.toUpperCase().startsWith('NEW');
 
 interface PartnerHit {
   partnerCd: string;
@@ -38,8 +41,9 @@ interface PartnerHit {
 export default function SalesPlanPage() {
   const queryClient = useQueryClient();
   const [year, setYear] = useState(dayjs().year());
-  const [deptCd, setDeptCd] = useState<number | undefined>(undefined);
-  const [salesEmpId, setSalesEmpId] = useState<string>('');
+  /** 조회 조건 — 부서·담당자 여러 개(사용자 2026-10-19). 선택지는 이 해 계획이 있는 부서·담당자만. 비우면 전체 */
+  const [deptCds, setDeptCds] = useState<number[]>([]);
+  const [empIds, setEmpIds] = useState<string[]>([]);
   const [rows, setRows] = useState<SalesPlanRow[]>([]);
   /** 로드 시점에 존재하던 담당자 — 행을 전부 지워도 저장 시 교체 대상에 포함시키기 위해 기억 */
   const [loadedEmpIds, setLoadedEmpIds] = useState<string[]>([]);
@@ -53,25 +57,21 @@ export default function SalesPlanPage() {
   const [hits, setHits] = useState<PartnerHit[]>([]);
   const [searching, setSearching] = useState(false);
 
-  const { data: depts } = useQuery({ queryKey: ['departments'], queryFn: () => lookupApi.getDepartments() });
-  const deptOptions = useMemo(
-    () => (depts ?? []).filter((d) => d.deptCd != null && d.deptNm).map((d) => ({ value: d.deptCd, label: d.deptNm })),
-    [depts],
-  );
-
+  // 거래처 추가 창의 담당자 = 활성 사용자 전체(아직 계획이 없는 사람도 새로 넣을 수 있어야 한다)
   const { data: users } = useQuery({
-    queryKey: ['sales-plan-users', deptCd],
-    queryFn: () => salesPlanApi.getUsers(deptCd),
+    queryKey: ['sales-plan-users', 'all'],
+    queryFn: () => salesPlanApi.getUsers(undefined),
   });
-  const userOptions = useMemo(
+  const modalUserOptions = useMemo(
     () => (users ?? []).map((u) => ({ value: u.id, label: u.deptNm ? `${u.name} (${u.deptNm})` : u.name })),
     [users],
   );
   const modalUser = useMemo(() => (users ?? []).find((u) => u.id === modalEmpId), [users, modalEmpId]);
 
+  // 그 해 계획 전체를 받고(데이터 범위는 서버가 적용) 부서·담당자는 화면에서 거른다
   const { data, isLoading } = useQuery({
-    queryKey: ['sales-plan', year, deptCd, salesEmpId],
-    queryFn: () => salesPlanApi.getPlans(String(year), deptCd, salesEmpId || undefined),
+    queryKey: ['sales-plan', year],
+    queryFn: () => salesPlanApi.getPlans(String(year)),
   });
 
   useEffect(() => {
@@ -89,12 +89,38 @@ export default function SalesPlanPage() {
     setDirty(true);
   };
 
+  /** 증감사유(월 메모) — 금액처럼 화면에서 고치고 [저장]으로 같이 저장된다 */
+  const updateMemo = (key: string, mm: MonthCd, memo: string) => {
+    setRows((prev) => prev.map((r) => (rowKey(r) !== key ? r
+      : { ...r, months: r.months.map((m) => (m.planMm === mm ? { ...m, memo: memo || null } : m)) })));
+    setDirty(true);
+  };
+
   const monthTotal = (r: SalesPlanRow, mm: MonthCd) => {
     const m = r.months.find((x) => x.planMm === mm);
     return (m?.laborAmt ?? 0) + (m?.paperAmt ?? 0);
   };
   const rowTotal = (r: SalesPlanRow, field?: AmtField) =>
     r.months.reduce((s, m) => s + (field ? (m[field] ?? 0) : (m.laborAmt ?? 0) + (m.paperAmt ?? 0)), 0);
+
+  const passes = (r: SalesPlanRow) =>
+    (!deptCds.length || (r.deptCd != null && deptCds.includes(r.deptCd)))
+    && (!empIds.length || empIds.includes(r.salesEmpId));
+  const visibleRows = useMemo(() => rows.filter(passes), [rows, deptCds, empIds]);
+  // 선택지 — 지금 화면의 행(새로 추가한 행 포함)에 있는 부서·담당자만. 담당자는 고른 부서 안에서
+  const deptOptions = useMemo(() => {
+    const m = new Map<number, string>();
+    rows.forEach((r) => { if (r.deptCd != null) m.set(r.deptCd, r.deptNm || String(r.deptCd)); });
+    return [...m.entries()].sort((a, b) => a[1].localeCompare(b[1], 'ko')).map(([value, label]) => ({ value, label }));
+  }, [rows]);
+  const userOptions = useMemo(() => {
+    const m = new Map<string, string>();
+    rows.forEach((r) => {
+      if (deptCds.length && (r.deptCd == null || !deptCds.includes(r.deptCd))) return;
+      m.set(r.salesEmpId, r.deptNm ? `${r.empNm} (${r.deptNm})` : r.empNm);
+    });
+    return [...m.entries()].sort((a, b) => a[1].localeCompare(b[1], 'ko')).map(([value, label]) => ({ value, label }));
+  }, [rows, deptCds]);
 
   const removeRow = (key: string) => {
     setRows((prev) => prev.filter((r) => rowKey(r) !== key));
@@ -104,14 +130,14 @@ export default function SalesPlanPage() {
   /** 하단 합계 — 전체 행의 월별 공임/용지/합계와 연합계. */
   const totals = useMemo(() => {
     const byMonth = MONTHS.map((mm) => {
-      const labor = rows.reduce((s, r) => s + (r.months.find((x) => x.planMm === mm)?.laborAmt ?? 0), 0);
-      const paper = rows.reduce((s, r) => s + (r.months.find((x) => x.planMm === mm)?.paperAmt ?? 0), 0);
+      const labor = visibleRows.reduce((s, r) => s + (r.months.find((x) => x.planMm === mm)?.laborAmt ?? 0), 0);
+      const paper = visibleRows.reduce((s, r) => s + (r.months.find((x) => x.planMm === mm)?.paperAmt ?? 0), 0);
       return { mm, labor, paper, sum: labor + paper };
     });
     const labor = byMonth.reduce((s, m) => s + m.labor, 0);
     const paper = byMonth.reduce((s, m) => s + m.paper, 0);
     return { byMonth, labor, paper, sum: labor + paper };
-  }, [rows]);
+  }, [visibleRows]);
 
   const searchPartners = async (kw: string) => {
     setSearching(true);
@@ -127,12 +153,19 @@ export default function SalesPlanPage() {
 
   /** 모달 열기 — 담당자 기본값은 상단 필터 선택값, 없으면 사용자가 한 명뿐일 때 그 사람. 목록은 바로 조회. */
   const openAdd = () => {
-    setModalEmpId(salesEmpId || (users?.length === 1 ? users[0].id : ''));
+    setModalEmpId(empIds.length === 1 ? empIds[0] : '');
     setKeyword('');
     setHits([]);
     setAddOpen(true);
     void searchPartners('');
   };
+
+  /**
+   * 신규(목표) — ERP 에 없는 신규 거래처 매출 목표를 담당자당 한 줄(가상 코드 NEW)로 몰아 넣는다(사용자 2026-10-19).
+   * 실적은 매출현황에서 "그 담당자의, 계획에 없는 거래처 매출"로 붙는다.
+   */
+  const NEW_PARTNER: PartnerHit = { partnerCd: 'NEW', partnerNm: '신규(목표)', bizrNo: '' };
+  const hasNewRow = modalUser != null && rows.some((x) => x.salesEmpId === modalUser.id && isVirtual(x.partnerCd));
 
   const addPartner = (p: PartnerHit) => {
     if (!modalUser) {
@@ -156,6 +189,9 @@ export default function SalesPlanPage() {
         months: MONTHS.map((mm) => ({ planMm: mm, laborAmt: 0, paperAmt: 0 })),
       },
     ]);
+    // 조회 조건에 걸려 새 행이 안 보이면 그 부서·담당자를 조건에 더한다
+    if (deptCds.length && modalUser.deptCd != null && !deptCds.includes(modalUser.deptCd)) setDeptCds([...deptCds, modalUser.deptCd]);
+    if (empIds.length && !empIds.includes(modalUser.id)) setEmpIds([...empIds, modalUser.id]);
     setDirty(true);
     message.success(`${p.partnerNm} 추가됨 — 금액 입력 후 저장하세요.`);
   };
@@ -163,8 +199,14 @@ export default function SalesPlanPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const empIds = Array.from(new Set([...loadedEmpIds, ...rows.map((r) => r.salesEmpId)]));
-      await salesPlanApi.save({ planYy: String(year), salesEmpIds: empIds, rows });
+      // 저장은 "담당자의 그 해 계획을 통째로 교체"라, 조회 조건으로 좁혀 둔 상태면 그 담당자들만 보낸다 —
+      // 화면에 안 보이는 다른 사람 계획을 (다른 사람이 동시에 고친 것까지) 덮어쓰지 않게.
+      const loadedDept = new Map((data ?? []).map((r) => [r.salesEmpId, r.deptCd] as const));
+      const target = new Set<string>([
+        ...loadedEmpIds.filter((id) => passes({ salesEmpId: id, deptCd: loadedDept.get(id) ?? null } as SalesPlanRow)),
+        ...visibleRows.map((r) => r.salesEmpId),
+      ]);
+      await salesPlanApi.save({ planYy: String(year), salesEmpIds: [...target], rows: rows.filter((r) => target.has(r.salesEmpId)) });
       await queryClient.invalidateQueries({ queryKey: ['sales-plan'], refetchType: 'active' });
       message.success('저장되었습니다.');
     } catch {
@@ -184,7 +226,7 @@ export default function SalesPlanPage() {
     header1.push('연합계', '', '');
     header2.push('공임', '용지', '합계');
     const aoa: (string | number)[][] = [header1, header2];
-    rows.forEach((r) => {
+    visibleRows.forEach((r) => {
       const line: (string | number)[] = [r.deptNm ?? '', r.empNm, r.partnerCd, r.partnerNm ?? ''];
       MONTHS.forEach((mm) => {
         const m = r.months.find((x) => x.planMm === mm);
@@ -194,8 +236,8 @@ export default function SalesPlanPage() {
       aoa.push(line);
     });
     // 화면 하단 합계와 동일한 합계 행
-    if (rows.length > 0) {
-      const sumLine: (string | number)[] = [`합계 (${rows.length}건)`, '', '', ''];
+    if (visibleRows.length > 0) {
+      const sumLine: (string | number)[] = [`합계 (${visibleRows.length}건)`, '', '', ''];
       totals.byMonth.forEach((m) => sumLine.push(m.labor, m.paper, m.sum));
       sumLine.push(totals.labor, totals.paper, totals.sum);
       aoa.push(sumLine);
@@ -207,6 +249,12 @@ export default function SalesPlanPage() {
     ws['!merges'] = merges;
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, '월매출계획');
+    // 증감사유(월 메모)는 별도 시트
+    const memoAoa: (string | number)[][] = [['부서', '담당자', '거래처코드', '거래처명', '월', '증감사유']];
+    visibleRows.forEach((r) => r.months.forEach((m) => {
+      if (m.memo) memoAoa.push([r.deptNm ?? '', r.empNm, r.partnerCd, r.partnerNm ?? '', `${parseInt(m.planMm, 10)}월`, m.memo]);
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(memoAoa), '증감사유');
     XLSX.writeFile(wb, `월매출계획_${year}년.xlsx`);
   };
 
@@ -226,15 +274,26 @@ export default function SalesPlanPage() {
   const columns: ColumnsType<SalesPlanRow> = [
     { title: '부서', key: 'dept', width: 100, fixed: 'left', render: (_, r) => r.deptNm ?? '-' },
     { title: '담당자', key: 'emp', width: 90, fixed: 'left', render: (_, r) => r.empNm },
-    { title: '거래처', key: 'partnerCd', width: 80, fixed: 'left', render: (_, r) => <Text type="secondary">{r.partnerCd}</Text> },
-    { title: '거래처명', key: 'partnerNm', width: 160, fixed: 'left', ellipsis: true, render: (_, r) => r.partnerNm ?? '-' },
+    { title: '거래처', key: 'partnerCd', width: 80, fixed: 'left',
+      render: (_, r) => (isVirtual(r.partnerCd) ? <Tag color="gold" style={{ marginInlineEnd: 0 }}>신규</Tag> : <Text type="secondary">{r.partnerCd}</Text>) },
+    { title: '거래처명', key: 'partnerNm', width: 160, fixed: 'left', ellipsis: true,
+      render: (_, r) => r.partnerNm ?? '-' },
     ...MONTHS.map((mm) => ({
       title: `${parseInt(mm, 10)}월`,
       key: `m${mm}`,
       children: [
         { title: '공임', key: `m${mm}l`, width: 100, align: 'right' as const, render: (_: unknown, r: SalesPlanRow) => amtCell('laborAmt')(_, r, mm) },
         { title: '용지', key: `m${mm}p`, width: 100, align: 'right' as const, render: (_: unknown, r: SalesPlanRow) => amtCell('paperAmt')(_, r, mm) },
-        { title: '합계', key: `m${mm}t`, width: 100, align: 'right' as const, render: (_: unknown, r: SalesPlanRow) => <Text className="tabular-nums">{fmtNum(monthTotal(r, mm))}</Text> },
+        { title: '합계', key: `m${mm}t`, width: 100, align: 'right' as const, render: (_: unknown, r: SalesPlanRow) => (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <MemoButton
+              memo={r.months.find((x) => x.planMm === mm)?.memo}
+              title={`${r.partnerNm ?? r.partnerCd} · ${parseInt(mm, 10)}월 증감사유`}
+              onSave={(m) => updateMemo(rowKey(r), mm, m)}
+            />
+            <Text className="tabular-nums">{fmtNum(monthTotal(r, mm))}</Text>
+          </span>
+        ) },
       ],
     })),
     {
@@ -271,20 +330,20 @@ export default function SalesPlanPage() {
               options={[year - 2, year - 1, year, year + 1, year + 2].filter((y, i, a) => a.indexOf(y) === i).sort().map((y) => ({ value: y, label: `${y}년` }))} />
           </Col>
           <Col>
-            <Select allowClear showSearch placeholder="부서" value={deptCd} options={deptOptions} style={{ width: 180 }}
-              onChange={(v) => { setDeptCd(v); setSalesEmpId(''); }}
+            <Select mode="multiple" allowClear showSearch maxTagCount="responsive" placeholder="부서 전체" value={deptCds} options={deptOptions} style={{ width: 220 }}
+              onChange={(v: number[]) => { setDeptCds(v); setEmpIds([]); }}
               filterOption={(input, opt) => ((opt?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())} />
           </Col>
           <Col>
-            <Select allowClear showSearch placeholder="담당자" value={salesEmpId || undefined} options={userOptions} style={{ width: 200 }}
-              onChange={(v) => setSalesEmpId(v ?? '')}
+            <Select mode="multiple" allowClear showSearch maxTagCount="responsive" placeholder="담당자 전체" value={empIds} options={userOptions} style={{ width: 240 }}
+              onChange={(v: string[]) => setEmpIds(v)}
               filterOption={(input, opt) => ((opt?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())} />
           </Col>
           <Col style={{ marginLeft: 'auto' }}>
             <Space>
               {dirty && <Text type="warning" style={{ fontSize: 12 }}>저장되지 않은 변경이 있습니다</Text>}
               <Button icon={<PlusOutlined />} onClick={openAdd}>거래처 추가</Button>
-              <Button icon={<DownloadOutlined />} onClick={handleDownloadExcel} disabled={rows.length === 0}>엑셀다운로드</Button>
+              <Button icon={<DownloadOutlined />} onClick={handleDownloadExcel} disabled={visibleRows.length === 0}>엑셀다운로드</Button>
               <Button type="primary" icon={<SaveOutlined />} loading={saving} onClick={handleSave} disabled={!dirty}>저장</Button>
             </Space>
           </Col>
@@ -294,7 +353,7 @@ export default function SalesPlanPage() {
       <Table<SalesPlanRow>
         className="amount-grid"
         columns={columns}
-        dataSource={rows}
+        dataSource={visibleRows}
         loading={isLoading}
         rowKey={rowKey}
         pagination={false}
@@ -303,11 +362,11 @@ export default function SalesPlanPage() {
         scroll={{ x: 4400, y: 'calc(100vh - 300px)' }}
         locale={{ emptyText: '“거래처 추가” 버튼으로 담당자와 거래처를 골라 행을 만드세요.' }}
         summary={() => {
-          if (rows.length === 0) return null;
+          if (visibleRows.length === 0) return null;
           // 합계 셀은 leaf 컬럼 순서대로: [부서·담당자·거래처·거래처명](4) → 월 36 → 연합계 3 → 삭제 1
           const cells = [
             <Table.Summary.Cell key="label" index={0} colSpan={4}>
-              <Text strong>합계 ({rows.length}건)</Text>
+              <Text strong>합계 ({visibleRows.length}건)</Text>
             </Table.Summary.Cell>,
           ];
           let idx = 4;
@@ -355,12 +414,21 @@ export default function SalesPlanPage() {
           showSearch
           placeholder="담당자 선택"
           value={modalEmpId || undefined}
-          options={userOptions}
+          options={modalUserOptions}
           onChange={(v) => setModalEmpId(v ?? '')}
           style={{ width: '100%', marginBottom: 8 }}
           filterOption={(input, opt) => ((opt?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())}
           notFoundContent="사용자가 없습니다. 관리자 → ERP 동기화로 사원을 먼저 받아오세요."
         />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, border: '1px dashed #e5c07b', background: '#fffbeb', borderRadius: 6, padding: '8px 10px', marginBottom: 12 }}>
+          <div style={{ flex: 1, fontSize: 12 }}>
+            <Text strong style={{ fontSize: 12 }}>신규(목표)</Text>
+            <Text type="secondary" style={{ fontSize: 12 }}> — ERP에 없는 신규 거래처 목표는 한 줄로 모아 입력합니다.</Text>
+          </div>
+          <Button size="small" icon={hasNewRow ? undefined : <PlusOutlined />} disabled={hasNewRow} onClick={() => addPartner(NEW_PARTNER)}>
+            {hasNewRow ? '추가됨' : '신규(목표) 추가'}
+          </Button>
+        </div>
         <Space.Compact style={{ width: '100%', marginBottom: 12 }}>
           <Input placeholder="거래처명 / 코드 / 사업자번호" value={keyword} onChange={(e) => setKeyword(e.target.value)} onPressEnter={() => searchPartners(keyword)} allowClear />
           <Button type="primary" icon={<SearchOutlined />} loading={searching} onClick={() => searchPartners(keyword)}>검색</Button>

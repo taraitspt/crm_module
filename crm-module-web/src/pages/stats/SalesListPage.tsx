@@ -9,7 +9,6 @@ import { PageHeader, PageLayout } from '@/components/layout';
 import { ExcelDownloadBtn } from '@/components/table';
 import { getSalesList } from '@/api/salesList.api';
 import type { SalesListRow } from '@/types/salesList';
-import { PLANTS } from '@/types/attention';
 import StatsDateRangePicker from './components/StatsDateRangePicker';
 import { HeaderCell, matchesFilter, compareVals, isColFilterActive, type ColFilter, type ColType } from '@/components/table/columnFilterKit';
 import { T } from '@/theme/designTokens';
@@ -22,7 +21,6 @@ import { T } from '@/theme/designTokens';
 
 /** 서버와 같은 한도 — SalesListService.MAX_RANGE_DAYS */
 const MAX_RANGE_DAYS = 92;
-const PLANT_LABEL: Record<string, string> = { '1000': 'TPS', '2000': 'GRP', '3000': 'PM' };
 
 const num = (v?: number | null) => (v == null ? '' : Number(v).toLocaleString('ko-KR'));
 
@@ -35,7 +33,6 @@ const tx = (id: keyof SalesListRow, label: string, width: number): ColDef => ({ 
 const COLS: ColDef[] = [
   { id: 'billDate', label: '매출일자', width: 100, fixed: 'left' },
   { id: 'billNo', label: '매출번호', width: 140, fixed: 'left' },
-  en('plantCd', '사업부문', 80, 'center'),
   en('deptName', '부서', 120),
   en('salesEmpName', '영업담당자', 90),
   tx('partnerCd', '거래처코드', 100),
@@ -64,7 +61,6 @@ const COLS: ColDef[] = [
 const NUMERIC = new Set(COLS.filter((c) => c.type === 'amount').map((c) => c.id));
 const colType = (id: string): ColType => COLS.find((c) => c.id === id)?.type ?? 'text';
 const displayVal = (row: SalesListRow, id: string): string => {
-  if (id === 'plantCd') return PLANT_LABEL[row.plantCd ?? ''] ?? row.plantCd ?? '';
   return String((row as unknown as Record<string, unknown>)[id] ?? '');
 };
 const HIDDEN_COLS_KEY = 'sales-list-hidden-cols-v2';
@@ -72,7 +68,8 @@ const HIDDEN_COLS_KEY = 'sales-list-hidden-cols-v2';
 const SalesListPage: React.FC = () => {
   const navigate = useNavigate();
   const [dateRange, setDateRange] = useState<[Dayjs, Dayjs]>([dayjs().startOf('month'), dayjs()]);
-  const [plantCd, setPlantCd] = useState('1000');
+  // 사업부문은 타라티피에스(공장 1000) 고정 — 이 프로젝트는 TPS 전용이라 선택칸을 뺐다(사용자 2026-10-19)
+  const plantCd = '1000';
   const [orderType, setOrderType] = useState<string>();
   const [dept, setDept] = useState<string>();
   const [emp, setEmp] = useState<string>();
@@ -143,11 +140,9 @@ const SalesListPage: React.FC = () => {
         ellipsis: true,
         render: c.id === 'inOut'
           ? (v: string) => (v ? <Tag color={v === '내부' ? 'blue' : 'default'} style={{ marginInlineEnd: 0 }}>{v}</Tag> : '')
-          : c.id === 'plantCd'
-            ? (_: string, r: SalesListRow) => displayVal(r, 'plantCd')
-            : NUMERIC.has(c.id)
-              ? (v: number) => <span style={{ color: v < 0 ? '#D32F2F' : undefined }}>{num(v)}</span>
-              : undefined,
+          : NUMERIC.has(c.id)
+            ? (v: number) => <span style={{ color: v < 0 ? '#D32F2F' : undefined }}>{num(v)}</span>
+            : undefined,
       })),
     ];
   }, [allRows, colFilters, sortCfg, hiddenCols]);
@@ -163,7 +158,6 @@ const SalesListPage: React.FC = () => {
   const excelColumns = COLS.map((c) => ({
     header: c.label,
     key: c.id,
-    formatter: c.id === 'plantCd' ? (_: unknown, row?: Record<string, unknown>) => PLANT_LABEL[String(row?.plantCd ?? '')] ?? String(row?.plantCd ?? '') : undefined,
   }));
   const excelRows = rows.map((r) => ({ ...r }) as Record<string, unknown>);
 
@@ -191,7 +185,6 @@ const SalesListPage: React.FC = () => {
         <Space wrap size={8}>
           <span style={{ fontWeight: 600 }}>매출일</span>
           <StatsDateRangePicker value={dateRange} onChange={onRangeChange} />
-          <Select value={plantCd} onChange={setPlantCd} style={{ width: 160 }} options={PLANTS} />
           <Select allowClear placeholder="주문구분 전체" value={orderType} onChange={setOrderType}
             options={optionsOf('orderType')} style={{ width: 130 }} />
           <Select allowClear showSearch placeholder="부서 전체" value={dept} onChange={(v) => { setDept(v); setEmp(undefined); }}

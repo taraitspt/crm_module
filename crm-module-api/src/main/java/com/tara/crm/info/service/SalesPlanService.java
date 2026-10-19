@@ -28,6 +28,10 @@ import java.util.stream.Collectors;
  *
  * 실적은 거래처 단위로 ERP 에서 집계한다(부서 무관 합산). 같은 거래처를 두 담당자가 계획에 넣으면
  * 실적이 양쪽에 같은 값으로 표시된다 — 담당자별 실적 분리는 ERP 전표에 담당자 컬럼을 확인한 뒤 붙인다.
+ *
+ * 가상 거래처 "NEW…"(신규(목표))의 실적 = 그 담당자(매출 라인 영업담당 사번)가 올린 매출 중
+ * 그 해 월매출계획 어디에도 없는 거래처의 매출(사용자 결정 2026-10-19 — "계획에 없는 거래처 = 신규").
+ * 계획에 있는 거래처는 제 줄에 실적이 붙으므로 두 번 세지 않는다. 한 담당자에게 NEW 줄이 여러 개면 첫 줄에만 붙인다.
  */
 @Slf4j
 @Service
@@ -112,6 +116,7 @@ public class SalesPlanService {
                     .ifPresent(m -> {
                         m.setLaborAmt(nz(p.getLaborAmt()));
                         m.setPaperAmt(nz(p.getPaperAmt()));
+                        m.setMemo(p.getMemo());
                     });
         }
         return new ArrayList<>(rows.values());
@@ -156,6 +161,7 @@ public class SalesPlanService {
                             .partnerNm(row.getPartnerNm())
                             .laborAmt(m != null ? nz(m.getLaborAmt()) : 0L)
                             .paperAmt(m != null ? nz(m.getPaperAmt()) : 0L)
+                            .memo(m != null ? trimMemo(m.getMemo()) : null)
                             .build());
                 }
             }
@@ -198,10 +204,46 @@ public class SalesPlanService {
             erpMessage = "ERP(Oracle) 연결이 비활성화되어 실적을 표시할 수 없습니다.";
         }
 
+        // 신규(목표) 줄 실적 — 담당 사번별 "계획에 없는 거래처" 매출
+        Map<String, Map<Integer, Long>> newByEmp = new HashMap<>();
+        Map<String, Set<String>> newNamesByEmp = new HashMap<>();
+        Map<String, User> users = userMap();
+        boolean hasNewRow = plans.stream().anyMatch(p -> isVirtualPartner(p.getPartnerCd()));
+        if (hasNewRow && erpAvailable) {
+            try {
+                Set<String> planned = salesPlanRepository.findByYear(companyCd(), planYy).stream()
+                        .map(sp -> sp.getId().getPartnerCd().trim())
+                        .collect(Collectors.toSet());
+                for (Object[] r : oracleStatsRepository.get().getYearlySalesByCcEmp(Integer.parseInt(planYy), plantCd)) {
+                    String partnerCd = r[0] == null ? "" : r[0].toString().trim();
+                    String empNo = r[4] == null ? null : r[4].toString().trim();
+                    if (empNo == null || empNo.isEmpty() || planned.contains(partnerCd)) continue;
+                    newByEmp.computeIfAbsent(empNo, k -> new HashMap<>())
+                            .merge(((Number) r[6]).intValue(), ((Number) r[7]).longValue(), Long::sum);
+                    newNamesByEmp.computeIfAbsent(empNo, k -> new TreeSet<>())
+                            .add(r[1] == null ? partnerCd : r[1].toString().trim());
+                }
+            } catch (Exception e) {
+                log.warn("[sales-plan] 신규 거래처 실적 조회 실패 — 신규(목표) 실적 0 으로 표시", e);
+            }
+        }
+        Set<String> newRowDone = new HashSet<>();
+
         List<SalesPlanDto.StatusRow> rows = new ArrayList<>();
         long planTotal = 0, actualTotal = 0;
         for (SalesPlanDto.PlanRow p : plans) {
             Map<Integer, Long> byMonth = actual.getOrDefault(p.getPartnerCd().trim(), Map.of());
+            List<String> newPartners = null;
+            if (isVirtualPartner(p.getPartnerCd())) {
+                User u = users.get(p.getSalesEmpId());
+                String empNo = u == null || u.getEmployeeNo() == null ? null : u.getEmployeeNo().trim();
+                byMonth = Map.of();
+                newPartners = List.of();
+                if (empNo != null && newRowDone.add(p.getSalesEmpId())) {
+                    byMonth = newByEmp.getOrDefault(empNo, Map.of());
+                    newPartners = new ArrayList<>(newNamesByEmp.getOrDefault(empNo, Set.of()));
+                }
+            }
             List<SalesPlanDto.StatusMonth> months = new ArrayList<>();
             long rowPlan = 0, rowActual = 0;
             for (SalesPlanDto.MonthAmt m : p.getMonths()) {
@@ -209,7 +251,7 @@ public class SalesPlanService {
                 long paper = nz(m.getPaperAmt());
                 long planAmt = labor + paper;
                 long actualAmt = byMonth.getOrDefault(Integer.parseInt(m.getPlanMm()), 0L);
-                months.add(new SalesPlanDto.StatusMonth(m.getPlanMm(), planAmt, labor, paper, actualAmt));
+                months.add(new SalesPlanDto.StatusMonth(m.getPlanMm(), planAmt, labor, paper, actualAmt, m.getMemo()));
                 rowPlan += planAmt;
                 rowActual += actualAmt;
             }
@@ -218,6 +260,7 @@ public class SalesPlanService {
                     .salesEmpId(p.getSalesEmpId()).empNm(p.getEmpNm())
                     .partnerCd(p.getPartnerCd()).partnerNm(p.getPartnerNm())
                     .months(months).planTotal(rowPlan).actualTotal(rowActual)
+                    .newPartners(newPartners)
                     .build());
             planTotal += rowPlan;
             actualTotal += rowActual;
@@ -228,7 +271,34 @@ public class SalesPlanService {
                 .build();
     }
 
+    /**
+     * 증감사유(월 메모) 한 칸 저장 — 매출현황에서 쓴다. 금액은 건드리지 않는다.
+     * 계획 줄이 있는 (담당자, 거래처)만 — 매출현황 행은 전부 계획 줄이라 항상 있다.
+     */
+    @Transactional
+    public void saveMemo(SalesPlanDto.MemoRequest req) {
+        if (req.getPlanYy() == null || req.getPlanMm() == null || req.getSalesEmpId() == null || req.getPartnerCd() == null) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT);
+        }
+        scopeService.assertCanWrite(CrmResource.SALES_PLAN, req.getSalesEmpId());
+        SalesPlan p = salesPlanRepository.findById(new SalesPlanId(companyCd(), req.getPlanYy(), req.getPlanMm(),
+                        req.getSalesEmpId(), req.getPartnerCd().trim()))
+                .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_INPUT, "계획 줄이 없습니다. 월매출계획에 거래처를 먼저 추가하세요."));
+        p.setMemo(trimMemo(req.getMemo()));
+    }
+
     // ── helpers ──
+    private static String trimMemo(String memo) {
+        if (memo == null || memo.isBlank()) return null;
+        String t = memo.trim();
+        return t.length() > 500 ? t.substring(0, 500) : t;
+    }
+
+    /** 신규 목표용 가상 거래처(NEW, NEW2 …) — ERP 에 없는 자리표시 코드 */
+    public static boolean isVirtualPartner(String partnerCd) {
+        return partnerCd != null && partnerCd.trim().toUpperCase().startsWith("NEW");
+    }
+
     private Map<String, User> userMap() {
         return userRepository.findAllByCompanyCd(companyCd()).stream()
                 .collect(Collectors.toMap(u -> u.getId().getId(), Function.identity(), (a, b) -> a));
@@ -241,7 +311,7 @@ public class SalesPlanService {
 
     private static List<SalesPlanDto.MonthAmt> emptyMonths() {
         List<SalesPlanDto.MonthAmt> list = new ArrayList<>(12);
-        for (String mm : MONTHS) list.add(new SalesPlanDto.MonthAmt(mm, 0L, 0L));
+        for (String mm : MONTHS) list.add(new SalesPlanDto.MonthAmt(mm, 0L, 0L, null));
         return list;
     }
 

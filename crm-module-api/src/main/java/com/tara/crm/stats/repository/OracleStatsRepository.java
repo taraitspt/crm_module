@@ -268,11 +268,13 @@ public class OracleStatsRepository {
      * 전년 매출 비교용 — 연도별 거래처·비용센터(CC_CD)·영업담당(BIZRSPT_EMPNO_CD)·월 매출(공급가액).
      * getCustomerYearlySales 의 DEPT_CD(SALESORGN_CD)는 영업조직이라 TPS 는 전부 1000(=임원 부서로 이름이 잡힘)이어서
      * 부서 구분에 못 쓴다(2026-10-19 확인). 매출리스트처럼 비용센터·담당 사번으로 가른다. 원천·조건은 매출현황과 같다(SD_BILL 전체).
-     * 반환: PARTNER_CD, PARTNER_NM, CC_CD, CC_NM, EMP_NO, EMP_NM, BILL_MONTH, TOTAL_AMT
+     * 반환: PARTNER_CD, PARTNER_NM, CC_CD, CC_NM, EMP_NO, EMP_NM, BILL_MONTH, TOTAL_AMT. plantCd 가 null 이면 사업부문 전체.
      */
     public List<Object[]> getYearlySalesByCcEmp(int year, String plantCd) {
         String startDt = String.format("%04d0101", year);
         String endDt = String.format("%04d0101", year + 1);
+        boolean byPlant = plantCd != null && !plantCd.isBlank();
+        Object[] args = byPlant ? new Object[]{startDt, endDt, plantCd.trim()} : new Object[]{startDt, endDt};
         return jdbcTemplate.query("""
                 SELECT x.PARTNER_CD,
                        NVL((SELECT p.PARTNER_NM FROM CI_PARTNER_MST p WHERE p.PARTNER_CD = x.PARTNER_CD AND ROWNUM = 1), x.PARTNER_CD) AS PARTNER_NM,
@@ -289,7 +291,7 @@ public class OracleStatsRepository {
                           JOIN SD_BILL_DTL dt ON dt.COMPANY_CD = b.COMPANY_CD AND dt.BILLDOC_NO = b.BILLDOC_NO
                          WHERE b.COMPANY_CD = '1000'
                            AND b.BILL_DT >= ? AND b.BILL_DT < ?
-                           AND dt.PLANT_CD = ?
+                """ + (byPlant ? " AND dt.PLANT_CD = ?" : "") + """
                          GROUP BY b.SALEPRTN_CD, dt.CC_CD, dt.BIZRSPT_EMPNO_CD, SUBSTR(b.BILL_DT, 5, 2)
                        ) x
                 """, (rs, rowNum) -> new Object[]{
@@ -297,7 +299,7 @@ public class OracleStatsRepository {
                 rs.getString("CC_CD"), rs.getString("CC_NM"),
                 rs.getString("EMP_NO"), rs.getString("EMP_NM"),
                 rs.getInt("BILL_MONTH"), rs.getLong("TOTAL_AMT")
-        }, startDt, endDt, plantCd);
+        }, args);
     }
 
     public List<Object[]> getCustomerYearlySalesDepartments(int year) {

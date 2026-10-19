@@ -43,6 +43,14 @@ public class SalesPlanController {
         return ApiResponse.ok();
     }
 
+    @Operation(summary = "증감사유(월 메모) 한 칸 저장 — 금액은 그대로")
+    @PutMapping("/memo")
+    @PreAuthorize("isAuthenticated()")
+    public ApiResponse<Void> saveMemo(@RequestBody SalesPlanDto.MemoRequest request) {
+        salesPlanService.saveMemo(request);
+        return ApiResponse.ok();
+    }
+
     @Operation(summary = "매출현황 — 계획(공임+용지) vs ERP 실적(거래처별 월 매출)")
     @GetMapping("/status")
     @PreAuthorize("isAuthenticated()")

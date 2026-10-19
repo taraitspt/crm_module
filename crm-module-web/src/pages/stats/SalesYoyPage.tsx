@@ -88,8 +88,9 @@ export default function SalesYoyPage() {
   const [fromMm, setFromMm] = useState(1);
   // 기본 연초~전월 — 진행 중인 이번 달까지 넣으면 올해만 덜 잡혀 감소로 보인다
   const [toMm, setToMm] = useState(prevMonth);
-  const [cc, setCc] = useState<string>();
-  const [emp, setEmp] = useState<string>();
+  /** 부서·담당자 — 여러 개 고를 수 있다(사용자 2026-10-19). 비우면 전체. */
+  const [ccs, setCcs] = useState<string[]>([]);
+  const [emps, setEmps] = useState<string[]>([]);
   const [keyword, setKeyword] = useState('');
 
   const { data, isFetching, isError } = useQuery({
@@ -108,8 +109,9 @@ export default function SalesYoyPage() {
 
   const ccOptions = useMemo(() => optionsOf(rows, (r) => r.ccCd, (r) => r.ccNm ?? ''), [rows]);
   // 담당자 목록은 고른 부서 안에서만
-  const empOptions = useMemo(() => optionsOf(cc ? rows.filter((r) => r.ccCd === cc) : rows, (r) => r.empNo, (r) => r.empNm ?? ''), [rows, cc]);
-  const scoped = useMemo(() => rows.filter((r) => (!cc || r.ccCd === cc) && (!emp || r.empNo === emp)), [rows, cc, emp]);
+  const inCcs = (r: SalesYoyRow) => !ccs.length || ccs.includes(r.ccCd);
+  const empOptions = useMemo(() => optionsOf(rows.filter(inCcs), (r) => r.empNo, (r) => r.empNm ?? ''), [rows, ccs]);
+  const scoped = useMemo(() => rows.filter((r) => inCcs(r) && (!emps.length || emps.includes(r.empNo))), [rows, ccs, emps]);
 
   // 월별(1~12) 합계 — 그래프용
   const monthly = useMemo(() => {
@@ -140,7 +142,7 @@ export default function SalesYoyPage() {
   }, [scoped, lo, hi]);
 
   const byCc = useMemo(() => groupBy(rows, (r) => r.ccCd, (r) => r.ccNm ?? '', '(부서 없음)', lo, hi), [rows, lo, hi]);
-  const byEmp = useMemo(() => groupBy(cc ? rows.filter((r) => r.ccCd === cc) : rows, (r) => r.empNo, (r) => r.empNm ?? '', '(담당 없음)', lo, hi), [rows, cc, lo, hi]);
+  const byEmp = useMemo(() => groupBy(rows.filter(inCcs), (r) => r.empNo, (r) => r.empNm ?? '', '(담당 없음)', lo, hi), [rows, ccs, lo, hi]);
 
   const byPartner = useMemo<AggRow[]>(() => {
     const m = new Map<string, AggRow & { depts: Map<string, number>; emps: Map<string, number> }>();
@@ -172,9 +174,9 @@ export default function SalesYoyPage() {
   const curTitle = `${year}년 ${periodLabel}`;
   const prevTitle = `${year - 1}년 ${periodLabel}`;
 
+  // 부서별·담당자별 표는 이름만 — 부서코드·사번은 화면에서 안 봐도 된다(사용자 2026-10-19)
   const nameCol = (title: string): ColumnsType<AggRow>[number] => ({
     title, dataIndex: 'name', ellipsis: true,
-    render: (v: string, r) => <span>{v} <Text type="secondary" style={{ fontSize: 12 }}>{r.sub}</Text></span>,
   });
   const ccColumns: ColumnsType<AggRow> = [nameCol('부서'), ...moneyCols(curTitle, prevTitle)];
   const empColumns: ColumnsType<AggRow> = [nameCol('영업담당'), ...moneyCols(curTitle, prevTitle)];
@@ -241,13 +243,13 @@ export default function SalesYoyPage() {
             </Space>
           </Col>
           <Col>
-            <Select allowClear showSearch placeholder="부서 전체" value={cc} options={ccOptions} style={{ width: 180 }}
-              onChange={(v) => { setCc(v); setEmp(undefined); }}
+            <Select mode="multiple" allowClear showSearch maxTagCount="responsive" placeholder="부서 전체" value={ccs} options={ccOptions} style={{ width: 220 }}
+              onChange={(v: string[]) => { setCcs(v); setEmps([]); }}
               filterOption={(input, opt) => ((opt?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())} />
           </Col>
           <Col>
-            <Select allowClear showSearch placeholder="담당자 전체" value={emp} options={empOptions} style={{ width: 140 }}
-              onChange={setEmp}
+            <Select mode="multiple" allowClear showSearch maxTagCount="responsive" placeholder="담당자 전체" value={emps} options={empOptions} style={{ width: 220 }}
+              onChange={(v: string[]) => setEmps(v)}
               filterOption={(input, opt) => ((opt?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())} />
           </Col>
           <Col flex="auto" style={{ textAlign: 'right' }}>
@@ -345,9 +347,9 @@ export default function SalesYoyPage() {
                 key: 'cc',
                 label: `부서별 (${byCc.length})`,
                 children: (
-                  <Card size="small" style={{ borderRadius: 12 }} extra={<Text type="secondary" style={{ fontSize: 12 }}>전체 부서 · 줄을 누르면 그 부서로 거릅니다</Text>}>
+                  <Card size="small" style={{ borderRadius: 12 }} extra={<Text type="secondary" style={{ fontSize: 12 }}>전체 부서 · 줄을 누르면 그 부서만(다시 누르면 해제)</Text>}>
                     <Table<AggRow> rowKey="key" size="small" columns={ccColumns} dataSource={byCc} pagination={false} scroll={{ x: 760 }}
-                      onRow={(r) => ({ onClick: () => { setCc(r.key === '(없음)' ? undefined : r.key); setEmp(undefined); }, style: { cursor: 'pointer' } })} />
+                      onRow={(r) => ({ onClick: () => { setCcs(r.key === '(없음)' || (ccs.length === 1 && ccs[0] === r.key) ? [] : [r.key]); setEmps([]); }, style: { cursor: 'pointer' } })} />
                   </Card>
                 ),
               },
@@ -355,9 +357,9 @@ export default function SalesYoyPage() {
                 key: 'emp',
                 label: `담당자별 (${byEmp.length})`,
                 children: (
-                  <Card size="small" style={{ borderRadius: 12 }} extra={<Text type="secondary" style={{ fontSize: 12 }}>{cc ? '고른 부서 안' : '전체'} · 매출 라인의 영업담당 기준 · 줄을 누르면 그 담당으로 거릅니다</Text>}>
+                  <Card size="small" style={{ borderRadius: 12 }} extra={<Text type="secondary" style={{ fontSize: 12 }}>{ccs.length ? '고른 부서 안' : '전체'} · 매출 라인의 영업담당 기준 · 줄을 누르면 그 담당만(다시 누르면 해제)</Text>}>
                     <Table<AggRow> rowKey="key" size="small" columns={empColumns} dataSource={byEmp} pagination={{ pageSize: 50, hideOnSinglePage: true, showSizeChanger: false }} scroll={{ x: 760 }}
-                      onRow={(r) => ({ onClick: () => setEmp(r.key === '(없음)' ? undefined : r.key), style: { cursor: 'pointer' } })} />
+                      onRow={(r) => ({ onClick: () => setEmps(r.key === '(없음)' || (emps.length === 1 && emps[0] === r.key) ? [] : [r.key]), style: { cursor: 'pointer' } })} />
                   </Card>
                 ),
               },

@@ -37,4 +37,8 @@ public class SalesPlan extends BaseEntity {
 
     @Column(name = "paper_amt", nullable = false)
     private Long paperAmt;
+
+    /** 증감사유(월 메모) — 수주불발·이월·초과 사유 등 (V168) */
+    @Column(name = "memo", length = 500)
+    private String memo;
 }

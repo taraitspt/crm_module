@@ -14,6 +14,8 @@ public class SalesPlanDto {
         private String planMm;
         private Long laborAmt;
         private Long paperAmt;
+        /** 증감사유(월 메모) */
+        private String memo;
     }
 
     /** 계획 1행 = 담당자 × 거래처, 12개월 */
@@ -40,6 +42,16 @@ public class SalesPlanDto {
         private List<PlanRow> rows;
     }
 
+    /** 메모 한 칸 저장 — 매출현황에서 거래처 × 월 증감사유만 고친다(금액은 그대로) */
+    @Getter @Setter @NoArgsConstructor @AllArgsConstructor
+    public static class MemoRequest {
+        private String planYy;
+        private String planMm;
+        private String salesEmpId;
+        private String partnerCd;
+        private String memo;
+    }
+
     /** 담당자 선택용 사용자 옵션 */
     @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
     public static class UserOption {
@@ -62,6 +74,8 @@ public class SalesPlanDto {
         private Long planLaborAmt;
         private Long planPaperAmt;
         private Long actualAmt;
+        /** 증감사유(월 메모) */
+        private String memo;
     }
 
     @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
@@ -76,6 +90,8 @@ public class SalesPlanDto {
         private List<StatusMonth> months = new ArrayList<>();
         private Long planTotal;
         private Long actualTotal;
+        /** 신규(목표) 가상 거래처 줄만 — 실적에 합친 거래처(계획에 없는 거래처) 이름. 그 밖의 줄은 null */
+        private List<String> newPartners;
     }
 
     @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder

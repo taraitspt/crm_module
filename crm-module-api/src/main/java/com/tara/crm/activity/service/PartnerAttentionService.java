@@ -150,6 +150,8 @@ public class PartnerAttentionService {
         Map<String, String> planOwner = new HashMap<>();
         for (SalesPlan p : salesPlanRepository.findByYear(companyCd(), String.valueOf(year))) {
             String pc = p.getId().getPartnerCd();
+            // 가상 거래처(신규 목표 "NEW…")는 ERP 에 없는 자리표시라 관리 필요 대상에서 뺀다(2026-10-19)
+            if (pc == null || pc.startsWith("NEW")) continue;
             int mm = Integer.parseInt(p.getId().getPlanMm());
             if (mm >= fromMm && mm <= toMm) {
                 planAmt.merge(pc, nz(p.getLaborAmt()) + nz(p.getPaperAmt()), Long::sum);

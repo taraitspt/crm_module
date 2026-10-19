@@ -8,7 +8,7 @@ import PageLayout from '@/components/layout/PageLayout';
 import PageHeader from '@/components/layout/PageHeader';
 import { lookupApi } from '@/api/info.api';
 import { attentionApi } from '@/api/activity.api';
-import { OPPORTUNITY_REASONS, PLANTS, RISK_REASONS, reasonMeta } from '@/types/attention';
+import { OPPORTUNITY_REASONS, RISK_REASONS, reasonMeta } from '@/types/attention';
 import type { AttentionItem, AttentionReason } from '@/types/attention';
 import { T } from '@/theme/designTokens';
 import ActivityFormModal from './components/ActivityFormModal';
@@ -49,7 +49,8 @@ export default function PartnerAttentionPage() {
   const [growthRate, setGrowthRate] = useState(130);
   const [vipTopN, setVipTopN] = useState(20);
   // 사업부문 — 기본은 타라티피에스(1000). 그래픽스·PM 은 별도 조직이라 기본에서 제외.
-  const [plantCd, setPlantCd] = useState('1000');
+  // 사업부문은 타라티피에스(공장 1000) 고정 — 이 프로젝트는 TPS 전용이라 선택칸을 뺐다(사용자 2026-10-19)
+  const plantCd = '1000';
   const [deptCd, setDeptCd] = useState<string>('');
   const [formOpen, setFormOpen] = useState(false);
   const [target, setTarget] = useState<AttentionItem | null>(null);
@@ -199,9 +200,6 @@ export default function PartnerAttentionPage() {
               <Button size="small" type={lo === 1 && hi === thisMonth ? 'primary' : 'default'} onClick={() => setRange(1, thisMonth)}>연초~당월</Button>
               <Button size="small" type={lo === thisMonth && hi === thisMonth ? 'primary' : 'default'} onClick={() => setRange(thisMonth, thisMonth)}>당월</Button>
             </Space>
-          </Col>
-          <Col>
-            <Select value={plantCd} onChange={setPlantCd} style={{ width: 170 }} options={PLANTS} />
           </Col>
           <Col>
             <Tooltip title="그 거래처에 매출을 올린 부서 기준입니다. 여러 부서가 담당하면 그중 하나만 맞아도 걸립니다.">

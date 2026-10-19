@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Alert, Button, Card, Col, Empty, Row, Select, Space, Table, Tabs, Typography } from 'antd';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Alert, Button, Card, Col, Empty, Row, Select, Space, Table, Tabs, Tooltip as AntTooltip, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import {
   Bar, BarChart, CartesianGrid, Cell, LabelList, Legend, Line, LineChart,
@@ -12,10 +12,10 @@ import { useNavigate } from 'react-router-dom';
 import PageLayout from '@/components/layout/PageLayout';
 import PageHeader from '@/components/layout/PageHeader';
 import { useMenuAccess } from '@/hooks/useMenuAccess';
-import { lookupApi } from '@/api/info.api';
+import { useAuthStore } from '@/store/authStore';
 import { salesPlanApi } from '@/api/salesPlan.api';
+import MemoButton from '@/components/common/MemoButton';
 import type { SalesStatusRow } from '@/types/salesPlan';
-import { PLANTS } from '@/types/attention';
 import { T } from '@/theme/designTokens';
 
 const { Text } = Typography;
@@ -131,32 +131,82 @@ export default function SalesStatusPage() {
   const { menuKeys } = useMenuAccess();
   // 매출리스트는 상단 메뉴에서 빼고 여기서 연다(2026-10-06). 권한 키 /stats/sales-list 가 없으면 버튼도 숨긴다.
   const canSalesList = menuKeys == null || menuKeys.has('/stats/sales-list');
+  const canSalesPlan = menuKeys == null || menuKeys.has('/info/sales-plan');
+  const canSalesYoy = menuKeys == null || menuKeys.has('/stats/sales-yoy');
+  const linkStyle = { color: T.primary700, cursor: 'pointer', textDecoration: 'underline' } as const;
+  const me = useAuthStore((st) => st.user);
+  const myDeptCd = me?.deptCd ?? null;
+  /** 부서에 속해 영업하는 역할 — 이 사람들에게만 "소속 부서 계획 없음"을 띄운다. 임원·관리자·영업지원 등은 일반 안내만 */
+  const inTeamRole = me?.role === 'MANAGER' || me?.role === 'TEAM_LEADER' || me?.role === 'PART_LEADER';
+  /** 안내 배너를 닫았는지 — 이 브라우저에만 기억 */
+  const [guideClosed, setGuideClosed] = useState<boolean>(() => {
+    try { return localStorage.getItem('sales-status-yoy-guide-closed') === '1'; } catch { return false; }
+  });
+  const closeGuide = () => {
+    setGuideClosed(true);
+    try { localStorage.setItem('sales-status-yoy-guide-closed', '1'); } catch { /* 저장 못 해도 이번엔 닫힌다 */ }
+  };
   const thisYear = dayjs().year();
   const thisMonth = dayjs().month() + 1;
 
   const [year, setYear] = useState(thisYear);
-  const [deptCd, setDeptCd] = useState<number | undefined>(undefined);
-  const [salesEmpId, setSalesEmpId] = useState<string>('');
+  /** 부서·담당자 — 여러 개 고를 수 있다(사용자 2026-10-19). 비우면 전체. */
+  const [deptCds, setDeptCds] = useState<number[]>([]);
+  const [empIds, setEmpIds] = useState<string[]>([]);
   const [fromMm, setFromMm] = useState(1);
   // 기본은 연초~당월. 연중에 12월까지 잡으면 아직 안 지난 달이 실적 0 으로 섞여 달성률이 낮게 보인다.
   const [toMm, setToMm] = useState(thisMonth);
   /** 사업부문 — 기본은 타라티피에스(1000). 그래픽스·PM 은 별도 조직이라 기본에서 제외. */
-  const [plantCd, setPlantCd] = useState('1000');
+  // 사업부문은 타라티피에스(공장 1000) 고정 — 이 프로젝트는 TPS 전용이라 선택칸을 뺐다(사용자 2026-10-19)
+  const plantCd = '1000';
   /** 상세 탭 표시 모드 — 계획을 공임/용지로 쪼갤지 여부. */
   const [split, setSplit] = useState(false);
 
-  const { data: depts } = useQuery({ queryKey: ['departments'], queryFn: () => lookupApi.getDepartments() });
-  const deptOptions = useMemo(
-    () => (depts ?? []).filter((d) => d.deptCd != null && d.deptNm).map((d) => ({ value: d.deptCd, label: d.deptNm })),
-    [depts],
-  );
-  const { data: users } = useQuery({ queryKey: ['sales-plan-users', deptCd], queryFn: () => salesPlanApi.getUsers(deptCd) });
-  const userOptions = useMemo(() => (users ?? []).map((u) => ({ value: u.id, label: u.name })), [users]);
 
+  // 부서·담당자를 여러 개 고르게 되면서 서버엔 거르지 않고 한 번 받아(데이터 범위는 서버가 적용) 화면에서 거른다.
   const { data, isLoading } = useQuery({
-    queryKey: ['sales-status', year, deptCd, salesEmpId, plantCd],
-    queryFn: () => salesPlanApi.getStatus(String(year), deptCd, salesEmpId || undefined, plantCd),
+    queryKey: ['sales-status', year, plantCd],
+    queryFn: () => salesPlanApi.getStatus(String(year), undefined, undefined, plantCd),
   });
+  const allRows = useMemo(() => data?.rows ?? [], [data]);
+
+  // 증감사유(월 메모) 저장 — 저장 뒤 화면 데이터만 고쳐 다시 조회하지 않는다(ERP 실적 조회가 느려서)
+  const qc = useQueryClient();
+  const saveMemo = async (r: SalesStatusRow, mm: string, memo: string) => {
+    try {
+      await salesPlanApi.saveMemo({ planYy: String(year), planMm: mm, salesEmpId: r.salesEmpId, partnerCd: r.partnerCd, memo });
+    } catch (e) {
+      message.error('증감사유를 저장하지 못했습니다. 월매출계획 수정 권한이 있는지 확인해 주세요.');
+      throw e;
+    }
+    qc.setQueryData(['sales-status', year, plantCd], (old: typeof data) => (old == null ? old : {
+      ...old,
+      rows: old.rows.map((x) => (x.salesEmpId === r.salesEmpId && x.partnerCd === r.partnerCd
+        ? { ...x, months: x.months.map((m) => (m.planMm === mm ? { ...m, memo: memo || null } : m)) }
+        : x)),
+    }));
+    void qc.invalidateQueries({ queryKey: ['sales-plan'] });
+    message.success('증감사유를 저장했습니다.');
+  };
+
+  // 부서 선택지 = 월매출계획에 실제로 나오는 부서만(사용자 2026-10-19) — 계획은 담당자의 소속(팀)으로 잡히므로
+  // 본부·임원 같은 상위 부서는 안 나온다. 담당자 선택지 = 고른 부서 안의 계획 담당자.
+  const deptOptions = useMemo(() => {
+    const m = new Map<number, string>();
+    allRows.forEach((r) => { if (r.deptCd != null) m.set(r.deptCd, r.deptNm || String(r.deptCd)); });
+    return [...m.entries()].sort((x, y) => x[1].localeCompare(y[1], 'ko')).map(([value, label]) => ({ value, label }));
+  }, [allRows]);
+  const userOptions = useMemo(() => {
+    const m = new Map<string, string>();
+    allRows.forEach((r) => {
+      if (!r.salesEmpId || (deptCds.length && (r.deptCd == null || !deptCds.includes(r.deptCd)))) return;
+      m.set(r.salesEmpId, r.empNm || r.salesEmpId);
+    });
+    return [...m.entries()].sort((x, y) => x[1].localeCompare(y[1], 'ko')).map(([value, label]) => ({ value, label }));
+  }, [allRows, deptCds]);
+  const rows = useMemo(() => allRows.filter((r) =>
+    (!deptCds.length || (r.deptCd != null && deptCds.includes(r.deptCd)))
+    && (!empIds.length || empIds.includes(r.salesEmpId))), [allRows, deptCds, empIds]);
 
   /** 시작월이 종료월보다 뒤면 한 달짜리로 본다(선택 도중 역전 방지). */
   const [lo, hi] = fromMm <= toMm ? [fromMm, toMm] : [toMm, toMm];
@@ -170,7 +220,7 @@ export default function SalesStatusPage() {
     const out: FlatRow[] = [];
     let plans = 0;
     let actuals = 0;
-    (data?.rows ?? []).forEach((r) => {
+    rows.forEach((r) => {
       let plan = 0;
       let actual = 0;
       visibleMonths.forEach((mm) => {
@@ -187,7 +237,7 @@ export default function SalesStatusPage() {
       });
     });
     return { flatRows: out, planTotal: plans, actualTotal: actuals };
-  }, [data, visibleMonths, split]);
+  }, [rows, visibleMonths, split]);
 
   const totalRate = rate(actualTotal, planTotal);
 
@@ -200,7 +250,7 @@ export default function SalesStatusPage() {
       const n = parseInt(mm, 10);
       const future = year > thisYear || (year === thisYear && n > thisMonth);
       const sum = (pick: (m: SalesStatusRow['months'][number]) => number) =>
-        (data?.rows ?? []).reduce((s, r) => {
+        rows.reduce((s, r) => {
           const m = r.months.find((x) => x.planMm === mm);
           return s + (m ? pick(m) : 0);
         }, 0);
@@ -210,24 +260,26 @@ export default function SalesStatusPage() {
       const paper = sum((m) => m.planPaperAmt ?? 0);
       return { mm, name: `${n}월`, plan, actual, labor, paper, rate: future ? null : rate(actual, plan) };
     }),
-    [data, visibleMonths, year, thisYear, thisMonth],
+    [rows, visibleMonths, year, thisYear, thisMonth],
   );
 
-  /** 부서별 / 담당자별 집계 — 계획 큰 순. */
-  const groupBy = (pick: (r: FlatRow) => string): Agg[] => {
-    const map = new Map<string, { plan: number; actual: number }>();
+  /** 부서별 / 담당자별 집계 — order 가 있으면 그 값 오름차순, 없으면 계획 큰 순. */
+  const groupBy = (pick: (r: FlatRow) => string, order?: (r: FlatRow) => number): Agg[] => {
+    const map = new Map<string, { plan: number; actual: number; ord: number }>();
     flatRows.filter((f) => f.line === 'plan').forEach((f) => {
       const k = pick(f) || '-';
-      const cur = map.get(k) ?? { plan: 0, actual: 0 };
+      const cur = map.get(k) ?? { plan: 0, actual: 0, ord: Number.MAX_SAFE_INTEGER };
       cur.plan += f.plan;
       cur.actual += f.actual;
+      if (order) cur.ord = Math.min(cur.ord, order(f));
       map.set(k, cur);
     });
     return [...map.entries()]
-      .map(([name, v]) => ({ name, ...v, rate: rate(v.actual, v.plan) }))
-      .sort((a, b) => b.plan - a.plan);
+      .sort((a, b) => (order ? a[1].ord - b[1].ord : b[1].plan - a[1].plan))
+      .map(([name, v]) => ({ name, plan: v.plan, actual: v.actual, rate: rate(v.actual, v.plan) }));
   };
-  const byDept = useMemo(() => groupBy((f) => f.src.deptNm ?? '-'), [flatRows]);
+  // 부서는 부서코드 순(수주1팀·2팀·3팀이 차례대로 — 사용자 2026-10-19). 코드 없는 행은 맨 뒤
+  const byDept = useMemo(() => groupBy((f) => f.src.deptNm ?? '-', (f) => f.src.deptCd ?? Number.MAX_SAFE_INTEGER), [flatRows]);
   const byEmp = useMemo(() => groupBy((f) => f.src.empNm), [flatRows]);
 
   /** 거래처 순위 — 계획이 있는 행만(달성률 정의가 되는 행). */
@@ -269,7 +321,22 @@ export default function SalesStatusPage() {
     { title: '부서', key: 'dept', width: 100, fixed: 'left', onCell: (f) => ({ rowSpan: f.rowSpan }), render: (_, f) => f.src.deptNm ?? '-' },
     { title: '담당자', key: 'emp', width: 90, fixed: 'left', onCell: (f) => ({ rowSpan: f.rowSpan }), render: (_, f) => f.src.empNm },
     { title: '거래처명', key: 'partner', width: 180, fixed: 'left', ellipsis: true, onCell: (f) => ({ rowSpan: f.rowSpan }),
-      render: (_, f) => <span>{f.src.partnerNm ?? '-'} <Text type="secondary" style={{ fontSize: 11 }}>{f.src.partnerCd}</Text></span> },
+      render: (_, f) => {
+        const cell = <span>{f.src.partnerNm ?? '-'} <Text type="secondary" style={{ fontSize: 11 }}>{f.src.partnerCd}</Text></span>;
+        // 신규(목표) 줄 — 실적 = 담당자가 올린, 월매출계획에 없는 거래처 매출
+        if (f.src.newPartners == null) return cell;
+        const names = f.src.newPartners;
+        return (
+          <AntTooltip title={(
+            <div>
+              <div style={{ marginBottom: 4 }}>실적 = 담당자가 올린 매출 중 월매출계획에 없는 거래처</div>
+              {names.length === 0 ? '아직 없음' : names.map((n) => <div key={n}>· {n}</div>)}
+            </div>
+          )}>
+            <span>{cell} <Text type="secondary" style={{ fontSize: 11 }}>({names.length}곳)</Text></span>
+          </AntTooltip>
+        );
+      } },
     { title: '구분', key: 'line', width: split ? 76 : 60, fixed: 'left',
       render: (_, f) => <Text style={{ fontSize: 12, color: f.line === 'actual' ? T.t1 : T.t3 }}>{LINE_LABEL[f.line]}</Text> },
     ...visibleMonths.map((mm) => ({
@@ -280,9 +347,15 @@ export default function SalesStatusPage() {
       render: (_: unknown, f: FlatRow) => {
         const v = cellVal(f, mm);
         if (f.line !== 'actual') return <Text type="secondary" className="tabular-nums">{fmtNum(v)}</Text>;
-        const p = f.src.months.find((x) => x.planMm === mm)?.planAmt ?? 0;
+        const mo = f.src.months.find((x) => x.planMm === mm);
+        const p = mo?.planAmt ?? 0;
         const under = p > 0 && v < p;
-        return <Text className="tabular-nums" style={{ color: under ? T.er : undefined }}>{fmtNum(v)}</Text>;
+        return (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <MemoButton memo={mo?.memo} title={`${f.src.partnerNm ?? f.src.partnerCd} · ${parseInt(mm, 10)}월 증감사유`} onSave={(m) => saveMemo(f.src, mm, m)} />
+            <Text className="tabular-nums" style={{ color: under ? T.er : undefined }}>{fmtNum(v)}</Text>
+          </span>
+        );
       },
     })),
     { title: `합계 (${periodLabel})`, key: 'total', width: 130, align: 'right', fixed: 'right',
@@ -292,7 +365,7 @@ export default function SalesStatusPage() {
   ];
 
   const gap = actualTotal - planTotal;
-  const noData = !isLoading && (data?.rows.length ?? 0) === 0;
+  const noData = !isLoading && rows.length === 0;
 
   /** 순위 리스트(거래처 TOP/BOTTOM) 공통 렌더 */
   const rankList = (items: typeof partnerRank.top, emptyText: string) => (
@@ -323,7 +396,7 @@ export default function SalesStatusPage() {
     <>
       <Row gutter={[12, 12]} style={{ marginBottom: 12 }}>
         <Col xs={12} md={6}>
-          <StatTile label={`계획 (${periodLabel})`} value={fmtEok1(planTotal)} sub={`${fmtNum(planTotal)}원 · ${data?.rows.length ?? 0}개 거래처`} />
+          <StatTile label={`계획 (${periodLabel})`} value={fmtEok1(planTotal)} sub={`${fmtNum(planTotal)}원 · ${rows.length}개 거래처`} />
         </Col>
         <Col xs={12} md={6}>
           <StatTile label={`실적 (${periodLabel})`} value={fmtEok1(actualTotal)} color={C_ACTUAL} sub={`${fmtNum(actualTotal)}원`} />
@@ -453,13 +526,13 @@ export default function SalesStatusPage() {
       rowClassName={(f) => (f.line === 'actual' ? '' : 'sales-status-plan-row')}
       locale={{ emptyText: '해당 조건의 월매출계획이 없습니다. 정보관리 → 월매출계획에서 입력하세요.' }}
       summary={() => {
-        if (!data || data.rows.length === 0) return null;
+        if (!data || rows.length === 0) return null;
         // leaf 컬럼: [부서·담당자·거래처명](3) → 구분(1) → 선택한 월 → 합계 → 달성률
         const rateIdx = 4 + visibleMonths.length + 1;
         type MT = typeof monthTotals[number];
         const line = (label: string, pick: (m: MT) => number, total: number, strong: boolean) => {
           const cells = [
-            <Table.Summary.Cell key="l" index={0} colSpan={3}><Text strong>합계 ({data.rows.length}건)</Text></Table.Summary.Cell>,
+            <Table.Summary.Cell key="l" index={0} colSpan={3}><Text strong>합계 ({rows.length}건)</Text></Table.Summary.Cell>,
             <Table.Summary.Cell key="g" index={3}><Text style={{ fontSize: 12 }}>{label}</Text></Table.Summary.Cell>,
           ];
           let idx = 4;
@@ -512,6 +585,13 @@ export default function SalesStatusPage() {
     <PageLayout>
       <PageHeader
         title="매출현황 (계획 대비)"
+        // 계획에 넣은 거래처만 나온다는 걸 모르면 실적이 적게 보여 헷갈린다(사용자 2026-10-19)
+        sub={(
+          <>
+            월매출계획에 입력한 거래처만 나옵니다
+            {canSalesPlan && <> · <span style={linkStyle} onClick={() => navigate('/info/sales-plan')}>월매출계획 입력</span></>}
+          </>
+        )}
         actions={canSalesList && (
           <Button icon={<UnorderedListOutlined />} onClick={() => navigate('/stats/sales-list')}>매출리스트</Button>
         )}
@@ -522,9 +602,6 @@ export default function SalesStatusPage() {
           <Col>
             <Select value={year} onChange={pickYear} style={{ width: 100 }}
               options={[thisYear - 2, thisYear - 1, thisYear, thisYear + 1].map((y) => ({ value: y, label: `${y}년` }))} />
-          </Col>
-          <Col>
-            <Select value={plantCd} onChange={setPlantCd} style={{ width: 170 }} options={PLANTS} />
           </Col>
           <Col>
             <Space.Compact>
@@ -540,18 +617,43 @@ export default function SalesStatusPage() {
             </Space>
           </Col>
           <Col>
-            <Select allowClear showSearch placeholder="부서" value={deptCd} options={deptOptions} style={{ width: 160 }}
-              onChange={(v) => { setDeptCd(v); setSalesEmpId(''); }}
+            <Select mode="multiple" allowClear showSearch maxTagCount="responsive" placeholder="부서 전체" value={deptCds} options={deptOptions} style={{ width: 220 }}
+              onChange={(v: number[]) => { setDeptCds(v); setEmpIds([]); }}
               filterOption={(input, opt) => ((opt?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())} />
           </Col>
           <Col>
-            <Select allowClear showSearch placeholder="담당자" value={salesEmpId || undefined} options={userOptions} style={{ width: 140 }}
-              onChange={(v) => setSalesEmpId(v ?? '')}
+            <Select mode="multiple" allowClear showSearch maxTagCount="responsive" placeholder="담당자 전체" value={empIds} options={userOptions} style={{ width: 220 }}
+              onChange={(v: string[]) => setEmpIds(v)}
               filterOption={(input, opt) => ((opt?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())} />
           </Col>
         </Row>
       </Card>
 
+      {/* 월매출계획을 안 넣는 부서 안내(사용자 2026-10-19).
+          매니저·팀장·파트장인데 소속 부서 계획이 하나도 없으면 닫을 수 없게 눈에 띄게(부서 이름을 직접 적는다).
+          그 밖의 사람(임원·관리자·영업지원 등 — "우리 부서"가 맞지 않는다)은 닫을 수 있는 일반 안내 */}
+      {canSalesYoy && data && (() => {
+        const noTeamPlan = inTeamRole && myDeptCd != null && !allRows.some((r) => r.deptCd === myDeptCd);
+        if (!noTeamPlan && guideClosed) return null;
+        return (
+          <Alert
+            type={noTeamPlan ? 'warning' : 'info'}
+            showIcon
+            closable={!noTeamPlan}
+            onClose={closeGuide}
+            style={{ marginBottom: 12 }}
+            // 문구는 누구에게나 같게(사용자 2026-10-19) — "우리 부서"처럼 보는 사람에 따라 틀리는 표현은 쓰지 않는다
+            message="월매출계획이 입력되지 않은 부서는 이 화면에 나오지 않으며, [전년 매출 비교]에서 확인할 수 있습니다."
+            description={canSalesPlan ? '[월매출계획]에 거래처별 계획을 입력하면 이 화면에도 표시됩니다.' : undefined}
+            action={(
+              <Space direction="vertical" size={6}>
+                <Button size="small" type="primary" block onClick={() => navigate('/stats/sales-yoy')}>전년 매출 비교로 가기</Button>
+                {canSalesPlan && <Button size="small" block onClick={() => navigate('/info/sales-plan')}>월매출계획 입력</Button>}
+              </Space>
+            )}
+          />
+        );
+      })()}
       {data && !data.erpAvailable && (
         <Alert type="warning" showIcon style={{ marginBottom: 12 }}
           message="실적을 불러오지 못해 계획만 표시합니다." description={data.erpMessage ?? undefined} />
