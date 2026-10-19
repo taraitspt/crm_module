@@ -26,6 +26,7 @@ const MyPage = lazy(() => import('@/pages/auth/MyPage'));
 // const GoalPage = lazy(() => import('@/pages/info/GoalPage')); // 2026-09-18 월매출계획으로 대체
 const SalesPlanPage = lazy(() => import('@/pages/info/SalesPlanPage'));
 const SalesStatusPage = lazy(() => import('@/pages/stats/SalesStatusPage'));
+const SalesYoyPage = lazy(() => import('@/pages/stats/SalesYoyPage'));
 const SalesListPage = lazy(() => import('@/pages/stats/SalesListPage'));
 const DataCheckPage = lazy(() => import('@/pages/stats/DataCheckPage'));
 
@@ -234,6 +235,11 @@ const router = createBrowserRouter([
   },
   // 매출 후 잔여재고 — 매출 등록됐는데 재고 남은 배치
   // 데이터 점검 — 매출 후 잔여재고 · 수주 담당팀 점검 탭 (2026-10-06 통합). 옛 경로는 탭으로 리다이렉트.
+  // 매출관리 › 전년 매출 비교 (2026-10-19) — 계획 없이 작년 같은 달과 비교
+  {
+    path: '/stats/sales-yoy',
+    element: <Protected><SalesYoyPage /></Protected>,
+  },
   {
     path: '/stats/data-check',
     element: <Protected><DataCheckPage /></Protected>,

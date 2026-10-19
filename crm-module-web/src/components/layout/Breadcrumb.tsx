@@ -38,6 +38,7 @@ const pathLabels: Record<string, string> = {
   '/info/sales-plan': '월매출계획',
   '/stats/sales-status': '매출현황 (계획 대비)',
   '/stats/sales-list': '매출리스트',
+  '/stats/sales-yoy': '전년 매출 비교',
   '/stats/data-check': '수주 점검',
   '/stats/stock-leftover': '매출 후 잔여재고',
   '/stats/so-cc-check': '수주 담당팀 점검',

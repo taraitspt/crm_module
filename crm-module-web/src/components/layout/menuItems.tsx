@@ -34,6 +34,8 @@ export const MENU_ITEMS: AppMenuItem[] = [
     label: '매출관리',
     children: [
       { key: '/', icon: <HomeOutlined />, label: '매출현황' },
+      // 2026-10-19 계획 없이 작년 같은 달과 비교하는 순수 매출 화면
+      { key: '/stats/sales-yoy', label: '전년 매출 비교' },
       { key: '/stats/data-check', label: '수주 점검' },
     ],
   },

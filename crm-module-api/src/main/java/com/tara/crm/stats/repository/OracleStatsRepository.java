@@ -264,6 +264,42 @@ public class OracleStatsRepository {
         }, params.toArray());
     }
 
+    /**
+     * 전년 매출 비교용 — 연도별 거래처·비용센터(CC_CD)·영업담당(BIZRSPT_EMPNO_CD)·월 매출(공급가액).
+     * getCustomerYearlySales 의 DEPT_CD(SALESORGN_CD)는 영업조직이라 TPS 는 전부 1000(=임원 부서로 이름이 잡힘)이어서
+     * 부서 구분에 못 쓴다(2026-10-19 확인). 매출리스트처럼 비용센터·담당 사번으로 가른다. 원천·조건은 매출현황과 같다(SD_BILL 전체).
+     * 반환: PARTNER_CD, PARTNER_NM, CC_CD, CC_NM, EMP_NO, EMP_NM, BILL_MONTH, TOTAL_AMT
+     */
+    public List<Object[]> getYearlySalesByCcEmp(int year, String plantCd) {
+        String startDt = String.format("%04d0101", year);
+        String endDt = String.format("%04d0101", year + 1);
+        return jdbcTemplate.query("""
+                SELECT x.PARTNER_CD,
+                       NVL((SELECT p.PARTNER_NM FROM CI_PARTNER_MST p WHERE p.PARTNER_CD = x.PARTNER_CD AND ROWNUM = 1), x.PARTNER_CD) AS PARTNER_NM,
+                       x.CC_CD,
+                       (SELECT MAX(c.CC_NM) FROM MA_CC_MST c WHERE c.COMPANY_CD = '1000' AND c.CC_CD = x.CC_CD) AS CC_NM,
+                       x.EMP_NO,
+                       (SELECT MAX(h.KOR_NM) FROM HR_EMP_MST h WHERE h.COMPANY_CD = '1000' AND h.EMP_NO = x.EMP_NO) AS EMP_NM,
+                       x.BILL_MONTH, x.TOTAL_AMT
+                  FROM (
+                        SELECT b.SALEPRTN_CD AS PARTNER_CD, dt.CC_CD, dt.BIZRSPT_EMPNO_CD AS EMP_NO,
+                               TO_NUMBER(SUBSTR(b.BILL_DT, 5, 2)) AS BILL_MONTH,
+                               SUM(NVL(dt.TRAN_AMT, 0)) AS TOTAL_AMT
+                          FROM SD_BILL_MST b
+                          JOIN SD_BILL_DTL dt ON dt.COMPANY_CD = b.COMPANY_CD AND dt.BILLDOC_NO = b.BILLDOC_NO
+                         WHERE b.COMPANY_CD = '1000'
+                           AND b.BILL_DT >= ? AND b.BILL_DT < ?
+                           AND dt.PLANT_CD = ?
+                         GROUP BY b.SALEPRTN_CD, dt.CC_CD, dt.BIZRSPT_EMPNO_CD, SUBSTR(b.BILL_DT, 5, 2)
+                       ) x
+                """, (rs, rowNum) -> new Object[]{
+                rs.getString("PARTNER_CD"), rs.getString("PARTNER_NM"),
+                rs.getString("CC_CD"), rs.getString("CC_NM"),
+                rs.getString("EMP_NO"), rs.getString("EMP_NM"),
+                rs.getInt("BILL_MONTH"), rs.getLong("TOTAL_AMT")
+        }, startDt, endDt, plantCd);
+    }
+
     public List<Object[]> getCustomerYearlySalesDepartments(int year) {
         String startDt = String.format("%04d0101", year);
         String endDt = String.format("%04d0101", year + 1);

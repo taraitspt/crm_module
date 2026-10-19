@@ -78,7 +78,7 @@ public class SalesListService {
     }
 
     /** 이 부서로 매핑되는 비용센터들 — cc 별로 인원이 가장 많은 부서를 대표로 본다. */
-    private static Set<String> ccsOfDept(List<User> users, Integer deptCd) {
+    static Set<String> ccsOfDept(List<User> users, Integer deptCd) {
         if (deptCd == null) return Set.of();
         Map<String, Map<Integer, Integer>> counts = new HashMap<>();
         for (User u : users) {
