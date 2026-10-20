@@ -358,8 +358,25 @@ public class OracleSalesListRepository {
         return jdbcTemplate.query(sql.toString(), this::map, args.toArray());
     }
 
+    /** 운송비 매출 품목 — 정산이 없는 매출이라 매출액 = 정산공임으로 본다(사용자 2026-10-20). TPS 와 GRP 둘 다. */
+    private static final java.util.Set<String> TRANSPORT_ITEMS = java.util.Set.of("TPSSHIPCOST001", "GRPSHIPCOST001");
+
     private SalesListDto.Row map(ResultSet rs, int i) throws SQLException {
+        String itemCd = trim(rs.getString("ITEM_CD"));
+        long salesAmt = longOf(rs.getBigDecimal("BOOK_AMT"));
+        Double laborAmt = wonOf(rs.getBigDecimal("NORMAL_LABOR_COST"));
+        Double paperAmt = wonOf(rs.getBigDecimal("NORMAL_PAPER_COST"));
+        Double settleAmt = wonOf(rs.getBigDecimal("SUM_AMT"));
+        // 사용자 결정 2026-10-20: ① 운송비 매출(SHIPCOST001)은 정산공임 = 매출액. ② 정산공임·용지가 둘 다 없는 매출(정산 미등록)은 매출액을 정산공임으로.
+        // 정산은 주문 단위 값이라 분할매출이면 줄마다 반복되지만, 여기서 넣는 매출액은 그 줄 자체의 값이다.
+        boolean noSettle = (laborAmt == null || laborAmt == 0) && (paperAmt == null || paperAmt == 0);
+        boolean laborFromSales = (itemCd != null && TRANSPORT_ITEMS.contains(itemCd)) || noSettle;
+        if (laborFromSales) {
+            laborAmt = (double) salesAmt;
+            settleAmt = laborAmt + (paperAmt == null ? 0 : paperAmt);
+        }
         return SalesListDto.Row.builder()
+                .laborFromSales(laborFromSales)
                 .billDate(ymd(rs.getString("BILL_DT")))
                 .billNo(trim(rs.getString("BILLDOC_NO")))
                 .plantCd(trim(rs.getString("PLANT_CD")))
@@ -369,14 +386,14 @@ public class OracleSalesListRepository {
                 .salesEmpName(trim(rs.getString("BIZRSPT_EMPNO_NM")))
                 .partnerCd(trim(rs.getString("SALEPRTN_CD")))
                 .partnerName(trim(rs.getString("SALEPRTN_NM")))
-                .itemCd(trim(rs.getString("ITEM_CD")))
+                .itemCd(itemCd)
                 .itemName(trim(rs.getString("ITEM_NM")))
                 .detailItemName(trim(rs.getString("SPCFCS_ITEM_NM")))
                 .qty(doubleOf(rs.getBigDecimal("BILL_QT")))
-                .salesAmt(longOf(rs.getBigDecimal("BOOK_AMT")))
-                .laborAmt(wonOf(rs.getBigDecimal("NORMAL_LABOR_COST")))
-                .paperAmt(wonOf(rs.getBigDecimal("NORMAL_PAPER_COST")))
-                .settleAmt(wonOf(rs.getBigDecimal("SUM_AMT")))
+                .salesAmt(salesAmt)
+                .laborAmt(laborAmt)
+                .paperAmt(paperAmt)
+                .settleAmt(settleAmt)
                 .soType(trim(rs.getString("SO_TP")))
                 .soTypeName(trim(rs.getString("SO_TP_NM")))
                 .soNo(trim(rs.getString("SODOC_NO")))

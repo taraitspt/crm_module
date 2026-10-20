@@ -14,7 +14,7 @@ import java.util.Map;
 
 /**
  * 부서·비용센터 → 본부 (2026-10-19 사용자 요청 — 매출 화면 본부 조회 조건·본부별 집계).
- * 본부 = 부서 관리 조직도에서 회사 최상위(예: 90002 타라티피에스 — 하위 부서가 가장 많은 최상위) 바로 아래 부서
+ * 본부 = 부서 관리 조직도에서 회사 최상위(예: 90002 타라티피에스 — 재직 사용자가 가장 많은 최상위, 동점이면 부서 수) 바로 아래 부서
  * (국내사업본부 1200 · 해외사업본부 1500 · 전략사업본부 1400 …). 팀 → 본부는 상위 부서를 따라 올라가 찾는다.
  * 회사 트리 밖에 따로 떨어진 최상위(예: 90001 그래픽스사업본부, 2050 경영지원실)는 그 최상위 자체가 본부다
  * — 그래픽스 BS2팀·BS3팀이 본부로 잡히던 문제(2026-10-19).
@@ -53,12 +53,25 @@ public class HqResolver {
             for (User u : users) {
                 if (u.getEmployeeNo() != null && u.getDeptCd() != null) deptByEmpNo.putIfAbsent(u.getEmployeeNo().trim(), u.getDeptCd());
             }
-            Map<Integer, Integer> size = new HashMap<>();
+            // 회사 최상위 = 재직 사용자가 가장 많은 최상위(동점이면 부서 수, 그다음 부서코드 작은 쪽).
+            // 예전엔 "부서 수가 가장 많은 최상위"였는데 로컬 DB 에서 타라티피에스 40 : 그래픽스사업본부 40 동점이 나 HashMap 순서대로
+            // 그래픽스가 회사로 잡혔고, 그러면 타라티피에스가 통째로 본부 하나로 보였다(2026-10-20). 사용자 수는 221 : 173 으로 안 흔들린다.
+            Map<Integer, Integer> deptCount = new HashMap<>();
             for (Department d : all) {
                 Integer root = rootOf(d.getId().getDeptCd());
-                if (root != null) size.merge(root, 1, Integer::sum);
+                if (root != null) deptCount.merge(root, 1, Integer::sum);
             }
-            companyRoot = size.entrySet().stream().max(Map.Entry.comparingByValue()).map(Map.Entry::getKey).orElse(null);
+            Map<Integer, Integer> userCount = new HashMap<>();
+            for (User u : users) {
+                if (!u.isActive() || u.getDeptCd() == null) continue;
+                Integer root = rootOf(u.getDeptCd());
+                if (root != null) userCount.merge(root, 1, Integer::sum);
+            }
+            companyRoot = deptCount.keySet().stream()
+                    .max(java.util.Comparator.<Integer>comparingInt(r -> userCount.getOrDefault(r, 0))
+                            .thenComparingInt(r -> deptCount.getOrDefault(r, 0))
+                            .thenComparing(java.util.Comparator.<Integer>naturalOrder().reversed()))
+                    .orElse(null);
             // departments.cc_cd 가 비어 있는 경우가 많아(2026-10 운영 전부 NULL) 사용자 비용센터로 보완 —
             // 그 비용센터를 쓰는 재직 사용자가 가장 많은 부서(같으면 부서코드 작은 쪽)
             Map<String, Map<Integer, Integer>> cnt = new HashMap<>();

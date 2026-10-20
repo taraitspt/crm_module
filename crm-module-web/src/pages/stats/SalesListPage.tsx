@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Button, Card, Checkbox, Input, Popover, Select, Space, Table, Tag, message } from 'antd';
+import { Alert, Button, Card, Checkbox, Input, Popover, Select, Space, Table, Tag, Tooltip, message } from 'antd';
 import { ArrowLeftOutlined, SettingOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import type { ColumnsType } from 'antd/es/table';
@@ -160,9 +160,14 @@ const SalesListPage: React.FC = () => {
         ellipsis: true,
         render: c.id === 'inOut'
           ? (v: string) => (v ? <Tag color={v === '내부' ? 'blue' : 'default'} style={{ marginInlineEnd: 0 }}>{v}</Tag> : '')
-          : NUMERIC.has(c.id)
-            ? (v: number) => <span style={{ color: v < 0 ? '#D32F2F' : undefined }}>{num(v)}</span>
-            : undefined,
+          : c.id === 'laborAmt'
+            // 정산공임이 매출액에서 온 줄(운송비 매출·정산 미등록, 2026-10-20) — 연한 글씨 + 툴팁으로 구분
+            ? (v: number, r: SalesListRow) => (r.laborFromSales
+              ? <Tooltip title="정산 미등록(또는 운송비 매출)이라 매출액을 정산공임으로 적용"><span style={{ color: v < 0 ? '#D32F2F' : T.t3, fontStyle: 'italic' }}>{num(v)}</span></Tooltip>
+              : <span style={{ color: v < 0 ? '#D32F2F' : undefined }}>{num(v)}</span>)
+            : NUMERIC.has(c.id)
+              ? (v: number) => <span style={{ color: v < 0 ? '#D32F2F' : undefined }}>{num(v)}</span>
+              : undefined,
       })),
     ];
   }, [allRows, colFilters, sortCfg, hiddenCols]);

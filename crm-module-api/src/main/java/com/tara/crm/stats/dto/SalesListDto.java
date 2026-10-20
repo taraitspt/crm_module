@@ -54,6 +54,8 @@ public class SalesListDto {
         private Double laborAmt;
         private Double paperAmt;
         private Double settleAmt;
+        /** 정산공임이 정산 테이블이 아니라 매출액에서 온 줄 — 운송비 매출(TPS/GRP SHIPCOST001) 또는 정산 미등록 매출(사용자 결정 2026-10-20) */
+        private Boolean laborFromSales;
         /** 수주유형 코드/명, 수주번호·순번 */
         private String soType;
         private String soTypeName;

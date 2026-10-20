@@ -23,6 +23,8 @@ export interface SalesListRow {
   laborAmt?: number;
   paperAmt?: number;
   settleAmt?: number;
+  /** 정산공임이 매출액에서 온 줄(운송비 매출 또는 정산 미등록) — 화면에서 표시만 다르게 */
+  laborFromSales?: boolean;
   soType?: string;
   soTypeName?: string;
   soNo?: string;
