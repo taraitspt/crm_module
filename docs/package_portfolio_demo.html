@@ -1,0 +1,1055 @@
+<title>Package Portfolio 데모</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap">
+<style>
+/* Layout: hashtag builder — selection trail, free-order group tabs (수량·형태·업종·방식·무드), toggle tiles / a post-processing combination builder, then results that stay locked until at least one tag is picked. Admin: portfolios are created only from an ERP order (picker → form with fixed ERP base info, 매입 hidden behind press-and-hold). */
+:root{
+  --bg:#ffffff; --fg:#151514; --muted:#74726c; --line:#e7e5e0; --chip:#f3f2ef; --chip-hover:#e9e7e2;
+  --kraft:#9a6a32; --kraft-soft:#f5ece0; --danger:#b3261e; --ok:#2f6b3a; --overlay:rgba(20,20,18,.55);
+  --sans:"IBM Plex Sans KR",-apple-system,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#121211; --fg:#ecebe7; --muted:#9a978f; --line:#2a2926; --chip:#1d1c1a; --chip-hover:#272623;
+  --kraft:#d6a466; --kraft-soft:#2b2318; --danger:#f2867c; --ok:#8fd19c; --overlay:rgba(0,0,0,.7); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121211; --fg:#ecebe7; --muted:#9a978f; --line:#2a2926; --chip:#1d1c1a; --chip-hover:#272623;
+  --kraft:#d6a466; --kraft-soft:#2b2318; --danger:#f2867c; --ok:#8fd19c; --overlay:rgba(0,0,0,.7); color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--kraft);outline-offset:2px}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+header{padding-block:24px 8px;display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px}
+.brand h1{margin:0;font-size:18px;font-weight:600;letter-spacing:-.01em}
+.brand p{margin:2px 0 0;color:var(--muted);font-size:13px;max-width:60ch}
+.hdr-actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:transparent;border-radius:999px;padding:8px 15px;font-size:13px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:hover{background:var(--chip)}
+.btn.sm{padding:6px 12px;font-size:12.5px}
+.btn.primary{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.btn.primary:hover{opacity:.88}
+.btn.danger{color:var(--danger);border-color:currentColor}
+.btn.on{background:var(--kraft-soft);border-color:var(--kraft);color:var(--kraft)}
+.btn:disabled{opacity:.45;cursor:default}
+.linkbtn{border:0;background:none;color:var(--muted);text-decoration:underline;text-underline-offset:3px;padding:4px;font-size:13px}
+
+/* ---------- builder ---------- */
+.br{padding-block:24px 8px;display:flex;flex-direction:column;gap:16px}
+.q{margin:0;font-size:clamp(26px,5vw,42px);font-weight:600;letter-spacing:-.025em;line-height:1.15;text-wrap:balance;max-width:22ch}
+.qsub{margin:-6px 0 0;color:var(--muted);font-size:15px;max-width:62ch}
+.trail{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;min-height:32px;padding:8px 12px;border-radius:12px;background:var(--chip)}
+.trail .start{color:var(--muted);font-size:13px}
+.trail .plus{color:var(--muted);font-family:var(--mono);font-size:12px}
+.tg{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px}
+.tg>b{font-size:12px;font-weight:500;color:var(--kraft);margin-right:2px}
+.tg .and{font-size:11px;color:var(--muted)}
+.pk{border:0;background:var(--bg);color:var(--fg);border-radius:999px;padding:4px 10px;font-size:13px;animation:pop .3s cubic-bezier(.2,1.2,.4,1) both}
+.pk:hover{text-decoration:line-through}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{border:0;background:none;padding:10px 14px 11px;font-size:14px;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap;display:flex;gap:6px;align-items:baseline}
+.tab:hover{color:var(--fg)}
+.tab.on{color:var(--fg);border-bottom-color:var(--kraft);font-weight:600}
+.tab .st{font-size:11px;font-family:var(--mono);color:var(--kraft);font-weight:500}
+.rule{font-size:12.5px;color:var(--muted);margin:-4px 0 0}
+.rule b{color:var(--fg);font-weight:500}
+
+.opts{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+@media (max-width:480px){.opts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.opt{position:relative;border:1px solid var(--line);background:var(--bg);border-radius:14px;padding:14px 14px 12px;text-align:left;display:flex;flex-direction:column;justify-content:flex-end;gap:8px;min-height:84px;
+  transition:transform .18s cubic-bezier(.3,1.6,.6,1),border-color .15s,background .15s;animation:pop .4s cubic-bezier(.2,1.2,.4,1) both;animation-delay:calc(var(--i)*25ms)}
+.opt.vis{min-height:118px}
+.opt:hover:not(:disabled){transform:translateY(-3px) rotate(-.6deg);border-color:var(--fg)}
+.opt:nth-child(even):hover:not(:disabled){transform:translateY(-3px) rotate(.6deg)}
+.opt:active:not(:disabled){transform:scale(.97)}
+.opt.on{border-color:var(--kraft);background:var(--kraft-soft);box-shadow:inset 0 0 0 1px var(--kraft)}
+.opt.on::after{content:"✓";position:absolute;left:12px;top:9px;font-size:13px;color:var(--kraft);font-weight:700}
+.opt:disabled{opacity:.38;cursor:default}
+.opt .ic{width:44px;height:44px;color:var(--fg)}
+.opt.on .ic{margin-top:6px}
+.opt .nm{font-size:15px;font-weight:600;letter-spacing:-.01em;line-height:1.3;overflow-wrap:anywhere}
+.opt .ct{position:absolute;right:12px;top:10px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.meter{display:flex;gap:3px;align-items:flex-end;height:26px}
+.meter i{display:block;width:8px;background:var(--line);border-radius:2px}
+.meter i.on{background:var(--kraft)}
+.sw{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:600;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+@keyframes pop{from{opacity:0;transform:translateY(12px) scale(.96)}to{opacity:1;transform:none}}
+
+/* post-processing combination builder */
+.mp{display:grid;gap:14px}
+.mmode{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:2px}
+.seg button{border:0;background:none;border-radius:999px;padding:5px 12px;font-size:13px;color:var(--muted)}
+.seg button.on{background:var(--fg);color:var(--bg)}
+.mrow{display:grid;grid-template-columns:72px minmax(0,1fr);gap:10px;align-items:start;padding-block:10px;border-top:1px solid var(--line)}
+@media (max-width:480px){.mrow{grid-template-columns:1fr;gap:6px}}
+.mlab{font-size:13px;font-weight:600;padding-top:6px}
+.fchips{display:flex;flex-wrap:wrap;gap:6px}
+.fc{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:6px 12px;font-size:13.5px;display:inline-flex;gap:6px;align-items:baseline;transition:background .15s,border-color .15s}
+.fc:hover:not(:disabled){border-color:var(--fg)}
+.fc small{font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+.fc.any{border-style:dashed}
+.fc.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.fc.on small{color:inherit;opacity:.7}
+.fc:disabled{opacity:.38;cursor:default}
+.combo{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:12px 14px;border-radius:12px;border:1px dashed var(--kraft);font-size:14px}
+.combo .op{color:var(--kraft);font-family:var(--mono);font-weight:500}
+.combo .res{margin-left:auto;font-family:var(--mono);color:var(--kraft)}
+.combo.empty-c{border-color:var(--line);color:var(--muted);font-size:13px}
+
+/* ---------- results ---------- */
+.res{border-top:1px solid var(--line);margin-top:12px}
+.res-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding-block:18px 4px}
+.res-bar h2{margin:0;font-size:20px;font-weight:600;letter-spacing:-.01em}
+.res-bar h2 strong{font-family:var(--mono);font-weight:500;color:var(--kraft);display:inline-block}
+.res-bar h2 strong.bump{animation:bump .35s ease}
+@keyframes bump{40%{transform:scale(1.25)}}
+.res-bar .sp{flex:1}
+select.sort{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:7px 10px;font-size:13px}
+.lock{position:relative;margin-block:18px 40px;border-radius:14px;overflow:hidden;min-height:260px;display:grid;place-items:center}
+.lock .ghost{position:absolute;inset:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;padding:14px;filter:blur(10px);opacity:.55}
+.lock .ghost i{display:block;aspect-ratio:1/1;border-radius:4px}
+.lock .msg{position:relative;text-align:center;display:grid;gap:8px;justify-items:center;padding:28px 22px;background:var(--bg);border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.08);max-width:min(420px,calc(100% - 32px))}
+.lock .msg strong{font-size:17px;font-weight:600}
+.lock .msg span{color:var(--muted);font-size:13.5px}
+.lock .msg svg{width:28px;height:28px;color:var(--kraft)}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:30px 18px;padding-block:14px 40px}
+@media (max-width:560px){.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 12px}}
+.card{min-width:0;display:flex;flex-direction:column;gap:6px;animation:pop .45s cubic-bezier(.2,1.2,.4,1) both;animation-delay:calc(var(--i)*35ms)}
+.card .ph{position:relative;aspect-ratio:1/1;max-width:100%;background:var(--chip);overflow:hidden;border:0;padding:0;width:100%;display:block;border-radius:4px;margin-bottom:2px}
+.card .ph img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s ease}
+.card .ph:hover img,.card .ph:hover .art svg{transform:scale(1.05)}
+.ex{position:absolute;right:8px;top:8px;background:var(--bg);color:var(--muted);font-size:11px;padding:2px 7px;border-radius:999px}
+.card h3{margin:0;font-size:14px;font-weight:500;line-height:1.4;overflow-wrap:anywhere}
+.card .sub{font-size:12px;color:var(--muted);display:flex;gap:6px;flex-wrap:wrap}
+.card .sub .num{font-size:11.5px}
+.tags{display:flex;flex-wrap:wrap;gap:2px 8px}
+.tag{border:0;background:none;padding:0;color:var(--muted);font-size:12.5px;line-height:1.5}
+.tag:hover{color:var(--fg)}
+.tag.hit{color:var(--kraft);font-weight:500}
+.art{width:100%;height:100%;display:grid;place-items:center;position:relative}
+.art svg{width:44%;height:auto;transition:transform .5s ease}
+.art .mt{position:absolute;left:10px;bottom:9px;font-size:11px;letter-spacing:.04em;opacity:.75}
+
+.empty{padding-block:72px;text-align:center;color:var(--muted);display:grid;gap:14px;justify-items:center}
+.empty strong{color:var(--fg);font-weight:500;font-size:16px}
+.notice{margin-block:8px;padding:10px 14px;border:1px dashed var(--line);border-radius:10px;font-size:13px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+
+/* ERP base info + locked 매입 */
+.base{border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:10px}
+.base .hd{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.base .hd b{font-family:var(--mono);font-weight:500;color:var(--fg);font-size:12.5px}
+.bgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.bgrid>div{background:var(--chip);border-radius:8px;padding:8px 10px;display:grid;gap:1px;min-width:0}
+.bgrid span{font-size:11px;color:var(--muted)}
+.bgrid b{font-weight:500;font-size:14px;overflow-wrap:anywhere}
+.bgrid b.num{font-size:13.5px}
+.bgrid small{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.secret{border:1px dashed var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px}
+.secret .lbl{font-size:12px;color:var(--muted);display:inline-flex;gap:5px;align-items:center}
+.secret .lbl svg{width:14px;height:14px}
+.secret .mask{font-family:var(--mono);letter-spacing:.25em;color:var(--muted);user-select:none}
+.secret .sv{display:flex;flex-wrap:wrap;gap:6px 18px}
+.secret .sv div{display:grid}
+.secret .sv span{font-size:11px;color:var(--muted)}
+.secret .sv b{font-family:var(--mono);font-weight:500;font-size:13.5px}
+.secret .sv b.pos{color:var(--ok)}
+.secret .sv b.neg{color:var(--danger)}
+.hold{position:relative;overflow:hidden;margin-left:auto;border:1px solid var(--line);border-radius:999px;background:var(--bg);padding:6px 12px;font-size:12.5px;display:inline-flex;gap:6px;align-items:center;user-select:none;-webkit-user-select:none;touch-action:none}
+.hold::before{content:"";position:absolute;inset:0;background:var(--kraft-soft);transform:scaleX(0);transform-origin:left}
+.hold.ing::before{transform:scaleX(1);transition:transform .8s linear}
+.hold>*{position:relative}
+.hold svg{width:14px;height:14px}
+.secret.open{border-color:var(--kraft);border-style:solid}
+
+/* ERP order picker */
+.psearch{display:flex;gap:8px}
+.psearch input{flex:1;border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:9px 14px;min-width:0}
+.plist{display:grid;gap:6px;margin-top:12px}
+.prow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:10px 12px;text-align:left;background:var(--bg);width:100%}
+.prow:hover:not(:disabled){border-color:var(--fg)}
+.prow:disabled{opacity:.5;cursor:default}
+.prow .t{font-weight:500;overflow-wrap:anywhere}
+.prow .t .no{font-family:var(--mono);font-size:12px;color:var(--kraft);margin-right:8px;font-weight:400}
+.prow .m{font-size:12px;color:var(--muted)}
+.prow .go{grid-row:1/span 2;grid-column:2;font-size:12.5px;color:var(--muted)}
+.prow:not(:disabled) .go{color:var(--fg)}
+
+/* dialogs */
+dialog{border:0;padding:0;background:var(--bg);color:var(--fg);max-width:min(1040px,calc(100vw - 24px));width:100%;max-height:calc(100dvh - 24px);border-radius:14px}
+dialog::backdrop{background:var(--overlay)}
+.dlg{display:flex;flex-direction:column;max-height:calc(100dvh - 24px)}
+.dlg-h{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line)}
+.dlg-h h2{margin:0;font-size:16px;font-weight:600}
+.dlg-b{overflow:auto;padding:18px}
+.dlg-f{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--line);align-items:center}
+.close{border:0;background:none;font-size:22px;line-height:1;padding:4px 8px;color:var(--muted)}
+.detail{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:24px}
+@media (max-width:760px){.detail{grid-template-columns:1fr}}
+.main-ph{aspect-ratio:1/1;max-width:100%;background:var(--chip);display:grid;place-items:center;overflow:hidden}
+.main-ph img{width:100%;height:100%;object-fit:contain}
+.thumbs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.thumbs button{border:1px solid transparent;padding:0;width:56px;height:56px;background:var(--chip);overflow:hidden}
+.thumbs button.on{border-color:var(--fg)}
+.thumbs img{width:100%;height:100%;object-fit:cover;display:block}
+.spec{display:grid;grid-template-columns:auto 1fr;gap:9px 16px;margin:14px 0;font-size:13.5px;align-items:baseline}
+.spec dt{color:var(--muted)}
+.spec dd{margin:0;overflow-wrap:anywhere}
+.spec dd .tag{font-size:13.5px;margin-right:8px}
+.memo{white-space:pre-wrap;font-size:13.5px;border-top:1px solid var(--line);padding-top:12px;max-width:65ch}
+.chips{display:flex;flex-wrap:wrap;gap:6px;min-width:0;border-radius:10px}
+.chips .sub{flex-basis:100%;font-size:11.5px;color:var(--muted);margin-top:4px}
+.chips .sub:first-child{margin-top:0}
+.chip{border:0;background:var(--chip);border-radius:999px;padding:6px 12px;font-size:13px;line-height:1.3}
+.chip:hover{background:var(--chip-hover)}
+.chip.on{background:var(--fg);color:var(--bg)}
+.chip.mine{box-shadow:inset 0 0 0 1px var(--kraft)}
+.chip.mine::after{content:"직접";font-size:10px;color:var(--kraft);margin-left:5px}
+.chip.mine.on::after{color:inherit;opacity:.7}
+.chip.none{background:transparent;border:1px dashed var(--muted);color:var(--muted);padding:5px 11px}
+.chip.none.on{background:var(--muted);color:var(--bg);border-style:solid}
+.fld.locked .chip{cursor:default}
+.fld.locked .chip:not(.on){opacity:.35}
+.workhint{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin-top:6px;padding:8px 12px;border-radius:10px;background:var(--kraft-soft);font-size:12.5px}
+.workhint b{font-weight:500;color:var(--kraft)}
+.workhint .sp{flex:1}
+/* detail gallery */
+.main-ph{position:relative;touch-action:pan-y}
+.gnav{position:absolute;top:50%;transform:translateY(-50%);width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:var(--bg);opacity:.92;display:grid;place-items:center;font-size:20px;line-height:1;color:var(--fg);box-shadow:0 2px 10px rgba(0,0,0,.12)}
+.gnav:hover{opacity:1}
+.gnav.prev{left:10px}.gnav.next{right:10px}
+.gcnt{position:absolute;right:10px;bottom:10px;background:var(--overlay);color:#fff;font-family:var(--mono);font-size:12px;padding:2px 9px;border-radius:999px}
+.pslot .no{position:absolute;right:4px;top:4px;background:var(--overlay);color:#fff;font-size:10px;font-family:var(--mono);padding:1px 6px;border-radius:999px}
+.addph{display:grid;place-items:center;align-content:center;gap:2px}
+.addph small{font-size:10.5px}
+.addph svg{width:22px;height:22px}
+.photos.over{outline:2px dashed var(--kraft);outline-offset:4px;border-radius:6px}
+.addopt{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.addopt input{flex:1 1 180px;border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:6px 12px;font-size:13px;min-width:0}
+.addopt select{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:6px 10px;font-size:13px}
+.form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 18px}
+@media (max-width:640px){.form{grid-template-columns:1fr}}
+.fld{display:grid;gap:6px;min-width:0}
+.fld.full{grid-column:1/-1}
+.fld label,.fld .fl{font-size:12px;color:var(--muted);letter-spacing:.02em}
+.fl .req{color:var(--danger);margin-left:2px}
+.fl .rl{margin-left:6px;color:var(--muted);opacity:.8}
+.fld input,.fld textarea{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:9px 11px;min-width:0;width:100%}
+.fld textarea{min-height:84px;resize:vertical}
+.fld.err .chips{outline:1.5px solid var(--danger);outline-offset:5px}
+.fld.err .fl{color:var(--danger)}
+.sect{grid-column:1/-1;margin:6px 0 -4px;font-size:13px;font-weight:600;padding-top:12px;border-top:1px solid var(--line)}
+.sect:first-child{border-top:0;padding-top:0;margin-top:0}
+.sect span{font-weight:400;color:var(--muted);margin-left:6px;font-size:12px}
+.hint{font-size:12px;color:var(--muted)}
+.hint.err{color:var(--danger)}
+
+.photos{display:flex;gap:8px;flex-wrap:wrap}
+.pslot{position:relative;width:96px;height:96px;background:var(--chip);overflow:hidden}
+.pslot img{width:100%;height:100%;object-fit:cover}
+.pslot .pa{position:absolute;inset:auto 0 0 0;display:flex;justify-content:space-between;background:var(--overlay)}
+.pslot .pa button{border:0;background:none;color:#fff;font-size:11px;padding:3px 6px}
+.pslot .main{position:absolute;left:4px;top:4px;background:var(--fg);color:var(--bg);font-size:10px;padding:1px 6px;border-radius:999px}
+.addph{width:96px;height:96px;border:1px dashed var(--muted);display:grid;place-items:center;color:var(--muted);font-size:12px;background:transparent}
+.status{font-size:13px;color:var(--muted);margin-right:auto}
+.status.err{color:var(--danger)}
+footer{padding-block:20px 40px;color:var(--muted);font-size:12px;border-top:1px solid var(--line)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <h1 id="siteName">Package Portfolio</h1>
+      <p id="siteIntro">해시태그를 골라 꼭 맞는 패키지 사례를 찾아보세요.</p>
+    </div>
+    <div class="hdr-actions" id="adminBar" hidden>
+      <button class="btn" id="btnAll" type="button">전체 보기 (관리자)</button>
+      <button class="btn" id="btnSettings" type="button">사이트 정보</button>
+      <button class="btn primary" id="btnAdd" type="button">+ ERP 주문으로 등록</button>
+    </div>
+  </header>
+  <div id="notice"></div>
+  <main id="app"></main>
+  <footer>수량·업종은 여러 개 고르면 그중 하나라도 맞는 사례를, 형태·무드는 고른 것을 모두 갖춘 사례를 보여 드려요. 방식(후가공)은 ‘모두 적용’과 ‘하나라도 적용’ 중에서 고를 수 있어요.</footer>
+</div>
+
+<dialog id="dDetail"><div class="dlg">
+  <div class="dlg-h"><h2 id="dTitle"></h2><button class="close" type="button" data-close aria-label="닫기">×</button></div>
+  <div class="dlg-b" id="dBody"></div>
+  <div class="dlg-f" id="dFoot" hidden></div>
+</div></dialog>
+
+<dialog id="dPick" style="max-width:680px"><div class="dlg">
+  <div class="dlg-h"><h2>ERP 주문으로 포트폴리오 만들기</h2><button class="close" type="button" data-close aria-label="닫기">×</button></div>
+  <div class="dlg-b">
+    <p class="hint" style="margin:0 0 12px;font-size:13px">포트폴리오는 ERP 주문에서만 만들 수 있어요. 주문을 고르면 수량·고객사·품명·매출·매입이 그대로 들어가고, 나머지만 골라 입력하면 됩니다.</p>
+    <div class="psearch"><input id="pQ" type="search" placeholder="주문번호 · 고객사 · 품명으로 검색" autocomplete="off"></div>
+    <div class="plist" id="pList"></div>
+  </div>
+</div></dialog>
+
+<dialog id="dForm"><form class="dlg" id="frm" novalidate>
+  <div class="dlg-h"><h2 id="fTitle">포트폴리오 등록</h2><button class="close" type="button" data-close aria-label="닫기">×</button></div>
+  <div class="dlg-b"><div class="form">
+    <div class="sect">ERP 기본 정보<span>ERP에서 가져온 값이라 여기서 고칠 수 없어요</span></div>
+    <div class="fld full" id="fBase"></div>
+    <div class="sect">작업자 입력</div>
+    <div class="fld full"><span class="fl">사진 · 1번 사진이 썸네일(대표)이 됩니다 · 캡처한 이미지는 Ctrl+V로 붙여넣기, 파일은 끌어다 놓아도 돼요</span><div class="photos" id="fPhotos"></div><input type="file" id="fFile" accept="image/*" multiple hidden><input type="file" id="fCam" accept="image/*" capture="environment" hidden></div>
+    <div class="fld"><label for="fName">포트폴리오 제목<span class="req">*</span></label><input id="fName" placeholder="ERP 품명이 기본으로 들어가요"></div>
+    <div class="fld"><label for="fYear">제작 연도</label><input id="fYear" inputmode="numeric" placeholder="ERP 주문일 기준"></div>
+    <div class="fld full"><label for="fWork">작업 정보 · ERP에서 자동으로 들어오고, 고칠 수 있어요</label><textarea id="fWork" rows="2" style="min-height:52px" placeholder="예) 옵셋 4도 / 금박 / 무광 라미네이팅"></textarea><div id="fWorkHint"></div></div>
+    <div class="sect">해시태그<span>그룹마다 반드시 하나 이상 골라 주세요. 형태·업종·방식은 목록에 없으면 직접 추가할 수 있어요.</span></div>
+    <div id="fGroups" style="display:contents"></div>
+    <div class="fld full"><label for="fMemo">설명</label><textarea id="fMemo" placeholder="사이즈, 지류, 납기 등"></textarea></div>
+  </div></div>
+  <div class="dlg-f"><span class="status" id="fStatus"></span><button class="btn" type="button" data-close>취소</button><button class="btn primary" type="submit" id="fSave">저장</button></div>
+</form></dialog>
+
+<dialog id="dSettings" style="max-width:520px"><form class="dlg" id="sfrm" novalidate>
+  <div class="dlg-h"><h2>사이트 정보</h2><button class="close" type="button" data-close aria-label="닫기">×</button></div>
+  <div class="dlg-b"><div class="form" style="grid-template-columns:1fr">
+    <div class="fld"><label for="sName">사이트 이름</label><input id="sName"></div>
+    <div class="fld"><label for="sIntro">소개 문구</label><textarea id="sIntro"></textarea></div>
+  </div></div>
+  <div class="dlg-f"><span class="status" id="sStatus"></span><button class="btn" type="button" data-close>취소</button><button class="btn primary" type="submit">저장</button></div>
+</form></dialog>
+
+<script>
+(() => {
+"use strict";
+const $ = s => document.querySelector(s);
+const h = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt = n => Number(n).toLocaleString("ko-KR");
+const won = v => v == null ? "–" : Math.abs(v) >= 1e8 ? `${(v / 1e8).toLocaleString("ko-KR", {maximumFractionDigits:2})}억원` : `${fmt(Math.round(v))}원`;
+
+/* ---------- hashtag taxonomy: fixed base + options admins add (site/taxonomy) ---------- */
+const NONE = "없음";
+const BASE = {
+  qty:      ["500개 미만","500–1천개","1천–3천개","3천–1만개","1만개 이상"],
+  shape:    ["단상자","싸바리","자석표지","서랍형","슬리브","트레이","지함","원통형","쇼핑백","파우치","창문형"],
+  industry: ["화장품","식품","건강기능식품","제약·의료","주류","전자·IT","패션·잡화","생활용품","교육·출판","기업·기관","반려동물"],
+  mood:     ["고급","선물용","가성비","친환경","시즌·한정","미니멀","캐주얼·팝","전통·한국적"],
+};
+const METHOD_BASE = [
+  {n:"인쇄",   opts:["옵셋 인쇄","디지털 인쇄","별색 인쇄","실크 인쇄"]},
+  {n:"박",     opts:["금박","은박","홀로그램박"]},
+  {n:"코팅",   opts:["무광 코팅","유광 코팅","벨벳 코팅"]},
+  {n:"후가공", opts:["부분 UV","형압","에폭시","창 톰슨"]},
+];
+// join: how picks inside one group combine — "or" any, "and" all, "mode" viewer chooses (method)
+const GROUPS = [
+  {k:"qty",      label:"수량", multi:false, join:"or",   custom:false},
+  {k:"shape",    label:"형태", multi:true,  join:"and",  custom:true},
+  {k:"industry", label:"업종", multi:false, join:"or",   custom:true},
+  {k:"method",   label:"방식", multi:true,  join:"mode", custom:true},
+  {k:"mood",     label:"무드", multi:true,  join:"and",  custom:false},
+];
+const G = Object.fromEntries(GROUPS.map(g => [g.k, g]));
+let METHOD_SUBS = [], SUB = {}, tax = {};
+function applyTax(){
+  const uniq = (base, extra) => [...base, ...(extra || []).filter((v, i, a) => v && v !== NONE && !base.includes(v) && a.indexOf(v) === i)];
+  G.qty.opts = BASE.qty; G.mood.opts = BASE.mood;
+  G.shape.opts = uniq(BASE.shape, tax.shape); G.industry.opts = uniq(BASE.industry, tax.industry);
+  METHOD_SUBS = METHOD_BASE.map(s => ({n:s.n, opts:uniq(s.opts, tax.method?.[s.n])}));
+  SUB = Object.fromEntries(METHOD_SUBS.map(s => [s.n, s]));
+  G.method.opts = METHOD_SUBS.flatMap(s => s.opts);
+}
+applyTax();
+const isMine = (k, v) => k === "method" ? !METHOD_BASE.some(s => s.opts.includes(v)) : BASE[k] ? !BASE[k].includes(v) : false;
+const QTY_EDGES = [500, 1000, 3000, 10000];
+const qtyTag = n => { if (!n) return null; let i = 0; while (i < QTY_EDGES.length && n >= QTY_EDGES[i]) i++; return BASE.qty[i]; };
+const LEGACY_METHOD = {"금·은박":"금박","별색":"별색 인쇄","홀로그램":"홀로그램박"};
+const MOOD_COLORS = {"고급":["#1f1d1b","#d4af6a"],"선물용":["#7b2e2e","#f1dcc4"],"가성비":["#f4f3ef","#3a3a36"],"친환경":["#c9a27a","#3b2a18"],
+  "시즌·한정":["#2f3a56","#e8e2d4"],"미니멀":["#efe6d4","#5a4a32"],"캐주얼·팝":["#f2c94c","#3a2a10"],"전통·한국적":["#a9bba2","#2c3a28"]};
+
+/* line icons (stroke = currentColor) */
+const P = d => `<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">${d}</svg>`;
+const ICONS = {
+  "단상자": P(`<path d="M15 14h18v28H15z"/><path d="M15 14l4-6h18l-4 6M33 14l4-6v28l-4 6"/><path d="M19 8l-2 6"/>`),
+  "싸바리": P(`<path d="M8 22h32v18H8z"/><path d="M6 15h36v8H6z"/><path d="M10 15l3-5h22l3 5"/>`),
+  "자석표지": P(`<path d="M8 16h28v24H8z"/><path d="M36 16c4 0 4 2 4 4v20H36"/><path d="M8 16c0-4 3-6 7-6h25v6"/><circle cx="38" cy="28" r="1.6" fill="currentColor"/>`),
+  "슬리브": P(`<path d="M6 18h26v18H6z"/><path d="M22 22h20v10H22"/><path d="M32 22v10"/><path d="M38 25v4"/>`),
+  "트레이": P(`<path d="M6 22l4 14h28l4-14z"/><path d="M6 22h36"/><path d="M19 22l1 14M29 22l-1 14"/>`),
+  "서랍형": P(`<path d="M8 14h32v20H8z"/><path d="M14 20h28v20H14z"/><path d="M26 28h6"/>`),
+  "쇼핑백": P(`<path d="M10 18h28l-2 24H12z"/><path d="M18 18v-4a6 6 0 0 1 12 0v4"/>`),
+  "지함": P(`<path d="M10 26h28v14H10z"/><path d="M8 12h32v7H8z" transform="rotate(-8 24 15)"/>`),
+  "원통형": P(`<ellipse cx="24" cy="12" rx="11" ry="4"/><path d="M13 12v24c0 2 5 4 11 4s11-2 11-4V12"/><path d="M13 17c0 2 5 4 11 4s11-2 11-4"/>`),
+  "파우치": P(`<path d="M13 8h22v4H13z"/><path d="M13 12c-1 8-3 22-1 28h24c2-6 0-20-1-28"/><path d="M17 16h14" stroke-dasharray="2 2"/>`),
+  "창문형": P(`<path d="M8 14h32v26H8z"/><path d="M15 20h18v12H15z"/><path d="M8 14l5-6h22l5 6"/>`),
+  "_": P(`<path d="M8 18 24 10l16 8v18l-16 8-16-8z"/><path d="M8 18l16 8 16-8M24 26v18"/>`),
+};
+const iconFor = t => ICONS[t] || ICONS._;
+const LOCK = P(`<rect x="11" y="21" width="26" height="19" rx="3"/><path d="M16 21v-5a8 8 0 0 1 16 0v5"/><path d="M24 28v5"/>`);
+const UNLOCK = P(`<rect x="11" y="21" width="26" height="19" rx="3"/><path d="M16 21v-5a8 8 0 0 1 15.5-2.8"/><path d="M24 28v5"/>`);
+
+const emptySel = () => Object.fromEntries(GROUPS.map(g => [g.k, []]));
+let items = [], site = {};
+let sel = emptySel();         // group key -> picked values (method may hold "@인쇄" = any print type)
+let methodMode = "all";       // all | any
+let tab = "qty";
+let sortKey = "new", randKey = {};
+let adminAll = false;
+let db = null, assets = null, isAdmin = false, loaded = false, dbMissing = false;
+let lastCount = null;
+
+/* older docs → fixed facets */
+function facetsOf(it){
+  const f = it.facets ? {...it.facets} : {qty:[], shape:[], industry:[], method:[], mood:[]};
+  if (!it.facets){
+    const q = qtyTag(Number(it.qtyN || it.qty)); if (q) f.qty.push(q);
+    (it.types || []).forEach(t => BASE.shape.includes(t) && f.shape.push(t));
+    if (BASE.industry.includes(it.industry)) f.industry.push(it.industry);
+  }
+  f.method = [...new Set((f.method || []).map(v => LEGACY_METHOD[v] || v))];
+  return f;
+}
+
+/* ---------- ERP API ----------
+   지금은 예시(더미) 주문 데이터를 돌려주는 자리표시 구현입니다 (관리자 전용 db: erp/meta + erprows/{order|sales|cost|cust}_000).
+   실제 ERP API가 준비되면 erpApi.search / erpApi.get 두 함수만 실제 호출로 바꾸면 됩니다.
+   돌려주는 주문 형식: {no, client, item, qty, sales, cost, od, due, mgr, part, status, lines} */
+const gkey = s => String(s ?? "").replace(/[\s\-_/.]/g, "").toUpperCase();
+const num = v => { if (typeof v === "number") return v; const s = String(v ?? "").replace(/[^\d.\-]/g, ""); return s === "" || s === "-" ? null : Number(s); };
+const pad3 = n => String(n).padStart(3, "0");
+let ERPM = null, ERPC = null, ERPI = null, erpReadyResolve;
+const erpReady = new Promise(r => erpReadyResolve = r);
+function erpAssemble(){
+  if (!ERPM || !ERPC) return;
+  const rows = {}; ["order", "sales", "cost"].forEach(ds => { const n = ERPM.sync?.[ds]?.chunks || 0, out = [];
+    for (let i = 0; i < n; i++){ const c = ERPC[ds + "_" + pad3(i)]; if (c && Array.isArray(c.rows)) out.push(...c.rows); } rows[ds] = out; });
+  const order = new Map(), sales = new Map(), cost = new Map();
+  rows.order.forEach(r => { const k = gkey(r.gor); if (k){ if (!order.has(k)) order.set(k, []); order.get(k).push(r); } });
+  rows.sales.forEach(r => { const k = gkey(r.gor); if (k) sales.set(k, (sales.get(k) || 0) + (num(r.amt) || 0)); });
+  rows.cost.forEach(r => { const k = gkey(r.gor); if (k) cost.set(k, (cost.get(k) || 0) + (num(r.amt) || 0)); });
+  ERPI = {order, sales, cost}; erpReadyResolve();
+}
+function erpRecord(k){
+  const od = ERPI.order.get(k) || []; if (!od.length) return null;
+  const f = od[0]; const sum = key => od.reduce((s, r) => s + (num(r[key]) || 0), 0) || null;
+  return {no:f.gor, client:f.co || "", item:[...new Set(od.map(r => r.item).filter(Boolean))].join(" / "), qty:sum("qty"),
+    sales:ERPI.sales.get(k) ?? sum("amt"), cost:ERPI.cost.get(k) ?? null,
+    od:f.od || "", due:f.due || "", mgr:f.mgr || "", part:f.part || "", status:f.status || "", lines:od.length,
+    work:[...new Set(od.map(r => r.work).filter(Boolean))].join(" / ")};
+}
+/* ERP 작업 정보 문구(예: "옵셋 4도 / 금박 / 무광 라미네이팅") → 방식 태그. 조각마다 아는 낱말을 찾아 붙인다. */
+const WORK_SYN = {"옵셋 인쇄":["옵셋","오프셋","OFFSET"],"디지털 인쇄":["디지털","인디고","DIGITAL"],"별색 인쇄":["별색","팬톤","PANTONE"],"실크 인쇄":["실크"],
+  "금박":["금박"],"은박":["은박"],"홀로그램박":["홀로그램"],"무광 코팅":["무광"],"유광 코팅":["유광"],"벨벳 코팅":["벨벳","소프트터치"],
+  "부분 UV":["부분UV","스팟UV","SPOTUV"],"형압":["형압","엠보","디보싱","블라인드"],"에폭시":["에폭시"],"창 톰슨":["창톰슨","PET창","윈도우"]};
+const nz = s => String(s ?? "").replace(/\s/g, "").toUpperCase();
+function parseWork(text){
+  const tags = new Set(), unknown = [];
+  String(text || "").split(/[,/+·\n]/).map(s => s.trim()).filter(Boolean).forEach(seg => {
+    const z = nz(seg); let hit = false;
+    G.method.opts.forEach(o => { if ((WORK_SYN[o] || [o]).some(w => z.includes(nz(w)))){ tags.add(o); hit = true; } });
+    if (!hit && !/무인쇄|없음/.test(seg)) unknown.push(seg);
+  });
+  const none = !tags.size && /무인쇄|없음/.test(text || "");
+  return {tags:[...tags], unknown, none};
+}
+const erpApi = {
+  async search(q){
+    await erpReady; const t = String(q || "").trim().toLowerCase();
+    return [...ERPI.order.keys()].map(erpRecord).filter(Boolean)
+      .filter(r => !t || [r.no, r.client, r.item].some(x => String(x).toLowerCase().includes(t)) || gkey(r.no).includes(gkey(t)))
+      .sort((a, b) => String(b.od).localeCompare(String(a.od)));
+  },
+  async get(no){ await erpReady; return erpRecord(gkey(no)); },
+};
+
+/* ---------- matching ---------- */
+const nPicked = (s = sel) => GROUPS.reduce((n, g) => n + s[g.k].length, 0);
+const lab = v => v[0] === "@" ? `${v.slice(1)}(종류 무관)` : v;
+function hasTok(it, k, v){
+  const have = it.f[k] || [];
+  return v[0] === "@" ? (SUB[v.slice(1)]?.opts || []).some(o => have.includes(o)) : have.includes(v);
+}
+function groupOk(it, k, vals, mode = methodMode){
+  if (!vals.length) return true;
+  const join = G[k].join === "mode" ? (mode === "any" ? "or" : "and") : G[k].join;
+  return join === "or" ? vals.some(v => hasTok(it, k, v)) : vals.every(v => hasTok(it, k, v));
+}
+const matches = (it, s = sel, mode = methodMode) => GROUPS.every(g => groupOk(it, g.k, s[g.k], mode));
+const countFor = (s, mode) => items.filter(it => matches(it, s, mode)).length;
+function toggled(k, v){
+  const s = {...sel, [k]:[...sel[k]]}; const a = s[k]; const i = a.indexOf(v);
+  if (i >= 0) a.splice(i, 1);
+  else {
+    a.push(v);
+    if (k === "method"){ // "any of 코팅" and a specific 코팅 exclude each other
+      const sub = v[0] === "@" ? SUB[v.slice(1)] : METHOD_SUBS.find(x => x.opts.includes(v));
+      if (sub) s[k] = a.filter(x => x === v || (v[0] === "@" ? !sub.opts.includes(x) : x !== "@" + sub.n));
+    }
+  }
+  return s;
+}
+
+/* ---------- rendering ---------- */
+function optVisual(k, v){
+  if (k === "shape") return `<span class="ic">${iconFor(v)}</span>`;
+  if (k === "qty"){ const n = BASE.qty.indexOf(v); return `<span class="meter">${[0,1,2,3,4].map(j => `<i class="${j <= n ? "on" : ""}" style="height:${7 + j*5}px"></i>`).join("")}</span>`; }
+  if (k === "mood"){ const [bg, fg] = MOOD_COLORS[v] || ["#eee","#333"]; return `<span class="sw" style="background:${bg};color:${fg}">#</span>`; }
+  return "";
+}
+const RULE = {
+  or:  `여러 개 고르면 <b>그중 하나라도</b> 해당하는 사례를 보여 드려요.`,
+  and: `여러 개 고르면 <b>모두 갖춘</b> 사례만 남아요.`,
+};
+function trailHtml(){
+  if (!nPicked()) return `<span class="start">아직 고른 해시태그가 없어요. 아래 탭 중 아무 데서나 시작하세요.</span>`;
+  const parts = GROUPS.filter(g => sel[g.k].length).map(g => {
+    const join = g.join === "mode" ? (methodMode === "any" ? "or" : "and") : g.join;
+    const sep = `<span class="and">${join === "or" ? "또는" : "+"}</span>`;
+    return `<span class="tg"><b>${g.label}</b>${sel[g.k].map(v => `<button type="button" class="pk" data-tog-g="${g.k}" data-tog-v="${h(v)}" title="빼기">${h(lab(v))} ×</button>`).join(sep)}</span>`;
+  });
+  return parts.join(`<span class="plus">&amp;</span>`) + `<button type="button" class="linkbtn" data-clear>모두 지우기</button>`;
+}
+function tilesHtml(k){
+  return `<div class="opts">${G[k].opts.map((v, i) => {
+    const on = sel[k].includes(v); const c = countFor(toggled(k, v)); const vis = optVisual(k, v);
+    return `<button type="button" class="opt${vis ? " vis" : ""}${on ? " on" : ""}" style="--i:${i}" data-tog-g="${k}" data-tog-v="${h(v)}" aria-pressed="${on}" ${!on && !c ? "disabled" : ""}>
+      ${vis}<span class="nm">${h(v)}</span><span class="ct">${on ? "선택됨" : `${c}건`}</span></button>`;
+  }).join("")}</div>`;
+}
+function methodHtml(){
+  const fc = (v, any) => { const on = sel.method.includes(v); const c = countFor(toggled("method", v));
+    return `<button type="button" class="fc${any ? " any" : ""}${on ? " on" : ""}" data-tog-g="method" data-tog-v="${h(v)}" aria-pressed="${on}" ${!on && !c ? "disabled" : ""}>${h(any ? "종류 무관" : v)}<small>${on ? "✓" : c}</small></button>`; };
+  const picked = sel.method; const n = countFor(sel);
+  const join = methodMode === "any" ? "또는" : "+";
+  return `<div class="mp">
+    <div class="mmode">조합 방식
+      <span class="seg" role="group" aria-label="후가공 조합 방식"><button type="button" class="${methodMode === "all" ? "on" : ""}" data-mode="all">모두 적용된 사례</button><button type="button" class="${methodMode === "any" ? "on" : ""}" data-mode="any">하나라도 적용된 사례</button></span></div>
+    <div>${METHOD_SUBS.map(s => `<div class="mrow"><span class="mlab">${h(s.n)}</span><div class="fchips">${fc("@" + s.n, true)}${s.opts.map(v => fc(v)).join("")}</div></div>`).join("")}</div>
+    ${picked.length ? `<div class="combo">${picked.map(v => `<span>${h(lab(v))}</span>`).join(`<span class="op">${join}</span>`)}<span class="res">→ ${n}건</span></div>`
+      : `<div class="combo empty-c">원하는 인쇄·박·코팅·후가공을 여러 개 눌러 조합해 보세요. 예) 옵셋 인쇄 + 은박 + 코팅(종류 무관) + 부분 UV</div>`}
+  </div>`;
+}
+function renderBrowse(){
+  const picked = nPicked();
+  const tabs = GROUPS.map(g => `<button type="button" role="tab" aria-selected="${g.k === tab}" class="tab${g.k === tab ? " on" : ""}" data-tab="${g.k}">${g.label}${sel[g.k].length ? `<span class="st">${sel[g.k].length}</span>` : ""}</button>`).join("");
+  const g = G[tab];
+  const body = tab === "method" ? methodHtml() : `<p class="rule">${RULE[g.join]}</p>${tilesHtml(tab)}`;
+  const q = !picked ? "어떤 패키지를 찾고 계세요?" : "좋아요, 더 골라서 좁혀 보세요";
+  const sub = !picked ? "해시태그를 하나 이상 고르면 사례가 보여요. 수량·형태·업종·방식·무드 중 어디서 시작해도 괜찮아요."
+    : "다른 탭으로 옮겨 조건을 더하거나, 위의 태그를 눌러 뺄 수 있어요.";
+
+  const unlocked = picked || (isAdmin && adminAll);
+  const list = unlocked ? sortList(items.filter(it => matches(it))) : [];
+  const ghost = Object.values(MOOD_COLORS).concat(Object.values(MOOD_COLORS)).map(c => `<i style="background:${c[0]}"></i>`).join("");
+  const results = !unlocked
+    ? `<div class="lock"><div class="ghost" aria-hidden="true">${ghost}</div><div class="msg">${LOCK}<strong>해시태그를 먼저 골라 주세요</strong><span>위에서 하나만 골라도 맞는 제작 사례가 바로 나타나요.</span></div></div>`
+    : `<div class="res-bar"><h2><strong id="liveN">${list.length}</strong>건의 사례${!picked ? " · 관리자 전체 보기" : ""}</h2><span class="sp"></span>
+        <select class="sort" id="sort" aria-label="정렬"><option value="new">최신 등록순</option><option value="year">제작 연도순</option><option value="qty">수량 많은순</option><option value="sales">매출 높은순</option><option value="rand">랜덤으로 섞기</option></select></div>
+      ${list.length ? `<div class="grid">${list.map((it, i) => card(it, i)).join("")}</div>` : `<div class="empty"><strong>이 조합에 맞는 사례가 없어요</strong><span>태그를 하나 빼거나 방식을 ‘하나라도 적용’으로 바꿔 보세요.</span></div>`}`;
+
+  $("#app").innerHTML = `<section class="br">
+      <h2 class="q">${q}</h2><p class="qsub">${sub}</p>
+      <div class="trail">${trailHtml()}</div>
+      <div class="tabs" role="tablist">${tabs}</div>
+      ${body}
+    </section>
+    <section class="res">${results}</section>`;
+  const s = $("#sort");
+  if (s){ s.value = sortKey; s.onchange = () => { sortKey = s.value; if (sortKey === "rand") reshuffle(); render(); }; }
+  const n = unlocked ? list.length : null;
+  if (n !== null && lastCount !== null && lastCount !== n) $("#liveN")?.classList.add("bump");
+  lastCount = n;
+}
+function reshuffle(){ randKey = {}; items.forEach(it => randKey[it.id] = Math.random()); }
+function sortList(list){
+  const by = sortKey === "year" ? (a, b) => (b.year || 0) - (a.year || 0) || (b.createdAt || 0) - (a.createdAt || 0)
+    : sortKey === "qty" ? (a, b) => (b.erp?.qty || 0) - (a.erp?.qty || 0)
+    : sortKey === "sales" ? (a, b) => (b.erp?.sales || 0) - (a.erp?.sales || 0)
+    : sortKey === "rand" ? (a, b) => (randKey[a.id] ?? 0) - (randKey[b.id] ?? 0)
+    : (a, b) => (b.createdAt || 0) - (a.createdAt || 0);
+  return [...list].sort(by);
+}
+
+const hashN = s => { let x = 0; for (const c of String(s)) x = (x * 31 + c.charCodeAt(0)) >>> 0; return x; };
+function tagList(it){
+  const t = []; GROUPS.forEach(g => (it.f[g.k] || []).forEach(v => v !== NONE && t.push({g:g.k, v})));
+  return t;
+}
+const tagBtn = t => `<button type="button" class="tag${sel[t.g].includes(t.v) ? " hit" : ""}" data-g="${t.g}" data-v="${h(t.v)}">#${h(t.v)}</button>`;
+const tagHtml = it => tagList(it).map(tagBtn).join("");
+function artFor(it){
+  const mood = (it.f.mood || []).find(m => MOOD_COLORS[m]);
+  const pal = Object.values(MOOD_COLORS);
+  const [bg, fg] = mood ? MOOD_COLORS[mood] : pal[hashN(it.id) % pal.length];
+  return `<div class="art" style="background:${bg};color:${fg}">${iconFor((it.f.shape || [])[0])}${mood ? `<span class="mt">${h(mood)}</span>` : ""}</div>`;
+}
+function card(it, i){
+  const ph = it.photos && it.photos[0];
+  const img = ph ? `<img src="${blob(ph.t || ph.f)}" alt="${h(it.title)}" loading="lazy">` : artFor(it);
+  const e = it.erp;
+  return `<article class="card" style="--i:${Math.min(i, 14)}">
+    <button type="button" class="ph" data-open="${h(it.id)}" aria-label="${h(it.title)} 자세히 보기">${img}${it.example ? `<span class="ex">예시</span>` : ""}</button>
+    <h3>${h(it.title || "제목 없음")}</h3>
+    ${e ? `<div class="sub"><span>${h(e.client)}</span>${e.qty ? `<span class="num">${fmt(e.qty)}개</span>` : ""}</div>` : ""}
+    <div class="tags">${tagHtml(it)}</div>
+  </article>`;
+}
+
+/* ERP base info block — 매입·마진·원가는 길게 눌러야 잠깐 보입니다 */
+function baseHtml(e, extra = "", work = e?.work){
+  if (!e) return `<p class="hint err">ERP 정보가 없는 포트폴리오예요.</p>`;
+  const unit = e.sales && e.qty ? Math.round(e.sales / e.qty) : null;
+  const margin = e.sales != null && e.cost != null ? e.sales - e.cost : null;
+  const unitCost = e.cost && e.qty ? Math.round(e.cost / e.qty) : null;
+  return `<div class="base"><div class="hd"><span>ERP 주문 <b>${h(e.no)}</b>${e.od ? ` · ${h(e.od)}` : ""}</span>${extra}</div>
+    <div class="bgrid">
+      <div><span>고객사</span><b>${h(e.client || "–")}</b></div>
+      <div style="grid-column:span 2"><span>품명</span><b>${h(e.item || "–")}</b></div>
+      <div><span>수량</span><b class="num">${e.qty ? `${fmt(e.qty)}개` : "–"}</b></div>
+      <div><span>매출</span><b class="num">${won(e.sales)}</b>${unit ? `<small>개당 ${fmt(unit)}원</small>` : ""}</div>
+      ${work ? `<div style="grid-column:1/-1"><span>작업 정보</span><b>${h(work)}</b></div>` : ""}
+    </div>
+    <div class="secret"><span class="lbl">${LOCK}매입 · 마진</span><span class="mask">●●●●●●●</span>
+      <span class="sv" hidden><div><span>매입</span><b>${won(e.cost)}</b></div><div><span>개당 원가</span><b>${unitCost ? `${fmt(unitCost)}원` : "–"}</b></div>
+        <div><span>마진</span><b class="${margin == null ? "" : margin >= 0 ? "pos" : "neg"}">${margin == null ? "–" : `${won(margin)}${e.sales ? ` · ${Math.round(margin / e.sales * 100)}%` : ""}`}</b></div></span>
+      <button type="button" class="hold" aria-label="길게 눌러 매입 금액 보기">${UNLOCK}<span class="hl">길게 눌러 보기</span></button></div>
+  </div>`;
+}
+const HOLD_MS = 800, SHOW_S = 10;
+let holdT = null;
+function relock(sec){
+  if (!sec) return; clearInterval(sec._iv); sec._iv = null; sec.classList.remove("open");
+  sec.querySelector(".sv").hidden = true; sec.querySelector(".mask").hidden = false;
+  const b = sec.querySelector(".hold"); b.dataset.open = ""; b.querySelector(".hl").textContent = "길게 눌러 보기"; b.setAttribute("aria-label", "길게 눌러 매입 금액 보기");
+}
+function reveal(sec){
+  let left = SHOW_S; const b = sec.querySelector(".hold");
+  sec.classList.add("open"); sec.querySelector(".sv").hidden = false; sec.querySelector(".mask").hidden = true;
+  b.classList.remove("ing"); b.dataset.open = "1"; b.setAttribute("aria-label", "지금 잠그기");
+  const tick = () => { b.querySelector(".hl").textContent = `잠그기 · ${left}초`; if (left-- <= 0) relock(sec); };
+  tick(); sec._iv = setInterval(tick, 1000);
+}
+function holdStart(b){
+  const sec = b.closest(".secret");
+  if (b.dataset.open){ relock(sec); return; }
+  b.classList.add("ing"); clearTimeout(holdT); holdT = setTimeout(() => reveal(sec), HOLD_MS);
+}
+function holdEnd(){ clearTimeout(holdT); document.querySelectorAll(".hold.ing").forEach(b => b.classList.remove("ing")); }
+document.addEventListener("pointerdown", e => { const b = e.target.closest(".hold"); if (!b) return; e.preventDefault(); holdStart(b); });
+["pointerup", "pointercancel"].forEach(t => document.addEventListener(t, holdEnd));
+document.addEventListener("pointerout", e => { if (e.target.closest?.(".hold.ing") && !e.target.closest(".hold").contains(e.relatedTarget)) holdEnd(); });
+document.addEventListener("keydown", e => { const b = e.target.closest?.(".hold"); if (b && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); if (!e.repeat) holdStart(b); } });
+document.addEventListener("keyup", e => { if (e.target.closest?.(".hold") && (e.key === "Enter" || e.key === " ")) holdEnd(); });
+document.addEventListener("visibilitychange", () => { if (document.hidden) document.querySelectorAll(".secret.open").forEach(relock); });
+document.querySelectorAll("dialog").forEach(d => d.addEventListener("close", () => d.querySelectorAll(".secret.open").forEach(relock)));
+
+function render(){
+  $("#siteName").textContent = site.name || "Package Portfolio";
+  $("#siteIntro").textContent = site.intro || "해시태그를 골라 꼭 맞는 패키지 사례를 찾아보세요.";
+  $("#btnAll").classList.toggle("on", adminAll);
+  $("#notice").innerHTML = `<div class="notice"><span><b style="color:var(--kraft);font-weight:600">데모 버전</b> · 예시 데이터로 동작하고, 등록·수정·삭제한 내용은 새로고침하면 처음 상태로 돌아가요.${isAdmin ? " ERP 주문도 예시 데이터예요." : ""}</span><button class="btn${isAdmin ? " on" : ""}" type="button" id="demoRole">${isAdmin ? "방문자 화면으로 보기" : "관리자 화면으로 보기"}</button></div>`;
+  if (dbMissing){ $("#app").innerHTML = `<div class="empty"><strong>포트폴리오를 불러올 수 없습니다</strong><span>claude.ai에 로그인한 상태에서 다시 열어 주세요.</span></div>`; return; }
+  if (!loaded){ $("#app").innerHTML = `<div class="empty"><span>불러오는 중…</span></div>`; return; }
+  if (!items.length){
+    $("#app").innerHTML = `<div class="empty"><strong>아직 등록된 포트폴리오가 없습니다</strong><span>${isAdmin ? "ERP 주문을 골라 첫 사례를 만들어 보세요." : "곧 제작 사례가 올라올 예정입니다."}</span>${isAdmin ? `<button class="btn primary" type="button" data-add>+ ERP 주문으로 등록</button>` : ""}</div>`;
+    return;
+  }
+  renderBrowse();
+}
+const toTop = () => $("#app").scrollIntoView({behavior:"smooth", block:"start"});
+
+/* ---------- events ---------- */
+document.addEventListener("click", e => {
+  const t = e.target.closest("button"); if (!t) return;
+  if ((t.closest("#dForm") || t.closest("#dPick")) && !t.hasAttribute("data-close")) return;
+  if (t.dataset.togG){ sel = toggled(t.dataset.togG, t.dataset.togV); render(); return; }
+  if (t.dataset.tab){ tab = t.dataset.tab; render(); return; }
+  if (t.dataset.mode){ methodMode = t.dataset.mode; render(); return; }
+  if (t.hasAttribute("data-clear")){ sel = emptySel(); render(); return; }
+  if (t.dataset.g){
+    sel = toggled(t.dataset.g, t.dataset.v); tab = t.dataset.g;
+    if ($("#dDetail").open) $("#dDetail").close();
+    render(); toTop(); return;
+  }
+  if (t.dataset.open){ openDetail(t.dataset.open); return; }
+  if (t.hasAttribute("data-close")){ t.closest("dialog").close(); return; }
+  if (t.hasAttribute("data-add")){ openPick(); return; }
+  if (t.id === "delExamples"){
+    if (t.dataset.armed) deleteExamples(t);
+    else { t.dataset.armed = "1"; t.textContent = "한 번 더 누르면 삭제됩니다"; t.classList.add("danger"); }
+  }
+});
+$("#btnAdd").addEventListener("click", openPick);
+$("#btnSettings").addEventListener("click", openSettings);
+$("#btnAll").addEventListener("click", () => { adminAll = !adminAll; render(); });
+
+/* ---------- ERP order picker ---------- */
+const registered = () => new Map(items.filter(i => i.erp?.no).map(i => [gkey(i.erp.no), i]));
+let pickSeq = 0;
+async function renderPick(){
+  const seq = ++pickSeq; const list = $("#pList");
+  list.innerHTML = `<p class="hint">ERP에서 주문을 불러오는 중…</p>`;
+  const rows = await erpApi.search($("#pQ").value); if (seq !== pickSeq) return;
+  const reg = registered();
+  const fresh = rows.filter(r => !reg.has(gkey(r.no))), done = rows.filter(r => reg.has(gkey(r.no)));
+  const row = (r, isDone) => `<button type="button" class="prow" data-pick="${h(r.no)}" ${isDone ? "disabled" : ""}>
+      <span class="t"><span class="no">${h(r.no)}</span>${h(r.item)}</span>
+      <span class="m">${h(r.client)} · ${r.qty ? `${fmt(r.qty)}개` : "수량 없음"} · ${h(r.od)}${r.work ? ` · ${h(r.work)}` : ""}</span>
+      <span class="go">${isDone ? "등록됨" : "선택 →"}</span></button>`;
+  list.innerHTML = !rows.length ? `<p class="hint">검색 결과가 없어요.</p>`
+    : (fresh.length ? fresh.map(r => row(r, false)).join("") : `<p class="hint">새로 등록할 주문이 없어요.</p>`)
+      + (done.length ? `<p class="hint" style="margin:10px 0 0">이미 포트폴리오가 있는 주문 ${done.length}건</p>${done.slice(0, 30).map(r => row(r, true)).join("")}` : "");
+}
+function openPick(){ $("#pQ").value = ""; renderPick(); $("#dPick").showModal(); $("#pQ").focus(); }
+$("#pQ").addEventListener("input", renderPick);
+$("#pList").addEventListener("click", async e => {
+  const b = e.target.closest("[data-pick]"); if (!b || b.disabled) return;
+  const r = await erpApi.get(b.dataset.pick); if (!r) return;
+  $("#dPick").close(); openForm(null, r);
+});
+
+/* ---------- detail ---------- */
+// photo gallery: 1st photo = card thumbnail; ‹ › buttons, swipe, ←/→ keys move through the rest
+let gal = {n:0, i:0};
+function galHtml(it){
+  const ps = it.photos || []; gal = {n:ps.length, i:0};
+  if (!ps.length) return `<div class="main-ph">${artFor(it)}</div>`;
+  return `<div class="main-ph" id="mainPh">${ps.map((p, i) => `<img src="${blob(p.f)}" alt="${h(it.title)} 사진 ${i + 1}" data-gimg="${i}" ${i ? "hidden" : ""}>`).join("")}
+      ${ps.length > 1 ? `<button type="button" class="gnav prev" data-gnav="-1" aria-label="이전 사진">‹</button><button type="button" class="gnav next" data-gnav="1" aria-label="다음 사진">›</button><span class="gcnt" id="gCnt">1 / ${ps.length}</span>` : ""}</div>
+    ${ps.length > 1 ? `<div class="thumbs">${ps.map((p, i) => `<button type="button" class="${i ? "" : "on"}" data-gi="${i}" aria-label="사진 ${i + 1}"><img src="${blob(p.t || p.f)}" alt=""></button>`).join("")}</div>` : ""}`;
+}
+function showGal(i){
+  if (gal.n < 2) return; gal.i = (i + gal.n) % gal.n;
+  $("#dBody").querySelectorAll("[data-gimg]").forEach(im => im.hidden = +im.dataset.gimg !== gal.i);
+  $("#dBody").querySelectorAll("[data-gi]").forEach(b => b.classList.toggle("on", +b.dataset.gi === gal.i));
+  $("#gCnt").textContent = `${gal.i + 1} / ${gal.n}`;
+}
+$("#dBody").addEventListener("click", e => {
+  const nb = e.target.closest("[data-gnav]"); if (nb){ e.stopPropagation(); showGal(gal.i + Number(nb.dataset.gnav)); return; }
+  const tb = e.target.closest("[data-gi]"); if (tb){ e.stopPropagation(); showGal(+tb.dataset.gi); }
+});
+document.addEventListener("keydown", e => {
+  if (!$("#dDetail").open || gal.n < 2) return;
+  if (e.key === "ArrowLeft") showGal(gal.i - 1); else if (e.key === "ArrowRight") showGal(gal.i + 1);
+});
+let swipeX = null;
+$("#dBody").addEventListener("pointerdown", e => { if (e.target.closest("#mainPh") && !e.target.closest(".gnav")) swipeX = e.clientX; });
+$("#dBody").addEventListener("pointerup", e => { if (swipeX == null) return; const dx = e.clientX - swipeX; swipeX = null; if (Math.abs(dx) > 40) showGal(gal.i + (dx < 0 ? 1 : -1)); });
+function openDetail(id){
+  const it = items.find(i => i.id === id); if (!it) return;
+  $("#dTitle").textContent = it.title || "제목 없음";
+  const photos = it.photos || [];
+  const tagRow = g => { const vs = it.f[g.k] || []; return vs.length ? vs.map(v => v === NONE ? `<span class="hint">없음</span>` : tagBtn({g:g.k, v})).join("") : `<span class="hint">–</span>`; };
+  $("#dBody").innerHTML = `<div class="detail">
+    <div>${galHtml(it)}</div>
+    <div>
+      ${it.erp ? baseHtml(it.erp, "", it.work ?? it.erp.work) : ""}
+      <dl class="spec">${GROUPS.map(g => `<dt>${g.label}</dt><dd>${tagRow(g)}</dd>`).join("")}${it.year ? `<dt>제작 연도</dt><dd class="num">${h(it.year)}</dd>` : ""}</dl>
+      ${it.memo ? `<div class="memo">${h(it.memo)}</div>` : ""}
+      ${it.example ? `<p class="hint">예시 데이터입니다.</p>` : ""}</div></div>`;
+  const foot = $("#dFoot"); foot.hidden = !isAdmin;
+  if (isAdmin){
+    foot.innerHTML = `<span class="status" id="dStatus"></span><button class="btn danger" type="button" id="dDel">삭제</button><button class="btn primary" type="button" id="dEdit">수정</button>`;
+    $("#dEdit").onclick = () => { $("#dDetail").close(); openForm(it); };
+    $("#dDel").onclick = async ev => {
+      const b = ev.currentTarget;
+      if (!b.dataset.armed){ b.dataset.armed = "1"; b.textContent = "정말 삭제할까요? 한 번 더 누르세요"; return; }
+      b.disabled = true; $("#dStatus").textContent = "삭제 중…";
+      try{
+        await db.doc("works/" + it.id).delete();
+        for (const p of photos) for (const aid of [p.f, p.t]) if (aid && assets){ try{ await assets.delete(aid); }catch(_){} }
+        $("#dDetail").close();
+      }catch(_){ $("#dStatus").textContent = "삭제하지 못했습니다."; $("#dStatus").classList.add("err"); b.disabled = false; }
+    };
+  }
+  $("#dDetail").showModal(); $("#dBody").scrollTop = 0;
+}
+
+/* ---------- form (always tied to one ERP order) ---------- */
+let editing = null, formErp = null, formPhotos = [], removed = [], formExtra = {};
+const chipHtml = (k, v, on) => `<button type="button" class="chip${v === NONE ? " none" : ""}${v !== NONE && isMine(k, v) ? " mine" : ""}${on ? " on" : ""}" data-v="${h(v)}" aria-pressed="${on}">${h(v)}</button>`;
+function groupInner(k, s){
+  const g = G[k];
+  if (k === "qty"){ // follows the ERP quantity, not editable
+    return `<span class="fl">${g.label}<span class="rl">ERP 수량 기준 자동 선택</span></span><div class="chips" role="group" aria-label="${g.label}">${[...g.opts, ...(s.has(NONE) ? [NONE] : [])].map(v => chipHtml(k, v, s.has(v))).join("")}</div>`;
+  }
+  let inner;
+  if (k === "method"){
+    inner = METHOD_SUBS.map(x => { const opts = [...x.opts, ...(formExtra.method[x.n] || []).filter(v => !x.opts.includes(v))];
+      return `<span class="sub">${h(x.n)}</span>${opts.map(v => chipHtml(k, v, s.has(v))).join("")}`; }).join("") + `<span class="sub">해당 없음</span>${chipHtml(k, NONE, s.has(NONE))}`;
+  } else inner = [...g.opts, ...(formExtra[k] || []).filter(v => !g.opts.includes(v)), NONE].map(v => chipHtml(k, v, s.has(v))).join("");
+  const rl = k === "method" ? "적용한 인쇄·박·코팅·후가공을 모두 선택" : g.multi ? "여러 개 선택 가능" : "하나만 선택";
+  const add = g.custom ? `<div class="addopt"><input type="text" data-addin="${k}" placeholder="목록에 없는 ${g.label}을(를) 직접 입력" maxlength="20">${k === "method" ? `<select data-addsub aria-label="분류">${METHOD_SUBS.map(x => `<option>${h(x.n)}</option>`).join("")}</select>` : ""}<button type="button" class="btn sm" data-addbtn="${k}">+ 추가</button></div>` : "";
+  return `<span class="fl">${g.label}<span class="req">*</span><span class="rl">${rl}</span></span><div class="chips" role="group" aria-label="${g.label}">${inner}</div>${add}`;
+}
+/* 작업 정보: ERP 값이 기본으로 들어오고, 작업자가 문구를 고칠 수 있다. 방식 태그는 이 문구에서 채운다. */
+function renderWorkHint(){
+  const v = $("#fWork").value.trim(), orig = formErp?.work || "";
+  const p = parseWork(v);
+  $("#fWorkHint").innerHTML = `<div class="workhint">
+    <span class="hint">${!v ? "작업 정보가 비어 있어요. 방식 태그는 직접 골라 주세요." : p.tags.length ? `알아본 방식: ${p.tags.map(h).join(" · ")}` : p.none ? "무인쇄 → 방식 ‘없음’" : "알아본 방식이 없어요"}${p.unknown.length ? ` · 못 알아본 항목: ${p.unknown.map(h).join(", ")}` : ""}${v !== orig ? ` · <b>ERP 원래 값과 달라요</b>` : orig ? " · ERP 값 그대로" : ""}</span>
+    <span class="sp"></span>
+    ${v !== orig && orig ? `<button type="button" class="btn sm" data-workreset>ERP 원래 값으로</button>` : ""}
+    <button type="button" class="btn sm" data-workfill>이 작업 정보로 방식 다시 채우기</button></div>`;
+}
+function fillWork(){
+  const p = parseWork($("#fWork").value); const keep = new Set(p.none ? [NONE] : p.tags);
+  const w = $('#fGroups [data-grp="method"]'); w.innerHTML = groupInner("method", keep); w.classList.remove("err");
+}
+$("#fWork").addEventListener("input", renderWorkHint);
+$("#fWorkHint").addEventListener("click", e => {
+  if (e.target.closest("[data-workfill]")){ fillWork(); setStatus("작업 정보 기준으로 방식 태그를 다시 골랐어요."); }
+  if (e.target.closest("[data-workreset]")){ $("#fWork").value = formErp?.work || ""; renderWorkHint(); }
+});
+function renderBase(note){
+  $("#fBase").innerHTML = baseHtml(formErp, editing ? `<button type="button" class="btn sm" id="fRefresh">ERP에서 다시 불러오기</button>` : (note || ""));
+  $("#fRefresh")?.addEventListener("click", async ev => {
+    const b = ev.currentTarget; b.disabled = true; b.textContent = "불러오는 중…";
+    const r = await erpApi.get(formErp.no);
+    if (r){ const same = $("#fWork").value.trim() === (formErp.work || ""); formErp = r; setQty(r.qty); renderBase();
+      if (same) $("#fWork").value = r.work || ""; renderWorkHint();
+      setStatus(same ? "ERP 최신 값으로 바꿨어요. 방식 태그는 그대로예요 — 필요하면 ‘방식 다시 채우기’를 누르세요." : "ERP 최신 값으로 바꿨어요. 직접 고친 작업 정보는 그대로 두었어요."); }
+    else { b.disabled = false; b.textContent = "ERP에서 찾지 못함"; }
+  });
+}
+function setQty(n){ const t = qtyTag(n); const w = $('#fGroups [data-grp="qty"]'); w.innerHTML = groupInner("qty", new Set(t ? [t] : [NONE])); }
+function openForm(it, rec){
+  editing = it; formErp = rec || it?.erp || null; removed = []; formPhotos = (it?.photos || []).map(p => ({...p}));
+  if (!formErp || !isAdmin) return; // portfolios only exist on top of an ERP order; only admins edit
+  formExtra = {shape:[], industry:[], method:{}};
+  const cur = it ? it.f : {};
+  ["shape", "industry"].forEach(k => (cur[k] || []).forEach(v => v !== NONE && !G[k].opts.includes(v) && formExtra[k].push(v)));
+  (cur.method || []).forEach(v => { if (v !== NONE && !G.method.opts.includes(v)) (formExtra.method["후가공"] ||= []).push(v); });
+  $("#fTitle").textContent = it ? "포트폴리오 수정" : "포트폴리오 등록";
+  $("#fName").value = it?.title || formErp.item || "";
+  $("#fYear").value = it?.year ?? (num(String(formErp.od).slice(0, 4)) || "");
+  $("#fMemo").value = it?.memo || "";
+  $("#fGroups").innerHTML = GROUPS.map(g => `<div class="fld full${g.k === "qty" ? " locked" : ""}" data-grp="${g.k}">${groupInner(g.k, new Set(cur[g.k] || []))}</div>`).join("");
+  setQty(formErp.qty);
+  $("#fWork").value = it?.work ?? formErp.work ?? "";
+  if (!it) fillWork(); // new portfolio: 방식 starts from the ERP 작업 정보
+  renderWorkHint();
+  renderBase(); setStatus(""); $("#fSave").disabled = false;
+  renderPhotos(); $("#dForm").showModal();
+}
+function setChip(b, on){ b.classList.toggle("on", on); b.setAttribute("aria-pressed", on); }
+function addOpt(k){
+  const wrap = $(`#fGroups [data-grp="${k}"]`); const inp = wrap.querySelector("[data-addin]");
+  const v = inp.value.trim().replace(/^#/, ""); if (!v || v === NONE) return;
+  const s = new Set(pickedIn(k)); s.delete(NONE);
+  const exists = [...wrap.querySelectorAll(".chip")].some(b => b.dataset.v === v);
+  if (!exists){
+    if (k === "method"){ const sub = wrap.querySelector("[data-addsub]").value; (formExtra.method[sub] ||= []).push(v); }
+    else formExtra[k].push(v);
+  }
+  if (!G[k].multi) s.clear();
+  s.add(v); wrap.innerHTML = groupInner(k, s); wrap.classList.remove("err");
+  wrap.querySelector("[data-addin]").focus();
+}
+$("#fGroups").addEventListener("click", e => {
+  const ab = e.target.closest("[data-addbtn]"); if (ab){ addOpt(ab.dataset.addbtn); return; }
+  const b = e.target.closest(".chip"); if (!b) return;
+  const wrap = b.closest("[data-grp]"); if (wrap.classList.contains("locked")) return;
+  const g = G[wrap.dataset.grp]; const all = [...wrap.querySelectorAll(".chip")];
+  const on = !b.classList.contains("on");
+  if (!g.multi || b.dataset.v === NONE) all.forEach(x => setChip(x, false));
+  else all.filter(x => x.dataset.v === NONE).forEach(x => setChip(x, false));
+  setChip(b, on || !g.multi);
+  wrap.classList.remove("err");
+});
+$("#fGroups").addEventListener("keydown", e => { const i = e.target.closest("[data-addin]"); if (i && e.key === "Enter"){ e.preventDefault(); addOpt(i.dataset.addin); } });
+const pickedIn = k => [...$(`#fGroups [data-grp="${k}"]`).querySelectorAll(".chip.on")].map(b => b.dataset.v);
+function renderPhotos(){
+  $("#fPhotos").innerHTML = formPhotos.map((p, i) => `<div class="pslot"><img src="${p.file ? p.preview : blob(p.t || p.f)}" alt="">
+      ${i === 0 ? `<span class="main">대표</span>` : ""}<span class="no">${i + 1}</span>
+      <div class="pa">${i ? `<button type="button" data-pm="${i}">대표로</button>` : "<span></span>"}<button type="button" data-pr="${i}">삭제</button></div></div>`).join("")
+    + (!assets ? `<span class="hint">사진 업로드는 편집 권한이 있을 때만 가능합니다.</span>`
+      : TOUCH ? `<button type="button" class="addph" id="addCam">${CAM}<span>사진 추가</span><small>카메라</small></button><button type="button" class="addph" id="addPh"><span>앨범에서</span></button>`
+      : `<button type="button" class="addph" id="addPh"><span>사진 추가</span><small>또는 Ctrl+V</small></button>`);
+}
+const TOUCH = matchMedia("(pointer:coarse)").matches;
+const CAM = P(`<path d="M8 16h7l3-5h12l3 5h7v22H8z"/><circle cx="24" cy="26" r="7"/>`);
+function addFiles(list){
+  const imgs = [...list].filter(f => f && f.type.startsWith("image/"));
+  imgs.forEach(f => formPhotos.push({file:f, preview:URL.createObjectURL(f)}));
+  if (imgs.length) renderPhotos();
+  return imgs.length;
+}
+$("#fCam").addEventListener("change", e => { addFiles(e.target.files); e.target.value = ""; });
+document.addEventListener("paste", e => {
+  if (!$("#dForm").open || !assets) return;
+  const files = [...(e.clipboardData?.items || [])].filter(x => x.kind === "file" && x.type.startsWith("image/")).map(x => x.getAsFile());
+  if (!files.length) return; // plain text paste stays normal
+  e.preventDefault(); const n = addFiles(files); setStatus(`클립보드 사진 ${n}장을 붙였어요.`);
+});
+$("#fPhotos").addEventListener("dragover", e => { if (!assets) return; e.preventDefault(); $("#fPhotos").classList.add("over"); });
+$("#fPhotos").addEventListener("dragleave", () => $("#fPhotos").classList.remove("over"));
+$("#fPhotos").addEventListener("drop", e => { if (!assets) return; e.preventDefault(); $("#fPhotos").classList.remove("over"); addFiles(e.dataTransfer.files); });
+$("#fPhotos").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.id === "addPh"){ $("#fFile").click(); return; }
+  if (b.id === "addCam"){ $("#fCam").click(); return; }
+  if (b.dataset.pm){ const [p] = formPhotos.splice(+b.dataset.pm, 1); formPhotos.unshift(p); renderPhotos(); }
+  if (b.dataset.pr){ const [p] = formPhotos.splice(+b.dataset.pr, 1); if (!p.file) removed.push(p); else URL.revokeObjectURL(p.preview); renderPhotos(); }
+});
+$("#fFile").addEventListener("change", e => { addFiles(e.target.files); e.target.value = ""; });
+const numVal = s => { const v = String(s).replace(/[^\d.]/g, ""); return v === "" ? null : Number(v); };
+function setStatus(msg, err){ const s = $("#fStatus"); s.textContent = msg; s.classList.toggle("err", !!err); }
+async function resize(file, max, q){
+  let src;
+  try { src = await createImageBitmap(file, {imageOrientation:"from-image"}); }
+  catch(_) { src = await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = URL.createObjectURL(file); }); }
+  const k = Math.min(1, max / Math.max(src.width, src.height));
+  const c = document.createElement("canvas"); c.width = Math.round(src.width * k); c.height = Math.round(src.height * k);
+  const ctx = c.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height); ctx.drawImage(src, 0, 0, c.width, c.height);
+  return await new Promise(res => c.toBlob(res, "image/jpeg", q));
+}
+async function saveTaxonomy(facets){
+  const next = {shape:[...(tax.shape || [])], industry:[...(tax.industry || [])], method:{...(tax.method || {})}}; let changed = false;
+  ["shape", "industry"].forEach(k => facets[k].forEach(v => { if (v !== NONE && !G[k].opts.includes(v)){ next[k].push(v); changed = true; } }));
+  Object.entries(formExtra.method).forEach(([sub, vs]) => vs.forEach(v => { if (facets.method.includes(v) && !G.method.opts.includes(v)){ next.method[sub] = [...(next.method[sub] || []), v]; changed = true; } }));
+  if (changed) await db.doc("site/taxonomy").set(next);
+}
+$("#frm").addEventListener("submit", async e => {
+  e.preventDefault();
+  if (!formErp){ setStatus("ERP 주문이 없어 저장할 수 없어요.", true); return; }
+  const dup = registered().get(gkey(formErp.no));
+  if (dup && dup.id !== editing?.id){ setStatus(`이 주문(${formErp.no})은 이미 ‘${dup.title}’로 등록돼 있어요.`, true); return; }
+  const title = $("#fName").value.trim();
+  if (!title){ setStatus("제목을 입력해 주세요.", true); $("#fName").focus(); return; }
+  const facets = {}; const missing = [];
+  GROUPS.forEach(g => { facets[g.k] = pickedIn(g.k); const w = $(`#fGroups [data-grp="${g.k}"]`); w.classList.toggle("err", !facets[g.k].length); if (!facets[g.k].length) missing.push(g.label); });
+  if (missing.length){
+    setStatus(`${missing.join("·")} 태그를 골라 주세요. 해당 없으면 ‘없음’을 선택하세요.`, true);
+    $(`#fGroups [data-grp="${GROUPS.find(g => !facets[g.k].length).k}"]`).scrollIntoView({behavior:"smooth", block:"center"}); return;
+  }
+  if (!db){ setStatus("저장소에 연결되지 않았습니다.", true); return; }
+  $("#fSave").disabled = true;
+  try{
+    const photos = []; const news = formPhotos.filter(p => p.file).length; let done = 0;
+    for (const p of formPhotos){
+      if (!p.file){ photos.push({f:p.f, t:p.t}); continue; }
+      setStatus(`사진 올리는 중… ${++done}/${news}`);
+      const full = await assets.upload(await resize(p.file, 2000, .86), {type:"image/jpeg"});
+      const thumb = await assets.upload(await resize(p.file, 720, .8), {type:"image/jpeg"});
+      p.file = null; p.f = full.id; p.t = thumb.id; photos.push({f:full.id, t:thumb.id});
+    }
+    setStatus("저장 중…");
+    await saveTaxonomy(facets);
+    const e0 = formErp;
+    const erp = {no:e0.no, client:e0.client, item:e0.item, qty:e0.qty, sales:e0.sales, cost:e0.cost, od:e0.od || "", work:e0.work || "", syncedAt:Date.now()};
+    const data = { title, facets, erp, work:$("#fWork").value.trim(), year:numVal($("#fYear").value), memo:$("#fMemo").value.trim(),
+      photos, example:!!editing?.example, createdAt:editing?.createdAt || Date.now(), updatedAt:Date.now() };
+    const id = editing?.id || ("w" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6));
+    await db.doc("works/" + id).set(data);
+    for (const p of removed) for (const aid of [p.f, p.t]) if (aid && assets){ try{ await assets.delete(aid); }catch(_){} }
+    $("#dForm").close();
+  }catch(err){
+    const code = err && err.code;
+    setStatus(code === "too_large" ? "사진이 너무 큽니다." : code === "quota_or_state" ? "저장 공간이 가득 찼습니다." : code === "invalid_argument" ? "저장 권한이 없습니다." : "저장하지 못했습니다. 다시 시도해 주세요.", true);
+    $("#fSave").disabled = false;
+  }
+});
+
+function openSettings(){ $("#sName").value = site.name || ""; $("#sIntro").value = site.intro || ""; $("#sStatus").textContent = ""; $("#dSettings").showModal(); }
+$("#sfrm").addEventListener("submit", async e => {
+  e.preventDefault();
+  try{ await db.doc("site/config").set({name:$("#sName").value.trim(), intro:$("#sIntro").value.trim()}); $("#dSettings").close(); }
+  catch(_){ $("#sStatus").textContent = "저장하지 못했습니다."; $("#sStatus").classList.add("err"); }
+});
+async function deleteExamples(btn){
+  btn.disabled = true; btn.textContent = "삭제 중…";
+  for (const it of items.filter(i => i.example)){ try{ await db.doc("works/" + it.id).delete(); }catch(_){} }
+}
+
+
+/* ---------- demo boot ----------
+   데모 버전: 서버 저장소 대신 이 페이지 안의 메모리에 저장합니다. 새로고침하면 처음 예시 상태로 돌아가요. */
+const DEMO_ORDERS = [
+  // no, client, item, qty, sales, cost, od, work
+  ["SO-2026-0412","벨루나코스메틱","앰플 단상자 (30ml)",5000,4250000,2890000,"2026-04-12","옵셋 4도 / 금박 / 무광 코팅"],
+  ["SO-2026-0120","담솜제과","명절 한과 선물세트 싸바리",1200,9600000,6450000,"2026-01-20","별색 2도 / 금박 / 형압"],
+  ["SO-2026-0305","휴온랩","유산균 자석표지 박스",3000,12300000,8100000,"2026-03-05","옵셋 4도 / 은박 / 벨벳 코팅 / 부분UV"],
+  ["SO-2025-1114","그린리프마켓","크라프트 쇼핑백",20000,6000000,4300000,"2025-11-14","실크 1도"],
+  ["SO-2025-0903","달빛양조","전통주 원통형 패키지",800,7200000,5040000,"2025-09-03","옵셋 4도 / 금박 / 에폭시"],
+  ["SO-2025-0821","노바기어","무선이어폰 슬리브 + 트레이",2500,5500000,3600000,"2025-08-21","디지털 인쇄 / 유광 코팅"],
+  ["SO-2025-0710","포포펫","반려견 간식 파우치",10000,3900000,2700000,"2025-07-10","옵셋 4도 / 유광 코팅"],
+  ["SO-2025-1130","리본앤코","크리스마스 한정 서랍형 박스",1500,8250000,5600000,"2025-11-30","별색 2도 / 홀로그램박 / 형압"],
+  ["SO-2025-0516","메디온제약","연고 단상자",30000,4800000,3500000,"2025-05-16","옵셋 2도"],
+  ["SO-2025-0402","한빛책방","양장 도서 지함",400,2600000,1750000,"2025-04-02","디지털 인쇄 / 무광 코팅 / 형압"],
+  ["SO-2025-0318","플로라다","핸드크림 창문형 박스",6000,3300000,2250000,"2025-03-18","옵셋 4도 / 부분UV / PET창"],
+  ["SO-2025-0207","한결재단","기념품 자석표지 박스",700,4900000,3300000,"2025-02-07","별색 1도 / 은박"],
+  // 아직 포트폴리오가 없는 주문 (등록해 보기용)
+  ["SO-2026-0502","벨루나코스메틱","립밤 슬리브 패키지",8000,2400000,1580000,"2026-05-02","옵셋 4도 / 홀로그램박 / 유광 코팅"],
+  ["SO-2026-0428","담솜제과","수제 쿠키 트레이 박스",2000,3100000,2050000,"2026-04-28","디지털 인쇄 / 무광 코팅"],
+  ["SO-2026-0425","오롯차","녹차 원통형 지관 케이스",1000,3800000,2600000,"2026-04-25","별색 2도 / 금박 / 형압"],
+  ["SO-2026-0419","노바기어","스마트워치 자석표지 박스",4000,10400000,7300000,"2026-04-19","옵셋 4도 / 은박 / 벨벳 코팅 / 스팟UV / 자석 2개"],
+  ["SO-2026-0415","그린리프마켓","무인쇄 크라프트 파우치",15000,2250000,1700000,"2026-04-15","무인쇄"],
+];
+const DEMO_WORKS = [
+  // order no, title, shape, industry, method, mood, memo
+  ["SO-2026-0412","앰플 단상자 · 골드 포인트",["단상자"],["화장품"],["옵셋 인쇄","금박","무광 코팅"],["고급","미니멀"],"사이즈 40×40×120mm\n지류 아이보리 350g\n납기 12일"],
+  ["SO-2026-0120","명절 한과 선물세트",["싸바리"],["식품"],["별색 인쇄","금박","형압"],["선물용","전통·한국적"],"보자기 매듭 모양 형압, 내부 칸막이 6구"],
+  ["SO-2026-0305","유산균 프리미엄 자석박스",["자석표지"],["건강기능식품"],["옵셋 인쇄","은박","벨벳 코팅","부분 UV"],["고급"],"벨벳 코팅 위 부분 UV로 로고 강조"],
+  ["SO-2025-1114","크라프트 쇼핑백",["쇼핑백"],["생활용품"],["실크 인쇄"],["친환경","가성비"],"재생 크라프트 150g, 종이 끈"],
+  ["SO-2025-0903","전통주 원통형 패키지",["원통형"],["주류"],["옵셋 인쇄","금박","에폭시"],["전통·한국적","고급"],""],
+  ["SO-2025-0821","무선이어폰 슬리브 패키지",["슬리브","트레이"],["전자·IT"],["디지털 인쇄","유광 코팅"],["미니멀"],"펄프 몰드 트레이 + 인쇄 슬리브"],
+  ["SO-2025-0710","반려견 간식 파우치",["파우치"],["반려동물"],["옵셋 인쇄","유광 코팅"],["캐주얼·팝","가성비"],"지퍼백, 무광/유광 혼합 검토 후 유광으로 확정"],
+  ["SO-2025-1130","크리스마스 한정 서랍형 박스",["서랍형"],["패션·잡화"],["별색 인쇄","홀로그램박","형압"],["시즌·한정","선물용"],""],
+  ["SO-2025-0516","연고 단상자",["단상자"],["제약·의료"],["옵셋 인쇄"],["가성비","미니멀"],"점자 표기 포함"],
+  ["SO-2025-0402","양장 도서 지함",["지함"],["교육·출판"],["디지털 인쇄","무광 코팅","형압"],["미니멀","고급"],"소량 한정판 세트"],
+  ["SO-2025-0318","핸드크림 창문형 박스",["창문형"],["화장품"],["옵셋 인쇄","부분 UV","창 톰슨"],["캐주얼·팝"],""],
+  ["SO-2025-0207","기념품 자석표지 박스",["자석표지"],["기업·기관"],["별색 인쇄","은박"],["고급","선물용"],"로고 은박 1도, 내부 폼 재단"],
+];
+const BLOBS = {}; let blobSeq = 0;
+function blob(id){ return BLOBS[id] || ""; }
+const pause = (ms = 250) => new Promise(r => setTimeout(r, ms));
+const later = f => setTimeout(f, 0);
+const mem = {works:new Map(), docs:new Map()}, subs = {works:[], docs:new Map()};
+const emitWorks = () => { const snap = {docs:[...mem.works].map(([id, d]) => ({id, exists:true, data:() => structuredClone(d)}))}; subs.works.forEach(cb => cb(snap)); };
+const emitDoc = p => (subs.docs.get(p) || []).forEach(cb => cb({exists:mem.docs.has(p), data:() => structuredClone(mem.docs.get(p))}));
+const demoDb = {
+  collection: () => ({ onSnapshot(cb){ subs.works.push(cb); later(emitWorks); } }),
+  doc: path => { const [c, id] = path.split("/"); return {
+    async set(d){ await pause(); if (c === "works"){ mem.works.set(id, structuredClone(d)); later(emitWorks); } else { mem.docs.set(path, structuredClone(d)); later(() => emitDoc(path)); } },
+    async delete(){ await pause(); mem.works.delete(id); later(emitWorks); },
+    onSnapshot(cb){ if (!subs.docs.has(path)) subs.docs.set(path, []); subs.docs.get(path).push(cb); later(() => emitDoc(path)); },
+  }; },
+};
+const demoAssets = {
+  async upload(b){ const id = "b" + (++blobSeq); BLOBS[id] = URL.createObjectURL(b); return {id}; },
+  async delete(id){ if (BLOBS[id]) URL.revokeObjectURL(BLOBS[id]); delete BLOBS[id]; },
+};
+
+const recOf = o => ({no:o[0], client:o[1], item:o[2], qty:o[3], sales:o[4], cost:o[5], od:o[6], work:o[7]});
+ERPI = {order:new Map(), sales:new Map(), cost:new Map()};
+DEMO_ORDERS.forEach(o => { const r = recOf(o), k = gkey(r.no);
+  ERPI.order.set(k, [{gor:r.no, co:r.client, item:r.item, qty:r.qty, amt:r.sales, od:r.od, work:r.work}]);
+  ERPI.sales.set(k, r.sales); ERPI.cost.set(k, r.cost); });
+erpReadyResolve();
+DEMO_WORKS.forEach(([no, title, shape, industry, method, mood, memo], i) => {
+  const e = erpRecord(gkey(no)); const t = Date.parse(e.od);
+  mem.works.set("demo" + i, {title, facets:{qty:[qtyTag(e.qty)], shape, industry, method, mood},
+    erp:{no:e.no, client:e.client, item:e.item, qty:e.qty, sales:e.sales, cost:e.cost, od:e.od, work:e.work, syncedAt:t},
+    work:e.work, year:num(e.od.slice(0, 4)), memo, photos:[], example:false, createdAt:t, updatedAt:t});
+});
+
+db = demoDb; assets = demoAssets; isAdmin = false;
+$("#adminBar").hidden = true;
+document.addEventListener("click", e => {
+  if (!e.target.closest("#demoRole")) return;
+  isAdmin = !isAdmin; if (!isAdmin) adminAll = false;
+  $("#adminBar").hidden = !isAdmin; render();
+});
+render();
+db.collection("works").onSnapshot(snap => {
+  items = snap.docs.map(d => { const it = {id:d.id, ...d.data()}; it.f = facetsOf(it); return it; });
+  loaded = true; render();
+  if ($("#dPick").open) renderPick();
+});
+db.doc("site/config").onSnapshot(s => { site = s.exists ? s.data() : {}; render(); });
+db.doc("site/taxonomy").onSnapshot(s => { tax = s.exists ? s.data() : {}; applyTax(); render(); });
+})();
+</script>
